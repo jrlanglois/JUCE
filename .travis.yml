@@ -36,4 +36,11 @@ branches:
 script:
     - pwd
     - make -C examples/Demo/Builds/Linux
+    - cd examples/Demo/Builds/Linux
+    - pwd
+    - ls
+    - cd ..
+    - cd ..
+    - cd ..
+    - cd ..
     - make -C extras/UnitTestRunner/Builds/LinuxMakefile
