@@ -34,5 +34,6 @@ branches:
         - master
 
 script:
-    - make -C JUCE/examples/Demo/Builds/Linux
-    - make -C JUCE/extras/UnitTestRunner/Builds/LinuxMakefile
+    - pwd
+    - make -C examples/Demo/Builds/Linux
+    - make -C extras/UnitTestRunner/Builds/LinuxMakefile
