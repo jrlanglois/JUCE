@@ -38,6 +38,4 @@ script:
     - make -C examples/Demo/Builds/Linux
     - cd examples/Demo/Builds/Linux
     - pwd
-    - ls
-    - cd build
-    - ls
+    - ls -R /
