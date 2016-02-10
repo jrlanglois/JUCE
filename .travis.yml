@@ -39,7 +39,7 @@ before_install:
 
 compiler:
     - clang
-    - gcc
+    - if [ $TRAVIS_OS_NAME == "linux" ]; then gcc fi
 
 branches:
     only:
