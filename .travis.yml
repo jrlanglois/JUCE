@@ -11,24 +11,31 @@ git:
     depth: 5
 
 before_install:
-    - export DEBIAN_FRONTEND=noninteractive
-    - sudo apt-get update --fix-missing
-    - sudo apt-get install -qq
-        clang
-        libfreetype6-dev
-        libx11-dev
-        libxinerama-dev
-        libxrandr-dev
-        libxcursor-dev
-        libxcomposite-dev
-        mesa-common-dev
-        libasound2-dev
-        freeglut3-dev
-        libcurl4-gnutls-dev+
-        libasound2-dev
-        libjack-dev
-    - sudo apt-get update --fix-missing
-    - sudo apt-get update -qq
+    # LINUX
+    - if [ $TRAVIS_OS_NAME == "linux" ]; then
+        export DEBIAN_FRONTEND=noninteractive
+        sudo apt-get update --fix-missing
+        sudo apt-get install -qq
+            clang
+            libfreetype6-dev
+            libx11-dev
+            libxinerama-dev
+            libxrandr-dev
+            libxcursor-dev
+            libxcomposite-dev
+            mesa-common-dev
+            libasound2-dev
+            freeglut3-dev
+            libcurl4-gnutls-dev+
+            libasound2-dev
+            libjack-dev
+        sudo apt-get update --fix-missing
+        sudo apt-get update -qq
+      fi
+    # OSX
+    - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+        brew install cmake;
+      fi
 
 compiler:
     - clang
@@ -39,13 +46,19 @@ branches:
         - master
 
 script:
-    - pwd
-    - make -C extras/UnitTestRunner/Builds/LinuxMakefile JUCE_STRING_UTF_TYPE=8
-    - ./extras/UnitTestRunner/Builds/LinuxMakefile/build/UnitTestRunner
-    - make -C extras/UnitTestRunner/Builds/LinuxMakefile clean
-    - make -C extras/UnitTestRunner/Builds/LinuxMakefile JUCE_STRING_UTF_TYPE=16
-    - ./extras/UnitTestRunner/Builds/LinuxMakefile/build/UnitTestRunner
-    - make -C extras/UnitTestRunner/Builds/LinuxMakefile clean
-    - make -C extras/UnitTestRunner/Builds/LinuxMakefile JUCE_STRING_UTF_TYPE=32
-    - ./extras/UnitTestRunner/Builds/LinuxMakefile/build/UnitTestRunner
-    - make -C extras/UnitTestRunner/Builds/LinuxMakefile clean
+    # LINUX
+    - if [ $TRAVIS_OS_NAME == "linux" ]; then
+        make -C extras/UnitTestRunner/Builds/LinuxMakefile JUCE_STRING_UTF_TYPE=8
+        ./extras/UnitTestRunner/Builds/LinuxMakefile/build/UnitTestRunner
+        make -C extras/UnitTestRunner/Builds/LinuxMakefile clean
+        make -C extras/UnitTestRunner/Builds/LinuxMakefile JUCE_STRING_UTF_TYPE=16
+        ./extras/UnitTestRunner/Builds/LinuxMakefile/build/UnitTestRunner
+        make -C extras/UnitTestRunner/Builds/LinuxMakefile clean
+        make -C extras/UnitTestRunner/Builds/LinuxMakefile JUCE_STRING_UTF_TYPE=32
+        ./extras/UnitTestRunner/Builds/LinuxMakefile/build/UnitTestRunner
+        make -C extras/UnitTestRunner/Builds/LinuxMakefile clean
+      fi
+    # OSX
+    - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      fi
+
