@@ -4,7 +4,7 @@ dist: trusty
 language: cpp
 
 git:
-    depth: 1
+    depth: 5
 
 before_install:
     - export DEBIAN_FRONTEND=noninteractive
