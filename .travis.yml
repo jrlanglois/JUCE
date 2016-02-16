@@ -13,9 +13,9 @@ git:
 install:
     - pwd
     # LINUX
-    - if [[ $TRAVIS_OS_NAME == "linux" ]]; then ./ci/travisci-beforeinstall-linux.sh fi
+    - if [[ $TRAVIS_OS_NAME == "linux" ]]; then ./ci/travisci-beforeinstall-linux fi
     # OSX
-    - if [[ $TRAVIS_OS_NAME == "osx" ]]; then ./ci/travisci-beforeinstall-osx.sh fi
+    - if [[ $TRAVIS_OS_NAME == "osx" ]]; then ./ci/travisci-beforeinstall-osx fi
 
 compiler:
     - clang
@@ -28,6 +28,6 @@ branches:
 script:
     - pwd
     # LINUX
-    - if [[ $TRAVIS_OS_NAME == "linux" ]]; then "./ci/travisci-script-linux.sh" fi
+    - if [[ $TRAVIS_OS_NAME == "linux" ]]; then "./ci/travisci-script-linux" fi
     # OSX
-    - if [[ $TRAVIS_OS_NAME == "osx" ]]; then "./ci/travisci-script-osx.sh" fi
+    - if [[ $TRAVIS_OS_NAME == "osx" ]]; then "./ci/travisci-script-osx" fi
