@@ -1,13 +1,12 @@
 #!/bin/bash
 
-make -C extras/UnitTestRunner/Builds/LinuxMakefile JUCE_STRING_UTF_TYPE=8
-./extras/UnitTestRunner/Builds/LinuxMakefile/build/UnitTestRunner
-make -C extras/UnitTestRunner/Builds/LinuxMakefile clean
+utfValues = (8, 16, 32)
 
-make -C extras/UnitTestRunner/Builds/LinuxMakefile JUCE_STRING_UTF_TYPE=16
-./extras/UnitTestRunner/Builds/LinuxMakefile/build/UnitTestRunner
-make -C extras/UnitTestRunner/Builds/LinuxMakefile clean
-
-make -C extras/UnitTestRunner/Builds/LinuxMakefile JUCE_STRING_UTF_TYPE=32
-./extras/UnitTestRunner/Builds/LinuxMakefile/build/UnitTestRunner
-make -C extras/UnitTestRunner/Builds/LinuxMakefile clean
+for utfValues in "${utfValues[@]}"
+do
+    pushd buildForUTF${utfValues}
+    make -C extras/UnitTestRunner/Builds/LinuxMakefile JUCE_STRING_UTF_TYPE=${utfValues}
+    ./extras/UnitTestRunner/Builds/LinuxMakefile/build/UnitTestRunner
+    make -C extras/UnitTestRunner/Builds/LinuxMakefile clean
+    popd
+done
