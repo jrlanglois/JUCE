@@ -12,6 +12,7 @@ git:
 
 install:
     - pwd
+    - chmod +x /ci
     # LINUX
     - if [[ $TRAVIS_OS_NAME == "linux" ]]; then ./ci/travisci-beforeinstall-linux.sh; fi
     # OSX
