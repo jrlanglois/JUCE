@@ -10,30 +10,13 @@ os:
 git:
     depth: 5
 
-before_install:
+install:
+    - pwd
+    - chmod +x /ci
     # LINUX
-    - if [ $TRAVIS_OS_NAME == "linux" ]; then export DEBIAN_FRONTEND=noninteractive fi
-    - if [ $TRAVIS_OS_NAME == "linux" ]; then sudo apt-get update --fix-missing fi
-    - if [ $TRAVIS_OS_NAME == "linux" ]; then
-        sudo apt-get install -qq
-            clang
-            libfreetype6-dev
-            libx11-dev
-            libxinerama-dev
-            libxrandr-dev
-            libxcursor-dev
-            libxcomposite-dev
-            mesa-common-dev
-            libasound2-dev
-            freeglut3-dev
-            libcurl4-gnutls-dev+
-            libasound2-dev
-            libjack-dev
-      fi
-    - if [ $TRAVIS_OS_NAME == "linux" ]; then sudo apt-get update --fix-missing fi
-    - if [ $TRAVIS_OS_NAME == "linux" ]; then sudo apt-get update -qq fi
+    - if [[ $TRAVIS_OS_NAME == "linux" ]]; then ./ci/travisci-beforeinstall-linux.sh; fi
     # OSX
-    - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install cmake; fi
+    - if [[ $TRAVIS_OS_NAME == "osx" ]]; then ./ci/travisci-beforeinstall-osx.sh; fi
 
 compiler:
     - clang
@@ -44,20 +27,8 @@ branches:
         - master
 
 script:
+    - pwd
     # LINUX
-    - if [ $TRAVIS_OS_NAME == "linux" ]; then
-        make -C extras/UnitTestRunner/Builds/LinuxMakefile JUCE_STRING_UTF_TYPE=8
-        ./extras/UnitTestRunner/Builds/LinuxMakefile/build/UnitTestRunner
-        make -C extras/UnitTestRunner/Builds/LinuxMakefile clean
-        make -C extras/UnitTestRunner/Builds/LinuxMakefile JUCE_STRING_UTF_TYPE=16
-        ./extras/UnitTestRunner/Builds/LinuxMakefile/build/UnitTestRunner
-        make -C extras/UnitTestRunner/Builds/LinuxMakefile clean
-        make -C extras/UnitTestRunner/Builds/LinuxMakefile JUCE_STRING_UTF_TYPE=32
-        ./extras/UnitTestRunner/Builds/LinuxMakefile/build/UnitTestRunner
-        make -C extras/UnitTestRunner/Builds/LinuxMakefile clean
-      fi
+    - if [[ $TRAVIS_OS_NAME == "linux" ]]; then ./ci/travisci-script-linux.sh; fi
     # OSX
-    - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-        xcodebuild -project extras/UnitTestRunner/Builds/MacOSX/UnitTestRunner.xcodeproj
-      fi
-
+    - if [[ $TRAVIS_OS_NAME == "osx" ]]; then ./ci/travisci-script-osx.sh; fi

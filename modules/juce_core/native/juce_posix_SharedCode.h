@@ -898,13 +898,25 @@ void Thread::launchThread()
 {
     threadHandle = 0;
     pthread_t handle = 0;
+    pthread_attr_t attr;
+    pthread_attr_t* attrPtr = nullptr;
 
-    if (pthread_create (&handle, 0, threadEntryProc, this) == 0)
+    if (pthread_attr_init (&attr) == 0)
+    {
+        attrPtr = &attr;
+
+        pthread_attr_setstacksize (attrPtr, threadStackSize);
+    }
+
+    if (pthread_create (&handle, attrPtr, threadEntryProc, this) == 0)
     {
         pthread_detach (handle);
         threadHandle = (void*) handle;
         threadId = (ThreadID) threadHandle;
     }
+
+    if (attrPtr != nullptr)
+        pthread_attr_destroy (attrPtr);
 }
 
 void Thread::closeThreadHandle()
@@ -1042,10 +1054,11 @@ public:
     ActiveProcess (const StringArray& arguments, int streamFlags)
         : childPID (0), pipeHandle (0), readHandle (0)
     {
+        String exe (arguments[0].unquoted());
+
         // Looks like you're trying to launch a non-existent exe or a folder (perhaps on OSX
         // you're trying to launch the .app folder rather than the actual binary inside it?)
-        jassert ((! arguments[0].containsChar ('/'))
-                  || File::getCurrentWorkingDirectory().getChildFile (arguments[0]).existsAsFile());
+        jassert (File::getCurrentWorkingDirectory().getChildFile (exe).existsAsFile());
 
         int pipeHandles[2] = { 0 };
 
@@ -1078,11 +1091,11 @@ public:
                 Array<char*> argv;
                 for (int i = 0; i < arguments.size(); ++i)
                     if (arguments[i].isNotEmpty())
-                        argv.add (const_cast<char*> (arguments[i].toUTF8().getAddress()));
+                        argv.add (const_cast<char*> (arguments[i].toRawUTF8()));
 
                 argv.add (nullptr);
 
-                execvp (argv[0], argv.getRawDataPointer());
+                execvp (exe.toRawUTF8(), argv.getRawDataPointer());
                 exit (-1);
             }
             else
