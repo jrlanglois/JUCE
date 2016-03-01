@@ -508,7 +508,7 @@ void ListBox::selectRowInternal (const int row,
                                  lastRowSelected, totalItems, isMouseClick);
 
             lastRowSelected = row;
-            model->selectedRowsChanged (row);
+            model->selectedRowsChanged (row, isMouseClick);
         }
         else
         {
@@ -959,7 +959,7 @@ Component* ListBoxModel::refreshComponentForRow (int, bool, Component* existingC
 void ListBoxModel::listBoxItemClicked (int, const MouseEvent&) {}
 void ListBoxModel::listBoxItemDoubleClicked (int, const MouseEvent&) {}
 void ListBoxModel::backgroundClicked (const MouseEvent&) {}
-void ListBoxModel::selectedRowsChanged (int) {}
+void ListBoxModel::selectedRowsChanged (int, bool) {}
 void ListBoxModel::deleteKeyPressed (int) {}
 void ListBoxModel::returnKeyPressed (int) {}
 void ListBoxModel::listWasScrolled() {}

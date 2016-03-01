@@ -155,7 +155,7 @@ public:
     /** Override this to be informed when rows are selected or deselected.
         @see ListBox::selectedRowsChanged()
     */
-    virtual void selectedRowsChanged (int lastRowSelected);
+    virtual void selectedRowsChanged (int lastRowSelected, bool isMouseClick);
 
     /** Override this to be informed when the delete key is pressed.
         @see ListBox::deleteKeyPressed()
@@ -309,7 +309,7 @@ public:
     /** @internal */
     Component* refreshComponentForRow (int rowNumber, bool isRowSelected, Component* existingComponentToUpdate) override;
     /** @internal */
-    void selectedRowsChanged (int row) override;
+    void selectedRowsChanged (int row, bool isMouseClick) override;
     /** @internal */
     void deleteKeyPressed (int currentSelectedRow) override;
     /** @internal */

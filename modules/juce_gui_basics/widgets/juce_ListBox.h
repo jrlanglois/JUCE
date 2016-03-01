@@ -107,8 +107,9 @@ public:
 
         @param lastRowSelected      the last row that the user selected. If no
                                     rows are currently selected, this may be -1.
+        @param isMouseClick         Hack... because, hacks.
     */
-    virtual void selectedRowsChanged (int lastRowSelected);
+    virtual void selectedRowsChanged (int lastRowSelected, bool isMouseClick = false);
 
     /** Override this to be informed when the delete key is pressed.
 

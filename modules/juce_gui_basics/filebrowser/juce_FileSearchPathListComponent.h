@@ -85,7 +85,7 @@ public:
     /** @internal */
     void listBoxItemDoubleClicked (int row, const MouseEvent&) override;
     /** @internal */
-    void selectedRowsChanged (int lastRowSelected) override;
+    void selectedRowsChanged (int lastRowSelected, bool isMouseClick) override;
     /** @internal */
     void resized() override;
     /** @internal */

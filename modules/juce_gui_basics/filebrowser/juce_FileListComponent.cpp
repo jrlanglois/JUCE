@@ -242,7 +242,7 @@ Component* FileListComponent::refreshComponentForRow (int row, bool isSelected, 
     return comp;
 }
 
-void FileListComponent::selectedRowsChanged (int /*lastRowSelected*/)
+void FileListComponent::selectedRowsChanged (int /*lastRowSelected*/, bool)
 {
     sendSelectionChangeMessage();
 }

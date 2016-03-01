@@ -162,7 +162,7 @@ void FileSearchPathListComponent::listBoxItemDoubleClicked (int row, const Mouse
     returnKeyPressed (row);
 }
 
-void FileSearchPathListComponent::selectedRowsChanged (int)
+void FileSearchPathListComponent::selectedRowsChanged (int, bool)
 {
     updateButtons();
 }

@@ -392,10 +392,10 @@ Component* TableListBox::refreshComponentForRow (int rowNumber, bool rowSelected
     return existingComponentToUpdate;
 }
 
-void TableListBox::selectedRowsChanged (int row)
+void TableListBox::selectedRowsChanged (int row, bool isMouseClick)
 {
     if (model != nullptr)
-        model->selectedRowsChanged (row);
+        model->selectedRowsChanged (row, isMouseClick);
 }
 
 void TableListBox::deleteKeyPressed (int row)
@@ -472,7 +472,7 @@ void TableListBoxModel::cellDoubleClicked (int, int, const MouseEvent&) {}
 void TableListBoxModel::backgroundClicked (const MouseEvent&)           {}
 void TableListBoxModel::sortOrderChanged (int, const bool)              {}
 int TableListBoxModel::getColumnAutoSizeWidth (int)                     { return 0; }
-void TableListBoxModel::selectedRowsChanged (int)                       {}
+void TableListBoxModel::selectedRowsChanged (int, bool)                 {}
 void TableListBoxModel::deleteKeyPressed (int)                          {}
 void TableListBoxModel::returnKeyPressed (int)                          {}
 void TableListBoxModel::listWasScrolled()                               {}
