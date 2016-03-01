@@ -670,7 +670,7 @@ public:
                                       MenuBarComponent&) = 0;
     };
 
-private:
+protected:
     //==============================================================================
     JUCE_PUBLIC_IN_DLL_BUILD (struct HelperClasses)
     friend struct HelperClasses;
@@ -687,6 +687,7 @@ private:
     int drawPopupMenuItem (Graphics&, int, int, bool, bool, bool, bool, bool, const String&, const String&, Image*, const Colour*) { return 0; }
    #endif
 
+private:
     JUCE_LEAK_DETECTOR (PopupMenu)
 };
 
