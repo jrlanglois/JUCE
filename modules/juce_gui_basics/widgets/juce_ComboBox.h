@@ -414,7 +414,7 @@ public:
     JUCE_DEPRECATED (void setSelectedItemIndex (int, bool));
     JUCE_DEPRECATED (void setText (const String&, bool));
 
-private:
+protected:
     //==============================================================================
     struct ItemInfo
     {
@@ -443,6 +443,7 @@ private:
     void sendChange (NotificationType);
     void showPopupIfNotActive();
 
+private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ComboBox)
 };
 
