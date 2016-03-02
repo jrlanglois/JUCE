@@ -364,7 +364,7 @@ int MidiKeyboardComponent::remappedXYToNote (Point<int> pos, float& mousePositio
 void MidiKeyboardComponent::repaintNote (const int noteNum)
 {
     if (noteNum >= rangeStart && noteNum <= rangeEnd)
-        repaint (getRectangleForKey (noteNum));
+        repaint(); //repaint (getRectangleForKey (noteNum));
 }
 
 void MidiKeyboardComponent::paint (Graphics& g)

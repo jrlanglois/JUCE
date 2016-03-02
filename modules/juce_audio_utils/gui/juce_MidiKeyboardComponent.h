@@ -47,7 +47,7 @@
 class JUCE_API  MidiKeyboardComponent  : public Component,
                                          public MidiKeyboardStateListener,
                                          public ChangeBroadcaster,
-                                         private Timer
+                                         protected Timer
 {
 public:
     //==============================================================================
@@ -379,7 +379,7 @@ protected:
     Rectangle<int> getRectangleForKey (int midiNoteNumber) const;
 
 
-private:
+protected:
     //==============================================================================
     friend class MidiKeyboardUpDownButton;
 
@@ -417,6 +417,7 @@ private:
     void repaintNote (int midiNoteNumber);
     void setLowestVisibleKeyFloat (float noteNumber);
 
+private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidiKeyboardComponent)
 };
 
