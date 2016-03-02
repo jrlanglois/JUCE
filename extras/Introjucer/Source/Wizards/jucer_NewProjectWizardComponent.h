@@ -222,7 +222,7 @@ public:
         }
     }
 
-    void selectedRowsChanged (int) override
+    void selectedRowsChanged (int, bool) override
     {
         selectDefaultExporterIfNoneSelected();
     }
