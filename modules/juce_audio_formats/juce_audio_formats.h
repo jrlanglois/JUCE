@@ -117,6 +117,7 @@ class AudioFormat;
 #include "format/juce_AudioFormat.h"
 #include "format/juce_AudioFormatManager.h"
 #include "format/juce_AudioFormatReaderSource.h"
+#include "format/juce_AudioFormatUnitTest.h"
 #include "format/juce_AudioSubsectionReader.h"
 #include "format/juce_BufferingAudioFormatReader.h"
 #include "codecs/juce_AiffAudioFormat.h"

@@ -221,13 +221,6 @@
   </EXPORTFORMATS>
   <MAINGROUP id="giMP9w" name="JuceDemo">
     <GROUP id="YqGr3h" name="Source">
-      <FILE id="SMaweI" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
-      <FILE id="Qsaulq" name="MainWindow.cpp" compile="1" resource="0" file="Source/MainWindow.cpp"/>
-      <FILE id="lU9OYz" name="MainWindow.h" compile="0" resource="0" file="Source/MainWindow.h"/>
-      <FILE id="Xx8GpS" name="DemoUtilities.h" compile="0" resource="0" file="Source/DemoUtilities.h"/>
-      <FILE id="wlp1ru" name="IntroScreen.cpp" compile="1" resource="0" file="Source/IntroScreen.cpp"/>
-      <FILE id="UaODxY" name="JuceDemoHeader.h" compile="0" resource="0"
-            file="Source/JuceDemoHeader.h"/>
       <GROUP id="qHa6FB" name="Demos">
         <FILE id="J7O1be" name="AnimationDemo.cpp" compile="1" resource="0"
               file="Source/Demos/AnimationDemo.cpp"/>
@@ -297,8 +290,9 @@
               file="Source/Demos/XMLandJSONDemo.cpp"/>
       </GROUP>
       <GROUP id="rsbEqp" name="Resources">
-        <FILE id="fiPhJS" name="tile_background.png" compile="0" resource="1"
-              file="Resources/tile_background.png"/>
+        <FILE id="AKWbVG" name="cello.aiff" compile="0" resource="1" file="Resources/cello.aiff"/>
+        <FILE id="VrdtaT" name="cello.flac" compile="0" resource="1" file="Resources/cello.flac"/>
+        <FILE id="QcempK" name="cello.ogg" compile="0" resource="1" file="Resources/cello.ogg"/>
         <FILE id="OmjAzt" name="cello.wav" compile="0" resource="1" file="Resources/cello.wav"/>
         <FILE id="L1n4sU" name="demo table data.xml" compile="0" resource="1"
               file="Resources/demo table data.xml"/>
@@ -308,8 +302,17 @@
               file="Resources/juce_module_info"/>
         <FILE id="eqRA5C" name="portmeirion.jpg" compile="0" resource="1" file="Resources/portmeirion.jpg"/>
         <FILE id="lppWLa" name="teapot.obj" compile="0" resource="1" file="Resources/teapot.obj"/>
+        <FILE id="fiPhJS" name="tile_background.png" compile="0" resource="1"
+              file="Resources/tile_background.png"/>
         <FILE id="Lf30im" name="treedemo.xml" compile="0" resource="1" file="Resources/treedemo.xml"/>
       </GROUP>
+      <FILE id="Xx8GpS" name="DemoUtilities.h" compile="0" resource="0" file="Source/DemoUtilities.h"/>
+      <FILE id="wlp1ru" name="IntroScreen.cpp" compile="1" resource="0" file="Source/IntroScreen.cpp"/>
+      <FILE id="UaODxY" name="JuceDemoHeader.h" compile="0" resource="0"
+            file="Source/JuceDemoHeader.h"/>
+      <FILE id="SMaweI" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
+      <FILE id="Qsaulq" name="MainWindow.cpp" compile="1" resource="0" file="Source/MainWindow.cpp"/>
+      <FILE id="lU9OYz" name="MainWindow.h" compile="0" resource="0" file="Source/MainWindow.h"/>
     </GROUP>
   </MAINGROUP>
   <JUCEOPTIONS JUCE_ENABLE_LIVE_CONSTANT_EDITOR="enabled" JUCE_WASAPI_EXCLUSIVE="enabled"/>

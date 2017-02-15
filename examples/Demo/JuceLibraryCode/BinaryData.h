@@ -9,8 +9,14 @@
 
 namespace BinaryData
 {
-    extern const char*   tile_background_png;
-    const int            tile_background_pngSize = 151;
+    extern const char*   cello_aiff;
+    const int            cello_aiffSize = 45746;
+
+    extern const char*   cello_flac;
+    const int            cello_flacSize = 16083;
+
+    extern const char*   cello_ogg;
+    const int            cello_oggSize = 9930;
 
     extern const char*   cello_wav;
     const int            cello_wavSize = 46348;
@@ -33,6 +39,9 @@ namespace BinaryData
     extern const char*   teapot_obj;
     const int            teapot_objSize = 95000;
 
+    extern const char*   tile_background_png;
+    const int            tile_background_pngSize = 151;
+
     extern const char*   treedemo_xml;
     const int            treedemo_xmlSize = 1126;
 
@@ -40,7 +49,7 @@ namespace BinaryData
     extern const char* namedResourceList[];
 
     // Number of elements in the namedResourceList array.
-    const int namedResourceListSize = 9;
+    const int namedResourceListSize = 12;
 
     // If you provide the name of one of the binary resource variables above, this function will
     // return the corresponding data and its size (or a null pointer if the name isn't found).

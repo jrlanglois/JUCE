@@ -7,12 +7,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "JuceDemo", "JuceDemo", "{13
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Source", "Source", "{7015E070-EF69-2EC4-36CA-3DDF1FD82EE1}"
 	ProjectSection(SolutionItems) = preProject
-		..\..\Source\Main.cpp = ..\..\Source\Main.cpp
-		..\..\Source\MainWindow.cpp = ..\..\Source\MainWindow.cpp
-		..\..\Source\MainWindow.h = ..\..\Source\MainWindow.h
 		..\..\Source\DemoUtilities.h = ..\..\Source\DemoUtilities.h
 		..\..\Source\IntroScreen.cpp = ..\..\Source\IntroScreen.cpp
 		..\..\Source\JuceDemoHeader.h = ..\..\Source\JuceDemoHeader.h
+		..\..\Source\Main.cpp = ..\..\Source\Main.cpp
+		..\..\Source\MainWindow.cpp = ..\..\Source\MainWindow.cpp
+		..\..\Source\MainWindow.h = ..\..\Source\MainWindow.h
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Demos", "Demos", "{682C51AD-2DBF-1D44-A761-26D8523A096A}"
@@ -61,7 +61,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Demos", "Demos", "{682C51AD
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Resources", "Resources", "{E6F53028-5EF9-3E1E-A80D-E86F8581CD52}"
 	ProjectSection(SolutionItems) = preProject
-		..\..\Resources\tile_background.png = ..\..\Resources\tile_background.png
+		..\..\Resources\cello.aiff = ..\..\Resources\cello.aiff
+		..\..\Resources\cello.flac = ..\..\Resources\cello.flac
+		..\..\Resources\cello.ogg = ..\..\Resources\cello.ogg
 		..\..\Resources\cello.wav = ..\..\Resources\cello.wav
 		..\..\Resources\demo table data.xml = ..\..\Resources\demo table data.xml
 		..\..\Resources\icons.zip = ..\..\Resources\icons.zip
@@ -69,6 +71,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Resources", "Resources", "{
 		..\..\Resources\juce_module_info = ..\..\Resources\juce_module_info
 		..\..\Resources\portmeirion.jpg = ..\..\Resources\portmeirion.jpg
 		..\..\Resources\teapot.obj = ..\..\Resources\teapot.obj
+		..\..\Resources\tile_background.png = ..\..\Resources\tile_background.png
 		..\..\Resources\treedemo.xml = ..\..\Resources\treedemo.xml
 	EndProjectSection
 EndProject
@@ -433,6 +436,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "format", "format", "{DA2575
 		..\..\..\..\modules\juce_audio_formats\format\juce_AudioFormatReader.h = ..\..\..\..\modules\juce_audio_formats\format\juce_AudioFormatReader.h
 		..\..\..\..\modules\juce_audio_formats\format\juce_AudioFormatReaderSource.cpp = ..\..\..\..\modules\juce_audio_formats\format\juce_AudioFormatReaderSource.cpp
 		..\..\..\..\modules\juce_audio_formats\format\juce_AudioFormatReaderSource.h = ..\..\..\..\modules\juce_audio_formats\format\juce_AudioFormatReaderSource.h
+		..\..\..\..\modules\juce_audio_formats\format\juce_AudioFormatUnitTest.h = ..\..\..\..\modules\juce_audio_formats\format\juce_AudioFormatUnitTest.h
 		..\..\..\..\modules\juce_audio_formats\format\juce_AudioFormatWriter.cpp = ..\..\..\..\modules\juce_audio_formats\format\juce_AudioFormatWriter.cpp
 		..\..\..\..\modules\juce_audio_formats\format\juce_AudioFormatWriter.h = ..\..\..\..\modules\juce_audio_formats\format\juce_AudioFormatWriter.h
 		..\..\..\..\modules\juce_audio_formats\format\juce_AudioSubsectionReader.cpp = ..\..\..\..\modules\juce_audio_formats\format\juce_AudioSubsectionReader.cpp
@@ -1134,10 +1138,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "native", "native", "{01E01F
 	ProjectSection(SolutionItems) = preProject
 		..\..\..\..\modules\juce_events\native\juce_android_Messaging.cpp = ..\..\..\..\modules\juce_events\native\juce_android_Messaging.cpp
 		..\..\..\..\modules\juce_events\native\juce_ios_MessageManager.mm = ..\..\..\..\modules\juce_events\native\juce_ios_MessageManager.mm
+		..\..\..\..\modules\juce_events\native\juce_linux_EventLoop.h = ..\..\..\..\modules\juce_events\native\juce_linux_EventLoop.h
 		..\..\..\..\modules\juce_events\native\juce_linux_Messaging.cpp = ..\..\..\..\modules\juce_events\native\juce_linux_Messaging.cpp
 		..\..\..\..\modules\juce_events\native\juce_mac_MessageManager.mm = ..\..\..\..\modules\juce_events\native\juce_mac_MessageManager.mm
 		..\..\..\..\modules\juce_events\native\juce_osx_MessageQueue.h = ..\..\..\..\modules\juce_events\native\juce_osx_MessageQueue.h
-		..\..\..\..\modules\juce_events\native\juce_ScopedXLock.h = ..\..\..\..\modules\juce_events\native\juce_ScopedXLock.h
 		..\..\..\..\modules\juce_events\native\juce_win32_HiddenMessageWindow.h = ..\..\..\..\modules\juce_events\native\juce_win32_HiddenMessageWindow.h
 		..\..\..\..\modules\juce_events\native\juce_win32_Messaging.cpp = ..\..\..\..\modules\juce_events\native\juce_win32_Messaging.cpp
 	EndProjectSection
@@ -1585,9 +1589,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "native", "native", "{50F1DC
 		..\..\..\..\modules\juce_gui_basics\native\juce_android_Windowing.cpp = ..\..\..\..\modules\juce_gui_basics\native\juce_android_Windowing.cpp
 		..\..\..\..\modules\juce_gui_basics\native\juce_ios_UIViewComponentPeer.mm = ..\..\..\..\modules\juce_gui_basics\native\juce_ios_UIViewComponentPeer.mm
 		..\..\..\..\modules\juce_gui_basics\native\juce_ios_Windowing.mm = ..\..\..\..\modules\juce_gui_basics\native\juce_ios_Windowing.mm
-		..\..\..\..\modules\juce_gui_basics\native\juce_linux_Clipboard.cpp = ..\..\..\..\modules\juce_gui_basics\native\juce_linux_Clipboard.cpp
 		..\..\..\..\modules\juce_gui_basics\native\juce_linux_FileChooser.cpp = ..\..\..\..\modules\juce_gui_basics\native\juce_linux_FileChooser.cpp
-		..\..\..\..\modules\juce_gui_basics\native\juce_linux_Windowing.cpp = ..\..\..\..\modules\juce_gui_basics\native\juce_linux_Windowing.cpp
+		..\..\..\..\modules\juce_gui_basics\native\juce_linux_X11.cpp = ..\..\..\..\modules\juce_gui_basics\native\juce_linux_X11.cpp
+		..\..\..\..\modules\juce_gui_basics\native\juce_linux_X11.h = ..\..\..\..\modules\juce_gui_basics\native\juce_linux_X11.h
+		..\..\..\..\modules\juce_gui_basics\native\juce_linux_X11_Clipboard.cpp = ..\..\..\..\modules\juce_gui_basics\native\juce_linux_X11_Clipboard.cpp
+		..\..\..\..\modules\juce_gui_basics\native\juce_linux_X11_Windowing.cpp = ..\..\..\..\modules\juce_gui_basics\native\juce_linux_X11_Windowing.cpp
 		..\..\..\..\modules\juce_gui_basics\native\juce_mac_FileChooser.mm = ..\..\..\..\modules\juce_gui_basics\native\juce_mac_FileChooser.mm
 		..\..\..\..\modules\juce_gui_basics\native\juce_mac_MainMenu.mm = ..\..\..\..\modules\juce_gui_basics\native\juce_mac_MainMenu.mm
 		..\..\..\..\modules\juce_gui_basics\native\juce_mac_MouseCursor.mm = ..\..\..\..\modules\juce_gui_basics\native\juce_mac_MouseCursor.mm
@@ -1754,8 +1760,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "native", "native", "{C0D38C
 	ProjectSection(SolutionItems) = preProject
 		..\..\..\..\modules\juce_gui_extra\native\juce_android_WebBrowserComponent.cpp = ..\..\..\..\modules\juce_gui_extra\native\juce_android_WebBrowserComponent.cpp
 		..\..\..\..\modules\juce_gui_extra\native\juce_ios_UIViewComponent.mm = ..\..\..\..\modules\juce_gui_extra\native\juce_ios_UIViewComponent.mm
-		..\..\..\..\modules\juce_gui_extra\native\juce_linux_SystemTrayIcon.cpp = ..\..\..\..\modules\juce_gui_extra\native\juce_linux_SystemTrayIcon.cpp
-		..\..\..\..\modules\juce_gui_extra\native\juce_linux_WebBrowserComponent.cpp = ..\..\..\..\modules\juce_gui_extra\native\juce_linux_WebBrowserComponent.cpp
+		..\..\..\..\modules\juce_gui_extra\native\juce_linux_X11_SystemTrayIcon.cpp = ..\..\..\..\modules\juce_gui_extra\native\juce_linux_X11_SystemTrayIcon.cpp
+		..\..\..\..\modules\juce_gui_extra\native\juce_linux_X11_WebBrowserComponent.cpp = ..\..\..\..\modules\juce_gui_extra\native\juce_linux_X11_WebBrowserComponent.cpp
 		..\..\..\..\modules\juce_gui_extra\native\juce_mac_AppleRemote.mm = ..\..\..\..\modules\juce_gui_extra\native\juce_mac_AppleRemote.mm
 		..\..\..\..\modules\juce_gui_extra\native\juce_mac_CarbonViewWrapperComponent.h = ..\..\..\..\modules\juce_gui_extra\native\juce_mac_CarbonViewWrapperComponent.h
 		..\..\..\..\modules\juce_gui_extra\native\juce_mac_NSViewComponent.mm = ..\..\..\..\modules\juce_gui_extra\native\juce_mac_NSViewComponent.mm
@@ -1787,7 +1793,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "native", "native", "{F0E5BE
 		..\..\..\..\modules\juce_opengl\native\juce_MissingGLDefinitions.h = ..\..\..\..\modules\juce_opengl\native\juce_MissingGLDefinitions.h
 		..\..\..\..\modules\juce_opengl\native\juce_OpenGL_android.h = ..\..\..\..\modules\juce_opengl\native\juce_OpenGL_android.h
 		..\..\..\..\modules\juce_opengl\native\juce_OpenGL_ios.h = ..\..\..\..\modules\juce_opengl\native\juce_OpenGL_ios.h
-		..\..\..\..\modules\juce_opengl\native\juce_OpenGL_linux.h = ..\..\..\..\modules\juce_opengl\native\juce_OpenGL_linux.h
+		..\..\..\..\modules\juce_opengl\native\juce_OpenGL_linux_X11.h = ..\..\..\..\modules\juce_opengl\native\juce_OpenGL_linux_X11.h
 		..\..\..\..\modules\juce_opengl\native\juce_OpenGL_osx.h = ..\..\..\..\modules\juce_opengl\native\juce_OpenGL_osx.h
 		..\..\..\..\modules\juce_opengl\native\juce_OpenGL_win32.h = ..\..\..\..\modules\juce_opengl\native\juce_OpenGL_win32.h
 		..\..\..\..\modules\juce_opengl\native\juce_OpenGLExtensions.h = ..\..\..\..\modules\juce_opengl\native\juce_OpenGLExtensions.h
@@ -1879,7 +1885,9 @@ Global
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{05F7128C-1654-E8D0-856F-98237CF1EBE4}.Debug|Win32.Build.0 = Debug|Win32
+		{05F7128C-1654-E8D0-856F-98237CF1EBE4}.Debug|Win32.ActiveCfg = Debug|Win32
 		{05F7128C-1654-E8D0-856F-98237CF1EBE4}.Release|Win32.Build.0 = Release|Win32
+		{05F7128C-1654-E8D0-856F-98237CF1EBE4}.Release|Win32.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

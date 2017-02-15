@@ -347,9 +347,9 @@ public:
 
         OSStatus status = AudioFileOpenWithCallbacks (this,
                                                       &readCallback,
-                                                      nullptr,  // write needs to be null to avoid permisisions errors
+                                                      nullptr,  // write needs to be null to avoid permissions errors
                                                       &getSizeCallback,
-                                                      nullptr,  // setSize needs to be null to avoid permisisions errors
+                                                      nullptr,  // setSize needs to be null to avoid permissions errors
                                                       0,        // AudioFileTypeID inFileTypeHint
                                                       &audioFileID);
         if (status == noErr)
@@ -533,5 +533,38 @@ AudioFormatWriter* CoreAudioFormat::createWriterFor (OutputStream*,
     jassertfalse; // not yet implemented!
     return nullptr;
 }
+
+
+//==============================================================================
+#if JUCE_UNIT_TESTS
+
+class CoreAudioFormatUnitTests : public AudioFormatUnitTests<CoreAudioFormat>
+{
+public:
+    CoreAudioFormatUnitTests() : AudioFormatUnitTests (false) { }
+
+    InputStream* getValidTestFileData() override
+    {
+        namespace WaveUnitTestData
+        {
+            extern const int cello_wavSize;
+            extern const uint8 cello_wav[];
+        }
+
+        return new MemoryInputStream (WaveUnitTestData::cello_wav, WaveUnitTestData::cello_wavSize, false);
+    }
+
+    StringPairArray createTestMetadata() override
+    {
+        return StringPairArray();
+    }
+
+private:
+    JUCE_DECLARE_NON_COPYABLE (CoreAudioFormatUnitTests)
+};
+
+static const CoreAudioFormatUnitTests coreAudioFormatUnitTests;
+
+#endif
 
 #endif
