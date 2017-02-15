@@ -1001,13 +1001,133 @@ MemoryMappedAudioFormatReader* AiffAudioFormat::createMemoryMappedReader (FileIn
 
 AudioFormatWriter* AiffAudioFormat::createWriterFor (OutputStream* out,
                                                      double sampleRate,
-                                                     unsigned int numberOfChannels,
+                                                     unsigned int numChannels,
                                                      int bitsPerSample,
                                                      const StringPairArray& metadataValues,
                                                      int /*qualityOptionIndex*/)
 {
-    if (out != nullptr && getPossibleBitDepths().contains (bitsPerSample))
-        return new AiffAudioFormatWriter (out, sampleRate, numberOfChannels, (unsigned int) bitsPerSample, metadataValues);
+    if (out != nullptr
+        && numChannels > 0
+        && getPossibleBitDepths().contains (bitsPerSample)
+        && getPossibleSampleRates().contains ((int) sampleRate))
+    {
+        return new AiffAudioFormatWriter (out, sampleRate, numChannels, (unsigned int) bitsPerSample, metadataValues);
+    }
 
     return nullptr;
 }
+
+#if JUCE_UNIT_TESTS
+
+class AIFFAudioFormatTests : public UnitTest
+{
+public:
+    AIFFAudioFormatTests() : UnitTest ("AIFF audio format tests") {}
+
+    void runTest() override
+    {
+        beginTest ("Setting up metadata");
+
+        StringPairArray metadataValues;
+
+        static const char* const props[] =
+        {
+            AiffAudioFormat::appleOneShot,
+            AiffAudioFormat::appleRootSet,
+            AiffAudioFormat::appleRootNote,
+            AiffAudioFormat::appleBeats,
+            AiffAudioFormat::appleDenominator,
+            AiffAudioFormat::appleNumerator,
+            AiffAudioFormat::appleOneShot,
+            AiffAudioFormat::appleTag,
+            AiffAudioFormat::appleKey
+        };
+
+        for (int i = numElementsInArray (props); --i >= 0;)
+            metadataValues.set (props[i], props[i]);
+
+        AiffAudioFormat format;
+
+        const Array<int> possibleBitDepths = format.getPossibleBitDepths();
+        expect (possibleBitDepths.size() > 0);
+
+        const Array<int> possibleSampleRates = format.getPossibleSampleRates();
+        expect (possibleSampleRates.size() > 0);
+
+        Array<int> channelsToTest;
+        if (format.canDoMono())
+            channelsToTest.add (1);
+
+        if (format.canDoStereo())
+            channelsToTest.add (2);
+
+        expect (channelsToTest.size() > 0);
+
+        for (const int depth : possibleBitDepths)
+            for (const int rate : possibleSampleRates)
+                for (const int numChannels : channelsToTest)
+                    testWrite (format, metadataValues, rate, numChannels, depth);
+
+        testWrite (format, metadataValues, 44100, 2, 1, nullptr, true);     //Invalid bit-depth
+        testWrite (format, metadataValues, 1, 2, 16, nullptr, true);        //Invalid sample-rate
+        testWrite (format, metadataValues, 44100, 0, 16, nullptr, true);    //0 channels
+
+        beginTest ("Metadata write/read test.");
+        {
+            MemoryBlock testData;
+            testWrite (format, metadataValues, 44100, 2, 16, &testData);
+
+            ScopedPointer<AudioFormatReader> reader (format.createReaderFor (new MemoryInputStream (testData, false), false));
+            expect (reader != nullptr);
+            expect (reader->metadataValues == metadataValues, "Somehow, the metadata is different!");
+        }
+    }
+
+private:
+    enum
+    {
+        numTestAudioBufferSamples = 256
+    };
+
+    void testWrite (AiffAudioFormat& format, const StringPairArray& metadata,
+                    int rate, int numChannels, int depth,
+                    MemoryBlock* dataToWriteTo = nullptr,
+                    bool expectNullWriter = false)
+    {
+        String name ("Creating writer: %1 channel(s), %2 bits, %3 sample rate");
+        name = name.replace ("%1", String (numChannels), true);
+        name = name.replace ("%2", String (depth), true);
+        name = name.replace ("%3", String (rate), true);
+
+        beginTest (name);
+
+        MemoryOutputStream* stream = nullptr;
+        if (dataToWriteTo != nullptr)
+            stream = new MemoryOutputStream (*dataToWriteTo, false);
+        else
+            stream = new MemoryOutputStream();
+
+        ScopedPointer<AudioFormatWriter> writer (format.createWriterFor (stream, (double) rate, numChannels, depth, metadata, 0));
+                                                                         
+        if (expectNullWriter)
+        {
+            expect (writer == nullptr);
+            return;
+        }
+
+        expect (writer != nullptr);
+
+        AudioSampleBuffer buffer (numChannels, numTestAudioBufferSamples);
+        buffer.clear();
+
+        beginTest ("Writing audio data (float).");
+
+        expect (writer->writeFromAudioSampleBuffer (buffer, 0, numTestAudioBufferSamples));
+    }
+
+    JUCE_DECLARE_NON_COPYABLE (AIFFAudioFormatTests)
+};
+
+static const AIFFAudioFormatTests aiffAudioFormatTests;
+
+#endif

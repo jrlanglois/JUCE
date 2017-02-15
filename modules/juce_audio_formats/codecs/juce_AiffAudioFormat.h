@@ -70,7 +70,7 @@ public:
     AudioFormatReader* createReaderFor (InputStream* sourceStream,
                                         bool deleteStreamIfOpeningFails) override;
 
-    MemoryMappedAudioFormatReader* createMemoryMappedReader (const File&)      override;
+    MemoryMappedAudioFormatReader* createMemoryMappedReader (const File&) override;
     MemoryMappedAudioFormatReader* createMemoryMappedReader (FileInputStream*) override;
 
     AudioFormatWriter* createWriterFor (OutputStream* streamToWriteTo,
@@ -81,5 +81,5 @@ public:
                                         int qualityOptionIndex) override;
 
 private:
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AiffAudioFormat)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AiffAudioFormat)
 };

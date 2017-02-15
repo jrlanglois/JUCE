@@ -1615,9 +1615,14 @@ AudioFormatWriter* WavAudioFormat::createWriterFor (OutputStream* out, double sa
                                                     unsigned int numChannels, int bitsPerSample,
                                                     const StringPairArray& metadataValues, int /*qualityOptionIndex*/)
 {
-    if (out != nullptr && getPossibleBitDepths().contains (bitsPerSample))
+    if (out != nullptr
+        && numChannels > 0
+        && getPossibleBitDepths().contains (bitsPerSample)
+        && getPossibleSampleRates().contains ((int) sampleRate))
+    {
         return new WavAudioFormatWriter (out, sampleRate, (unsigned int) numChannels,
                                          (unsigned int) bitsPerSample, metadataValues);
+    }
 
     return nullptr;
 }
@@ -1725,28 +1730,40 @@ public:
         if (metadataValues.size() > 0)
             metadataValues.set ("MetaDataSource", "WAV");
 
+        expect (metadataValues.size() > 0);
+
         WavAudioFormat format;
-        MemoryBlock memoryBlock;
 
+        const Array<int> possibleBitDepths = format.getPossibleBitDepths();
+        expect (possibleBitDepths.size() > 0);
+
+        const Array<int> possibleSampleRates = format.getPossibleSampleRates();
+        expect (possibleSampleRates.size() > 0);
+
+        Array<int> channelsToTest;
+        if (format.canDoMono())
+            channelsToTest.add (1);
+
+        if (format.canDoStereo())
+            channelsToTest.add (2);
+
+        expect (channelsToTest.size() > 0);
+
+        for (const int depth : possibleBitDepths)
+            for (const int rate : possibleSampleRates)
+                for (const int numChannels : channelsToTest)
+                    testWrite (format, metadataValues, rate, numChannels, depth);
+
+        testWrite (format, metadataValues, 44100, 2, 1, nullptr, true);     //Invalid bit-depth
+        testWrite (format, metadataValues, 1, 2, 16, nullptr, true);        //Invalid sample-rate
+        testWrite (format, metadataValues, 44100, 0, 16, nullptr, true);    //0 channels
+
+        beginTest ("Metadata write/read test.");
         {
-            beginTest ("Creating a basic wave writer");
+            MemoryBlock testData;
+            testWrite (format, metadataValues, 44100, 2, 16, &testData);
 
-            ScopedPointer<AudioFormatWriter> writer (format.createWriterFor (new MemoryOutputStream (memoryBlock, false),
-                                                                             44100.0, numTestAudioBufferChannels,
-                                                                             32, metadataValues, 0));
-            expect (writer != nullptr);
-
-            AudioSampleBuffer buffer (numTestAudioBufferChannels, numTestAudioBufferSamples);
-            buffer.clear();
-
-            beginTest ("Writing audio data to the basic wave writer");
-            expect (writer->writeFromAudioSampleBuffer (buffer, 0, numTestAudioBufferSamples));
-        }
-
-        {
-            beginTest ("Creating a basic wave reader");
-
-            ScopedPointer<AudioFormatReader> reader (format.createReaderFor (new MemoryInputStream (memoryBlock, false), false));
+            ScopedPointer<AudioFormatReader> reader (format.createReaderFor (new MemoryInputStream (testData, false), false));
             expect (reader != nullptr);
             expect (reader->metadataValues == metadataValues, "Somehow, the metadata is different!");
         }
@@ -1755,9 +1772,44 @@ public:
 private:
     enum
     {
-        numTestAudioBufferChannels = 2,
         numTestAudioBufferSamples = 256
     };
+
+    void testWrite (WavAudioFormat& format, const StringPairArray& metadata,
+                    int rate, int numChannels, int depth,
+                    MemoryBlock* dataToWriteTo = nullptr,
+                    bool expectNullWriter = false)
+    {
+        String name ("Creating writer: %1 channel(s), %2 bits, %3 sample rate");
+        name = name.replace ("%1", String (numChannels), true);
+        name = name.replace ("%2", String (depth), true);
+        name = name.replace ("%3", String (rate), true);
+
+        beginTest (name);
+
+        MemoryOutputStream* stream = nullptr;
+        if (dataToWriteTo != nullptr)
+            stream = new MemoryOutputStream (*dataToWriteTo, false);
+        else
+            stream = new MemoryOutputStream();
+
+        ScopedPointer<AudioFormatWriter> writer (format.createWriterFor (stream, (double) rate, numChannels, depth, metadata, 0));
+                                                                         
+        if (expectNullWriter)
+        {
+            expect (writer == nullptr);
+            return;
+        }
+
+        expect (writer != nullptr);
+
+        AudioSampleBuffer buffer (numChannels, numTestAudioBufferSamples);
+        buffer.clear();
+
+        beginTest ("Writing audio data (float).");
+
+        expect (writer->writeFromAudioSampleBuffer (buffer, 0, numTestAudioBufferSamples));
+    }
 
     JUCE_DECLARE_NON_COPYABLE (WaveAudioFormatTests)
 };
