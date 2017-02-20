@@ -10,7 +10,7 @@
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="JuceDemo"
                        osxSDK="default" osxCompatibility="10.10 SDK" osxArchitecture="default"
-                       defines=""/>
+                       defines="" headerPath="/Volumes/Media/Work/youi/youiengine/thirdparty/protobuf-2.4.1/src/&#10;"/>
         <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="JuceDemo"
                        osxSDK="default" osxCompatibility="10.6 SDK" osxArchitecture="default"
                        defines=""/>
@@ -31,6 +31,7 @@
         <MODULEPATH id="juce_audio_devices" path="../../modules"/>
         <MODULEPATH id="juce_audio_basics" path="../../modules"/>
         <MODULEPATH id="juce_box2d" path="../../modules"/>
+        <MODULEPATH id="juce_aftereffects_importer" path="../../modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
     <XCODE_IPHONE targetFolder="Builds/iOS" vstFolder="~/SDKs/vstsdk2.4" rtasFolder="~/SDKs/PT_80_SDK"
@@ -61,6 +62,7 @@
         <MODULEPATH id="juce_audio_devices" path="../../modules"/>
         <MODULEPATH id="juce_audio_basics" path="../../modules"/>
         <MODULEPATH id="juce_box2d" path="../../modules"/>
+        <MODULEPATH id="juce_aftereffects_importer" path="../../modules"/>
       </MODULEPATHS>
     </XCODE_IPHONE>
     <VS2010 targetFolder="Builds/VisualStudio2010" vstFolder="c:\SDKs\vstsdk2.4"
@@ -87,6 +89,7 @@
         <MODULEPATH id="juce_audio_devices" path="../../modules"/>
         <MODULEPATH id="juce_audio_basics" path="../../modules"/>
         <MODULEPATH id="juce_box2d" path="../../modules"/>
+        <MODULEPATH id="juce_aftereffects_importer" path="../../modules"/>
       </MODULEPATHS>
     </VS2010>
     <VS2012 targetFolder="Builds/VisualStudio2012" bigIcon="BvyE0d">
@@ -112,6 +115,7 @@
         <MODULEPATH id="juce_audio_formats" path="../../modules"/>
         <MODULEPATH id="juce_audio_devices" path="../../modules"/>
         <MODULEPATH id="juce_audio_basics" path="../../modules"/>
+        <MODULEPATH id="juce_aftereffects_importer" path="../../modules"/>
       </MODULEPATHS>
     </VS2012>
     <VS2013 targetFolder="Builds/VisualStudio2013" bigIcon="BvyE0d">
@@ -137,6 +141,7 @@
         <MODULEPATH id="juce_audio_formats" path="../../modules"/>
         <MODULEPATH id="juce_audio_devices" path="../../modules"/>
         <MODULEPATH id="juce_audio_basics" path="../../modules"/>
+        <MODULEPATH id="juce_aftereffects_importer" path="../../modules"/>
       </MODULEPATHS>
     </VS2013>
     <VS2015 targetFolder="Builds/VisualStudio2015" bigIcon="BvyE0d">
@@ -162,6 +167,7 @@
         <MODULEPATH id="juce_audio_formats" path="../../modules"/>
         <MODULEPATH id="juce_audio_devices" path="../../modules"/>
         <MODULEPATH id="juce_audio_basics" path="../../modules"/>
+        <MODULEPATH id="juce_aftereffects_importer" path="../../modules"/>
       </MODULEPATHS>
     </VS2015>
     <ANDROIDSTUDIO androidActivityClass="com.yourcompany.jucedemo.JuceDemo" androidInternetNeeded="1"
@@ -191,6 +197,7 @@
         <MODULEPATH id="juce_audio_formats" path="../../modules"/>
         <MODULEPATH id="juce_audio_devices" path="../../modules"/>
         <MODULEPATH id="juce_audio_basics" path="../../modules"/>
+        <MODULEPATH id="juce_aftereffects_importer" path="../../modules"/>
       </MODULEPATHS>
     </ANDROIDSTUDIO>
     <LINUX_MAKE targetFolder="Builds/Linux">
@@ -216,6 +223,7 @@
         <MODULEPATH id="juce_audio_formats" path="../../modules"/>
         <MODULEPATH id="juce_audio_devices" path="../../modules"/>
         <MODULEPATH id="juce_audio_basics" path="../../modules"/>
+        <MODULEPATH id="juce_aftereffects_importer" path="../../modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
   </EXPORTFORMATS>
@@ -314,6 +322,7 @@
   </MAINGROUP>
   <JUCEOPTIONS JUCE_ENABLE_LIVE_CONSTANT_EDITOR="enabled" JUCE_WASAPI_EXCLUSIVE="enabled"/>
   <MODULES>
+    <MODULE id="juce_aftereffects_importer" showAllCode="1" useLocalCopy="0"/>
     <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0"/>
     <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0"/>
     <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0"/>
@@ -330,4 +339,7 @@
     <MODULE id="juce_opengl" showAllCode="1" useLocalCopy="0"/>
     <MODULE id="juce_video" showAllCode="1" useLocalCopy="0"/>
   </MODULES>
+  <LIVE_SETTINGS>
+    <OSX/>
+  </LIVE_SETTINGS>
 </JUCERPROJECT>

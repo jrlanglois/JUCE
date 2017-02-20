@@ -79,6 +79,13 @@ add_library( ${BINARY_NAME}
     "../../../Resources/portmeirion.jpg"
     "../../../Resources/teapot.obj"
     "../../../Resources/treedemo.xml"
+    "../../../../../modules/juce_aftereffects_importer/importer/protobuf/AEFilter.pb.cc"
+    "../../../../../modules/juce_aftereffects_importer/importer/protobuf/AEFilter.pb.h"
+    "../../../../../modules/juce_aftereffects_importer/importer/juce_AEImporter.cpp"
+    "../../../../../modules/juce_aftereffects_importer/importer/juce_AEImporter.h"
+    "../../../../../modules/juce_aftereffects_importer/juce_aftereffects_importer.cpp"
+    "../../../../../modules/juce_aftereffects_importer/juce_aftereffects_importer.h"
+    "../../../../../modules/juce_aftereffects_importer/juce_aftereffects_importer.h"
     "../../../../../modules/juce_audio_basics/buffers/juce_AudioChannelSet.cpp"
     "../../../../../modules/juce_audio_basics/buffers/juce_AudioChannelSet.h"
     "../../../../../modules/juce_audio_basics/buffers/juce_AudioDataConverters.cpp"
@@ -1357,6 +1364,7 @@ add_library( ${BINARY_NAME}
     "../../../JuceLibraryCode/AppConfig.h"
     "../../../JuceLibraryCode/BinaryData.cpp"
     "../../../JuceLibraryCode/BinaryData.h"
+    "../../../JuceLibraryCode/juce_aftereffects_importer.cpp"
     "../../../JuceLibraryCode/juce_audio_basics.cpp"
     "../../../JuceLibraryCode/juce_audio_devices.cpp"
     "../../../JuceLibraryCode/juce_audio_formats.cpp"
@@ -1389,6 +1397,13 @@ set_source_files_properties("../../../Resources/juce_module_info" PROPERTIES HEA
 set_source_files_properties("../../../Resources/portmeirion.jpg" PROPERTIES HEADER_FILE_ONLY TRUE)
 set_source_files_properties("../../../Resources/teapot.obj" PROPERTIES HEADER_FILE_ONLY TRUE)
 set_source_files_properties("../../../Resources/treedemo.xml" PROPERTIES HEADER_FILE_ONLY TRUE)
+set_source_files_properties("../../../../../modules/juce_aftereffects_importer/importer/protobuf/AEFilter.pb.cc" PROPERTIES HEADER_FILE_ONLY TRUE)
+set_source_files_properties("../../../../../modules/juce_aftereffects_importer/importer/protobuf/AEFilter.pb.h" PROPERTIES HEADER_FILE_ONLY TRUE)
+set_source_files_properties("../../../../../modules/juce_aftereffects_importer/importer/juce_AEImporter.cpp" PROPERTIES HEADER_FILE_ONLY TRUE)
+set_source_files_properties("../../../../../modules/juce_aftereffects_importer/importer/juce_AEImporter.h" PROPERTIES HEADER_FILE_ONLY TRUE)
+set_source_files_properties("../../../../../modules/juce_aftereffects_importer/juce_aftereffects_importer.cpp" PROPERTIES HEADER_FILE_ONLY TRUE)
+set_source_files_properties("../../../../../modules/juce_aftereffects_importer/juce_aftereffects_importer.h" PROPERTIES HEADER_FILE_ONLY TRUE)
+set_source_files_properties("../../../../../modules/juce_aftereffects_importer/juce_aftereffects_importer.h" PROPERTIES HEADER_FILE_ONLY TRUE)
 set_source_files_properties("../../../../../modules/juce_audio_basics/buffers/juce_AudioChannelSet.cpp" PROPERTIES HEADER_FILE_ONLY TRUE)
 set_source_files_properties("../../../../../modules/juce_audio_basics/buffers/juce_AudioChannelSet.h" PROPERTIES HEADER_FILE_ONLY TRUE)
 set_source_files_properties("../../../../../modules/juce_audio_basics/buffers/juce_AudioDataConverters.cpp" PROPERTIES HEADER_FILE_ONLY TRUE)

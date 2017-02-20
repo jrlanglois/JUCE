@@ -108,6 +108,7 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/WindowsDemo_e8cfa428.o \
   $(JUCE_OBJDIR)/XMLandJSONDemo_5bc88df3.o \
   $(JUCE_OBJDIR)/BinaryData_ce4232d4.o \
+  $(JUCE_OBJDIR)/juce_aftereffects_importer_9a0e5822.o \
   $(JUCE_OBJDIR)/juce_audio_basics_6b797ca1.o \
   $(JUCE_OBJDIR)/juce_audio_devices_a742c38b.o \
   $(JUCE_OBJDIR)/juce_audio_formats_5a29c68a.o \
@@ -341,6 +342,11 @@ $(JUCE_OBJDIR)/XMLandJSONDemo_5bc88df3.o: ../../Source/Demos/XMLandJSONDemo.cpp
 $(JUCE_OBJDIR)/BinaryData_ce4232d4.o: ../../JuceLibraryCode/BinaryData.cpp
 	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
 	@echo "Compiling BinaryData.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/juce_aftereffects_importer_9a0e5822.o: ../../JuceLibraryCode/juce_aftereffects_importer.cpp
+	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
+	@echo "Compiling juce_aftereffects_importer.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/juce_audio_basics_6b797ca1.o: ../../JuceLibraryCode/juce_audio_basics.cpp

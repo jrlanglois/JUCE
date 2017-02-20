@@ -181,6 +181,7 @@
     <ClCompile Include="..\..\Source\Demos\WindowsDemo.cpp"/>
     <ClCompile Include="..\..\Source\Demos\XMLandJSONDemo.cpp"/>
     <ClCompile Include="..\..\JuceLibraryCode\BinaryData.cpp"/>
+    <ClCompile Include="..\..\JuceLibraryCode\juce_aftereffects_importer.cpp"/>
     <ClCompile Include="..\..\JuceLibraryCode\juce_audio_basics.cpp"/>
     <ClCompile Include="..\..\JuceLibraryCode\juce_audio_devices.cpp"/>
     <ClCompile Include="..\..\JuceLibraryCode\juce_audio_formats.cpp"/>

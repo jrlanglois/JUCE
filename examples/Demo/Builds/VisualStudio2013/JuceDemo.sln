@@ -74,6 +74,25 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Resources", "Resources", "{
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Juce Modules", "Juce Modules", "{AD2C04D4-7DBA-314E-4D66-F2B021015F59}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "juce_aftereffects_importer", "juce_aftereffects_importer", "{65E278FD-1D49-EBBF-4EF4-C1136D520091}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\..\..\modules\juce_aftereffects_importer\juce_aftereffects_importer.cpp = ..\..\..\..\modules\juce_aftereffects_importer\juce_aftereffects_importer.cpp
+		..\..\..\..\modules\juce_aftereffects_importer\juce_aftereffects_importer.h = ..\..\..\..\modules\juce_aftereffects_importer\juce_aftereffects_importer.h
+		..\..\..\..\modules\juce_aftereffects_importer\juce_aftereffects_importer.h = ..\..\..\..\modules\juce_aftereffects_importer\juce_aftereffects_importer.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "importer", "importer", "{FE0CB466-A24B-4C71-3AFF-52B13DB805CD}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\..\..\modules\juce_aftereffects_importer\importer\juce_AEImporter.cpp = ..\..\..\..\modules\juce_aftereffects_importer\importer\juce_AEImporter.cpp
+		..\..\..\..\modules\juce_aftereffects_importer\importer\juce_AEImporter.h = ..\..\..\..\modules\juce_aftereffects_importer\importer\juce_AEImporter.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "protobuf", "protobuf", "{3CCA7A53-2459-DDC6-AEA8-D7942BE26C99}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\..\..\modules\juce_aftereffects_importer\importer\protobuf\AEFilter.pb.cc = ..\..\..\..\modules\juce_aftereffects_importer\importer\protobuf\AEFilter.pb.cc
+		..\..\..\..\modules\juce_aftereffects_importer\importer\protobuf\AEFilter.pb.h = ..\..\..\..\modules\juce_aftereffects_importer\importer\protobuf\AEFilter.pb.h
+	EndProjectSection
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "juce_audio_basics", "juce_audio_basics", "{7D98269F-FE96-6BA2-6982-95A094257474}"
 	ProjectSection(SolutionItems) = preProject
 		..\..\..\..\modules\juce_audio_basics\juce_audio_basics.cpp = ..\..\..\..\modules\juce_audio_basics\juce_audio_basics.cpp
@@ -1856,6 +1875,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Juce Library Code", "Juce L
 		..\..\JuceLibraryCode\AppConfig.h = ..\..\JuceLibraryCode\AppConfig.h
 		..\..\JuceLibraryCode\BinaryData.cpp = ..\..\JuceLibraryCode\BinaryData.cpp
 		..\..\JuceLibraryCode\BinaryData.h = ..\..\JuceLibraryCode\BinaryData.h
+		..\..\JuceLibraryCode\juce_aftereffects_importer.cpp = ..\..\JuceLibraryCode\juce_aftereffects_importer.cpp
 		..\..\JuceLibraryCode\juce_audio_basics.cpp = ..\..\JuceLibraryCode\juce_audio_basics.cpp
 		..\..\JuceLibraryCode\juce_audio_devices.cpp = ..\..\JuceLibraryCode\juce_audio_devices.cpp
 		..\..\JuceLibraryCode\juce_audio_formats.cpp = ..\..\JuceLibraryCode\juce_audio_formats.cpp
@@ -1892,6 +1912,9 @@ Global
 		{682C51AD-2DBF-1D44-A761-26D8523A096A} = {7015E070-EF69-2EC4-36CA-3DDF1FD82EE1}
 		{E6F53028-5EF9-3E1E-A80D-E86F8581CD52} = {7015E070-EF69-2EC4-36CA-3DDF1FD82EE1}
 		{7015E070-EF69-2EC4-36CA-3DDF1FD82EE1} = {135D6DB4-A78F-94DD-BF95-700E37C8FEAE}
+		{3CCA7A53-2459-DDC6-AEA8-D7942BE26C99} = {FE0CB466-A24B-4C71-3AFF-52B13DB805CD}
+		{FE0CB466-A24B-4C71-3AFF-52B13DB805CD} = {65E278FD-1D49-EBBF-4EF4-C1136D520091}
+		{65E278FD-1D49-EBBF-4EF4-C1136D520091} = {AD2C04D4-7DBA-314E-4D66-F2B021015F59}
 		{7CD42E50-9A58-3EBA-EE01-8BB53EE23455} = {7D98269F-FE96-6BA2-6982-95A094257474}
 		{66AF0C07-0405-CD6A-E150-7010B2E00ED8} = {7D98269F-FE96-6BA2-6982-95A094257474}
 		{DB02F856-3B14-F815-657A-998A3A86CFA6} = {7D98269F-FE96-6BA2-6982-95A094257474}
