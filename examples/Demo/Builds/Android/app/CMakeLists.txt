@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.4.1)
 
 SET(BINARY_NAME "juce_jni")
 
-add_definitions("-DJUCE_ANDROID=1" "-DJUCE_ANDROID_API_VERSION=10" "-DJUCE_ANDROID_ACTIVITY_CLASSNAME=com_yourcompany_jucedemo_JuceDemo" "-DJUCE_ANDROID_ACTIVITY_CLASSPATH=\"com/yourcompany/jucedemo/JuceDemo\"" "-DJUCE_UNIT_TESTS=1")
+add_definitions("-DJUCE_ANDROID=1" "-DJUCE_ANDROID_API_VERSION=23" "-DJUCE_ANDROID_ACTIVITY_CLASSNAME=com_yourcompany_jucedemo_JuceDemo" "-DJUCE_ANDROID_ACTIVITY_CLASSPATH=\"com/yourcompany/jucedemo/JuceDemo\"" "-DJUCE_ANDROID_GL_ES_VERSION_3_0=1" "-DJUCE_UNIT_TESTS=1")
 
 include_directories( AFTER
     "../../../JuceLibraryCode"
@@ -2684,13 +2684,13 @@ set_source_files_properties("../../../JuceLibraryCode/JuceHeader.h" PROPERTIES H
 
 find_library(log "log")
 find_library(android "android")
-find_library(glesv2 "GLESv2")
+find_library(glesv3 "GLESv3")
 find_library(egl "EGL")
 
 target_link_libraries( ${BINARY_NAME}
 
     ${log}
     ${android}
-    ${glesv2}
+    ${glesv3}
     ${egl}
 )

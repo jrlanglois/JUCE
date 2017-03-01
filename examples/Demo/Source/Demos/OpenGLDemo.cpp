@@ -725,6 +725,7 @@ struct OpenGLDemoClasses
             lastTexture = textureToUse = t;
         }
 
+
         void setShaderProgram (const String& vertexShader, const String& fragmentShader)
         {
             newVertexShader = vertexShader;

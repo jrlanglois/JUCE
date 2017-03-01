@@ -629,6 +629,11 @@ void MainAppWindow::setRenderingEngine (int index)
           && contentComponent != nullptr
           && ! contentComponent->isShowingOpenGLDemo())
     {
+       #if JUCE_OPENGL3
+        openGLContext.setMultisamplingEnabled (true);
+        openGLContext.setOpenGLVersionRequired (OpenGLContext::openGL3_2);
+       #endif
+
         openGLContext.attachTo (*getTopLevelComponent());
         return;
     }

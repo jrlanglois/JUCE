@@ -66,6 +66,7 @@ public:
         addAndMakeVisible (fragmentEditorComp);
 
         presetBox.setSelectedItemIndex (0);
+    
     }
 
     ~OpenGL2DShaderDemo()
@@ -92,11 +93,16 @@ public:
                     statusLabel.setText (result.getErrorMessage(), dontSendNotification);
                     shader = nullptr;
                 }
+                else
+                {
+                    if (auto data = (const char*) glGetString (GL_VERSION))
+                        DBG (data);
+                }
             }
         }
 
         if (shader != nullptr)
-        {
+        {        
             statusLabel.setText (String(), dontSendNotification);
 
             shader->fillRect (g.getInternalContext(), getLocalBounds());

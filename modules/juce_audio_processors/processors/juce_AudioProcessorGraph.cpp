@@ -1020,7 +1020,7 @@ struct AudioProcessorGraph::AudioProcessorGraphBufferHelpers
         currentAudioOutputBuffer.doubleVersion.setSize (1, 1);
     }
 
-    void prepareInOutBuffers(int newNumChannels, int newNumSamples)
+    void prepareInOutBuffers (int newNumChannels, int newNumSamples)
     {
         currentAudioInputBuffer.floatVersion  = nullptr;
         currentAudioInputBuffer.doubleVersion = nullptr;
@@ -1036,7 +1036,7 @@ struct AudioProcessorGraph::AudioProcessorGraphBufferHelpers
 
 //==============================================================================
 AudioProcessorGraph::AudioProcessorGraph()
-    : lastNodeId (0), audioBuffers (new AudioProcessorGraphBufferHelpers),
+    : lastNodeId (0), audioBuffers (new AudioProcessorGraphBufferHelpers()),
       currentMidiInputBuffer (nullptr), isPrepared (false)
 {
 }
@@ -1102,8 +1102,7 @@ AudioProcessorGraph::Node* AudioProcessorGraph::addNode (AudioProcessor* const n
 
     newProcessor->setPlayHead (getPlayHead());
 
-    Node* const n = new Node (nodeId, newProcessor);
-    nodes.add (n);
+    Node* n = nodes.add (new Node (nodeId, newProcessor));
 
     if (isPrepared)
         triggerAsyncUpdate();

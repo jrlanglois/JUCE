@@ -41,7 +41,7 @@ class JUCE_API  AudioProcessorPlayer    : public AudioIODeviceCallback,
 {
 public:
     //==============================================================================
-    AudioProcessorPlayer(bool doDoublePrecisionProcessing = false);
+    AudioProcessorPlayer (bool doDoublePrecisionProcessing = false);
 
     /** Destructor. */
     virtual ~AudioProcessorPlayer();

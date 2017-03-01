@@ -169,7 +169,7 @@
                    androidNDKPath="" androidBluetoothNeeded="0" bigIcon="BvyE0d"
                    androidScreenOrientation="unspecified" androidMicNeeded="1" gradleToolchain="clang"
                    gradleToolchainVersion="3.6" androidTheme="@android:style/Theme.NoTitleBar"
-                   microphonePermissionNeeded="1">
+                   smallIcon="BvyE0d" androidMinimumSDK="23">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" androidArchitectures="armeabi x86" isDebug="1" optimisation="1"
                        targetName="JuceDemo"/>

@@ -155,6 +155,26 @@ public:
                                                  ModalComponentManager::Callback* callback);
                                                #endif
 
+    //==============================================================================
+   #if JUCE_ANDROID
+    /** Displays a default popup text message that a user cannot interact with.
+
+        Presently, this is only supported on Android.
+    */
+    static void JUCE_CALLTYPE showToastNotification (const String& message, bool isShortDuration = true);
+
+    /** Displays a fully customised popup text message that a user cannot interact with,
+        based on configurable XML data.
+
+        If the data is somehow invalid, the notification will simply not appear.
+
+        Presently, this is only supported on Android.
+
+        See https://developer.android.com/guide/topics/ui/notifiers/toasts.html#CustomToastView
+    */
+    //static void JUCE_CALLTYPE showToastNotification (XmlElement* customToastView);
+   #endif
+
 private:
     NativeMessageBox() JUCE_DELETED_FUNCTION;
     JUCE_DECLARE_NON_COPYABLE (NativeMessageBox)

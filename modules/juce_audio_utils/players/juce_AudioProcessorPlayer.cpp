@@ -22,7 +22,7 @@
   ==============================================================================
 */
 
-AudioProcessorPlayer::AudioProcessorPlayer(bool doDoublePrecisionProcessing)
+AudioProcessorPlayer::AudioProcessorPlayer (bool doDoublePrecisionProcessing)
     : processor (nullptr),
       sampleRate (0),
       blockSize (0),
@@ -45,7 +45,7 @@ void AudioProcessorPlayer::setProcessor (AudioProcessor* const processorToPlay)
     {
         if (processorToPlay != nullptr && sampleRate > 0 && blockSize > 0)
         {
-            processorToPlay->setPlayConfigDetails(numInputChans, numOutputChans, sampleRate, blockSize);
+            processorToPlay->setPlayConfigDetails (numInputChans, numOutputChans, sampleRate, blockSize);
             const bool supportsDouble = processorToPlay->supportsDoublePrecisionProcessing() && isDoublePrecision;
             AudioProcessor::ProcessingPrecision precision = supportsDouble ? AudioProcessor::doublePrecision
                                                                            : AudioProcessor::singlePrecision;
@@ -115,14 +115,14 @@ void AudioProcessorPlayer::audioDeviceIOCallback (const float** const inputChann
         for (int i = 0; i < numOutputChannels; ++i)
         {
             channels[totalNumChans] = outputChannelData[i];
-            memcpy (channels[totalNumChans], inputChannelData[i], sizeof (float) * (size_t) numSamples);
+            FloatVectorOperations::copy (channels[totalNumChans], inputChannelData[i], (int) sizeof (float) * (int) numSamples);
             ++totalNumChans;
         }
 
         for (int i = numOutputChannels; i < numInputChannels; ++i)
         {
             channels[totalNumChans] = tempBuffer.getWritePointer (i - numOutputChannels);
-            memcpy (channels[totalNumChans], inputChannelData[i], sizeof (float) * (size_t) numSamples);
+            FloatVectorOperations::copy (channels[totalNumChans], inputChannelData[i], (int) sizeof (float) * (int) numSamples);
             ++totalNumChans;
         }
     }
@@ -131,7 +131,7 @@ void AudioProcessorPlayer::audioDeviceIOCallback (const float** const inputChann
         for (int i = 0; i < numInputChannels; ++i)
         {
             channels[totalNumChans] = outputChannelData[i];
-            memcpy (channels[totalNumChans], inputChannelData[i], sizeof (float) * (size_t) numSamples);
+            FloatVectorOperations::copy (channels[totalNumChans], inputChannelData[i], (int) sizeof (float) * (int) numSamples);
             ++totalNumChans;
         }
 

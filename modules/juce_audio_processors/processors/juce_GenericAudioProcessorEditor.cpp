@@ -110,12 +110,12 @@ private:
 
         void startedDragging() override
         {
-            owner.beginParameterChangeGesture(index);
+            owner.beginParameterChangeGesture (index);
         }
 
         void stoppedDragging() override
         {
-            owner.endParameterChangeGesture(index);
+            owner.endParameterChangeGesture (index);
         }
 
         String getTextFromValue (double /*value*/) override
@@ -149,7 +149,7 @@ GenericAudioProcessorEditor::GenericAudioProcessorEditor (AudioProcessor* const 
 
     addAndMakeVisible (panel);
 
-    Array <PropertyComponent*> params;
+    Array<PropertyComponent*> params;
 
     const int numParams = p->getNumParameters();
     int totalHeight = 0;

@@ -98,6 +98,7 @@ public:
         questionAlertWindow,
         okCancelAlertWindow,
         extraComponentsAlertWindow,
+        basicToast,
         calloutBoxWindow,
         progressWindow,
         loadChooser,
@@ -219,6 +220,10 @@ private:
                                           String(),
                                           0,
                                           ModalCallbackFunction::forComponent (alertBoxResultChosen, this));
+        }
+        else if (type == basicToast)
+        {
+            NativeMessageBox::showToastNotification ("JUCE Toast Notification Test");
         }
         else if (type == calloutBoxWindow)
         {

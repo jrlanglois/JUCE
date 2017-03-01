@@ -194,7 +194,7 @@
   #define JUCE_CLANG 1
 
   #if ((! __has_feature (cxx_nullptr)) || (! __has_feature (cxx_rvalue_references)) || (! __has_feature (cxx_static_assert)))
-   #error "Clang 3.2 and earlier are no longer supported!"
+   //#error "Clang 3.2 and earlier are no longer supported!"
   #endif
 #elif defined (__GNUC__)
   #define JUCE_GCC 1

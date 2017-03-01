@@ -732,6 +732,11 @@ bool JUCE_CALLTYPE NativeMessageBox::showOkCancelBox (AlertWindow::AlertIconType
     return false;
 }
 
+void JUCE_CALLTYPE NativeMessageBox::showToastNotification (const String& message, bool isShortDuration)
+{
+    android.activity.callVoidMethod (JuceAppActivity.showToastNotification, javaString (message).get(), isShortDuration);
+}
+
 int JUCE_CALLTYPE NativeMessageBox::showYesNoCancelBox (AlertWindow::AlertIconType /*iconType*/,
                                                         const String& title, const String& message,
                                                         Component* /*associatedComponent*/,

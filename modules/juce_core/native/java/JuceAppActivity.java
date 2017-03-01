@@ -64,6 +64,7 @@ import android.media.AudioManager;
 import android.media.MediaScannerConnection;
 import android.media.MediaScannerConnection.MediaScannerConnectionClient;
 import android.Manifest;
+import android.widget.Toast;
 $$JuceAndroidMidiImports$$ // If you get an error here, you need to re-save your project with the Projucer!
 
 
@@ -488,6 +489,11 @@ public class JuceAppActivity   extends Activity
                     });
 
         builder.create().show();
+    }
+
+    public final void showToastNotification (String message, boolean isShortDuration)
+    {
+        Toast.makeText (getApplicationContext(), message, isShortDuration ? Toast.LENGTH_SHORT : Toast.LENGTH_LONG).show();
     }
 
     public final void showOkCancelBox (String title, String message, final long callback)

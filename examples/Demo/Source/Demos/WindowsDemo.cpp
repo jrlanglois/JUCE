@@ -194,6 +194,7 @@ public:
         dialog,
         document,
         alert,
+        toast,
         numWindows
     };
 
