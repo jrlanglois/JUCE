@@ -389,8 +389,18 @@ namespace AiffFileHelpers
 class AiffAudioFormatReader  : public AudioFormatReader
 {
 public:
+    enum CompressionType
+    {
+        uncompressed,
+        alawCompression,
+        mulawCompression
+    };
+
+    CompressionType compressionType;
+
     AiffAudioFormatReader (InputStream* in)
-        : AudioFormatReader (in, aiffFormatName)
+        : AudioFormatReader (in, aiffFormatName),
+          compressionType (uncompressed)
     {
         using namespace AiffFileHelpers;
 
@@ -452,9 +462,12 @@ public:
                         {
                             const int compType = input->readInt();
 
+                            littleEndian = false;
+                            usesFloatingPointData = false;
+
                             if (compType == chunkName ("NONE") || compType == chunkName ("twos"))
                             {
-                                littleEndian = false;
+                                //OK
                             }
                             else if (compType == chunkName ("sowt"))
                             {
@@ -462,8 +475,15 @@ public:
                             }
                             else if (compType == chunkName ("fl32") || compType == chunkName ("FL32"))
                             {
-                                littleEndian = false;
                                 usesFloatingPointData = true;
+                            }
+                            else if (compType == chunkName ("alaw") || compType == chunkName ("ALAW"))
+                            {
+                                compressionType = alawCompression;
+                            }
+                            else if (compType == chunkName ("ulaw") || compType == chunkName ("ULAW"))
+                            {
+                                compressionType = mulawCompression;
                             }
                             else
                             {

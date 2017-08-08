@@ -910,8 +910,18 @@ namespace WavFileHelpers
 class WavAudioFormatReader  : public AudioFormatReader
 {
 public:
+    enum CompressionType
+    {
+        uncompressed,
+        alawCompression,
+        mulawCompression
+    };
+
+    CompressionType compressionType;
+
     WavAudioFormatReader (InputStream* const in)
-        : AudioFormatReader (in, wavFormatName)
+        : AudioFormatReader (in, wavFormatName),
+          compressionType (uncompressed)
     {
         using namespace WavFileHelpers;
         uint64 len = 0;
