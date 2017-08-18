@@ -2240,4 +2240,8 @@ const int KeyPress::stopKey         = 0x30001;
 const int KeyPress::fastForwardKey  = 0x30002;
 const int KeyPress::rewindKey       = 0x30003;
 
+const int KeyPress::volumeUpKey     = VK_VOLUME_UP      | extendedKeyModifier;
+const int KeyPress::volumeDownKey   = VK_VOLUME_DOWN    | extendedKeyModifier;
+const int KeyPress::volumeMuteKey   = VK_VOLUME_MUTE    | extendedKeyModifier;
+
 } // namespace juce

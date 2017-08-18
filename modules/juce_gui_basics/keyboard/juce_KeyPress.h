@@ -266,6 +266,10 @@ public:
     static const int fastForwardKey; /**< key-code for a multimedia 'fast-forward' key, (not all keyboards will have one) */
     static const int rewindKey;      /**< key-code for a multimedia 'rewind' key, (not all keyboards will have one) */
 
+    static const int volumeUpKey;   /**< key-code for a multimedia 'volume up' key, (not all keyboards will have one) */
+    static const int volumeDownKey; /**< key-code for a multimedia 'volume down' key, (not all keyboards will have one) */
+    static const int volumeMuteKey; /**< key-code for a multimedia 'volume mute' key, (not all keyboards will have one) */
+
 private:
     //==============================================================================
     int keyCode = 0;

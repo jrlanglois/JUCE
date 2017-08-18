@@ -93,7 +93,10 @@ namespace KeyPressHelpers
         { "play",           KeyPress::playKey },
         { "stop",           KeyPress::stopKey },
         { "fast forward",   KeyPress::fastForwardKey },
-        { "rewind",         KeyPress::rewindKey }
+        { "rewind",         KeyPress::rewindKey },
+        { "volume up",      KeyPress::volumeUpKey },
+        { "volume down",    KeyPress::volumeDownKey },
+        { "mute",           KeyPress::volumeMuteKey }
     };
 
     struct ModifierDescription

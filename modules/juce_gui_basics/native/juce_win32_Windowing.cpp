@@ -704,6 +704,9 @@ const int KeyPress::playKey                 = 0x30000;
 const int KeyPress::stopKey                 = 0x30001;
 const int KeyPress::fastForwardKey          = 0x30002;
 const int KeyPress::rewindKey               = 0x30003;
+const int KeyPress::volumeUpKey             = VK_VOLUME_UP      | extendedKeyModifier;
+const int KeyPress::volumeDownKey           = VK_VOLUME_DOWN    | extendedKeyModifier;
+const int KeyPress::volumeMuteKey           = VK_VOLUME_MUTE    | extendedKeyModifier;
 
 
 //==============================================================================
@@ -3142,6 +3145,9 @@ private:
             case APPCOMMAND_MEDIA_STOP:             key = KeyPress::stopKey; break;
             case APPCOMMAND_MEDIA_NEXTTRACK:        key = KeyPress::fastForwardKey; break;
             case APPCOMMAND_MEDIA_PREVIOUSTRACK:    key = KeyPress::rewindKey; break;
+            case APPCOMMAND_VOLUME_UP:              key = KeyPress::volumeUpKey; break;
+            case APPCOMMAND_VOLUME_DOWN:            key = KeyPress::volumeDownKey; break;
+            case APPCOMMAND_VOLUME_MUTE:            key = KeyPress::volumeMuteKey; break;
             default: break;
         }
 

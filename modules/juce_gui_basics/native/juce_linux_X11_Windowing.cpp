@@ -180,6 +180,9 @@ const int KeyPress::playKey                 = ((int) 0xffeeff00) | Keys::extende
 const int KeyPress::stopKey                 = ((int) 0xffeeff01) | Keys::extendedKeyModifier;
 const int KeyPress::fastForwardKey          = ((int) 0xffeeff02) | Keys::extendedKeyModifier;
 const int KeyPress::rewindKey               = ((int) 0xffeeff03) | Keys::extendedKeyModifier;
+const int KeyPress::volumeUpKey             = ((int) 0xffeeff04) | Keys::extendedKeyModifier;
+const int KeyPress::volumeDownKey           = ((int) 0xffeeff05) | Keys::extendedKeyModifier;
+const int KeyPress::volumeMuteKey           = ((int) 0xffeeff06) | Keys::extendedKeyModifier;
 
 //================================== X11 - Shm =================================
 
