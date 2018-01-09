@@ -720,6 +720,9 @@
     <ClCompile Include="..\..\..\..\modules\juce_core\javascript\juce_Javascript.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\modules\juce_core\javascript\juce_JavascriptUnitTests.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\modules\juce_core\javascript\juce_JSON.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>

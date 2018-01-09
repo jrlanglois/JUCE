@@ -179,6 +179,7 @@
 #include "containers/juce_Variant.cpp"
 #include "javascript/juce_JSON.cpp"
 #include "javascript/juce_Javascript.cpp"
+#include "javascript/juce_JavascriptUnitTests.cpp"
 #include "containers/juce_DynamicObject.cpp"
 #include "xml/juce_XmlDocument.cpp"
 #include "xml/juce_XmlElement.cpp"

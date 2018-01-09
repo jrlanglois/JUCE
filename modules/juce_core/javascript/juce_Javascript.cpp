@@ -39,10 +39,10 @@ namespace juce
     X(rightShiftUnsigned, ">>>") X(rightShiftEquals, ">>=") X(rightShift,   ">>")   X(greaterThanOrEqual, ">=")  X(greaterThan,  ">")
 
 #define JUCE_JS_KEYWORDS(X) \
-    X(var,      "var")      X(if_,     "if")     X(else_,  "else")   X(do_,       "do")       X(null_,     "null") \
-    X(while_,   "while")    X(for_,    "for")    X(break_, "break")  X(continue_, "continue") X(undefined, "undefined") \
-    X(function, "function") X(return_, "return") X(true_,  "true")   X(false_,    "false")    X(new_,      "new") \
-    X(typeof_,  "typeof")
+    X(var,      "var")      X(if_,     "if")        X(else_,  "else")   X(do_,       "do")       X(null_,     "null") \
+    X(while_,   "while")    X(for_,    "for")       X(break_, "break")  X(continue_, "continue") X(undefined, "undefined") \
+    X(function, "function") X(return_, "return")    X(true_,  "true")   X(false_,    "false")    X(new_,      "new") \
+    X(typeof_,  "typeof")   X(infinity_, "Infinity")
 
 namespace TokenTypes
 {
@@ -60,17 +60,39 @@ namespace TokenTypes
 #endif
 
 //==============================================================================
+static const var globalUndefined = var::undefined();
+
 struct JavascriptEngine::RootObject   : public DynamicObject
 {
     RootObject()
     {
-        setMethod ("exec",       exec);
-        setMethod ("eval",       eval);
-        setMethod ("trace",      trace);
-        setMethod ("charToInt",  charToInt);
-        setMethod ("parseInt",   IntegerClass::parseInt);
-        setMethod ("typeof",     typeof_internal);
-        setMethod ("parseFloat", parseFloat);
+        setMethod ("exec",          exec);
+        setMethod ("eval",          eval);
+        setMethod ("trace",         trace);
+        setMethod ("typeof",        typeof_internal);
+        setMethod ("charToInt",     charToInt);
+        setMethod ("parseInt",      NumberClass::parseInt);
+        setMethod ("parseFloat",    NumberClass::parseFloat);
+        setMethod ("isNaN",         NumberClass::isNaN);
+        setMethod ("isFinite",      NumberClass::isFinite);
+
+        setProperty ("Infinity",    std::numeric_limits<double>::infinity());
+        setProperty ("NaN",         std::numeric_limits<double>::quiet_NaN());
+
+        registerNativeObject<ObjectClass>();
+        registerNativeObject<ArrayClass>();
+        registerNativeObject<StringClass>();
+        registerNativeObject<MathClass>();
+        registerNativeObject<JSONClass>();
+        registerNativeObject<NumberClass>();
+        registerNativeObject<BooleanClass>();
+        registerNativeObject<RegExpClass>();
+    }
+
+    template<typename RootClass>
+    void registerNativeObject()
+    {
+        setProperty (RootClass::getClassName(), new RootClass());
     }
 
     Time timeout;
@@ -164,6 +186,10 @@ struct JavascriptEngine::RootObject   : public DynamicObject
 
             if (targetObject.isArray())
                 if (auto* m = findRootClassProperty (ArrayClass::getClassName(), functionName))
+                    return *m;
+
+            if (targetObject.isInt() || targetObject.isInt64() || targetObject.isDouble())
+                if (auto* m = findRootClassProperty (NumberClass::getClassName(), functionName))
                     return *m;
 
             if (auto* m = findRootClassProperty (ObjectClass::getClassName(), functionName))
@@ -1323,6 +1349,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
             if (matchIf (TokenTypes::true_))            return parseSuffixes (new LiteralValue (location, (int) 1));
             if (matchIf (TokenTypes::false_))           return parseSuffixes (new LiteralValue (location, (int) 0));
             if (matchIf (TokenTypes::null_))            return parseSuffixes (new LiteralValue (location, var()));
+            if (matchIf (TokenTypes::infinity_))        return parseSuffixes (new LiteralValue (location, (double) std::numeric_limits<double>::infinity()));
             if (matchIf (TokenTypes::undefined))        return parseSuffixes (new Expression (location));
 
             if (currentType == TokenTypes::literal)
@@ -1524,267 +1551,16 @@ struct JavascriptEngine::RootObject   : public DynamicObject
     };
 
     //==============================================================================
-    static var get (Args a, int index) noexcept            { return index < a.numArguments ? a.arguments[index] : var(); }
-    static bool isInt (Args a, int index) noexcept         { return get (a, index).isInt() || get (a, index).isInt64(); }
-    static int getInt (Args a, int index) noexcept         { return get (a, index); }
-    static double getDouble (Args a, int index) noexcept   { return get (a, index); }
-    static String getString (Args a, int index) noexcept   { return get (a, index).toString(); }
+    static var get (Args a, int index) noexcept             { return index < a.numArguments ? a.arguments[index] : var(); }
+    static bool isInt (Args a, int index) noexcept          { return get (a, index).isInt() || get (a, index).isInt64(); }
+    static int getInt (Args a, int index) noexcept          { return get (a, index); }
+    static double getDouble (Args a, int index) noexcept    { return get (a, index); }
+    static String getString (Args a, int index) noexcept    { return get (a, index).toString(); }
+
+    static var trace (Args a)                               { Logger::outputDebugString (JSON::toString (a.thisObject)); return var::undefined(); }
+    static var charToInt (Args a)                           { return (int) getString (a, 0)[0]; }
 
     //==============================================================================
-    struct ObjectClass  : public DynamicObject
-    {
-        ObjectClass()
-        {
-            setMethod ("dump",  dump);
-            setMethod ("clone", cloneFn);
-        }
-
-        static Identifier getClassName()   { static const Identifier i ("Object"); return i; }
-        static var dump  (Args a)          { DBG (JSON::toString (a.thisObject)); ignoreUnused (a); return var::undefined(); }
-        static var cloneFn (Args a)        { return a.thisObject.clone(); }
-    };
-
-    //==============================================================================
-    struct ArrayClass  : public DynamicObject
-    {
-        ArrayClass()
-        {
-            setMethod ("contains", contains);
-            setMethod ("remove",   remove);
-            setMethod ("join",     join);
-            setMethod ("push",     push);
-            setMethod ("splice",   splice);
-            setMethod ("indexOf",  indexOf);
-        }
-
-        static Identifier getClassName()   { static const Identifier i ("Array"); return i; }
-
-        static var contains (Args a)
-        {
-            if (auto* array = a.thisObject.getArray())
-                return array->contains (get (a, 0));
-
-            return false;
-        }
-
-        static var remove (Args a)
-        {
-            if (auto* array = a.thisObject.getArray())
-                array->removeAllInstancesOf (get (a, 0));
-
-            return var::undefined();
-        }
-
-        static var join (Args a)
-        {
-            StringArray strings;
-
-            if (auto* array = a.thisObject.getArray())
-                for (auto& v : *array)
-                    strings.add (v.toString());
-
-            return strings.joinIntoString (getString (a, 0));
-        }
-
-        static var push (Args a)
-        {
-            if (auto* array = a.thisObject.getArray())
-            {
-                for (int i = 0; i < a.numArguments; ++i)
-                    array->add (a.arguments[i]);
-
-                return array->size();
-            }
-
-            return var::undefined();
-        }
-
-        static var splice (Args a)
-        {
-            if (auto* array = a.thisObject.getArray())
-            {
-                auto arraySize = array->size();
-                int start = get (a, 0);
-
-                if (start < 0)
-                    start = jmax (0, arraySize + start);
-                else if (start > arraySize)
-                    start = arraySize;
-
-                const int num = a.numArguments > 1 ? jlimit (0, arraySize - start, getInt (a, 1))
-                                                   : arraySize - start;
-
-                Array<var> itemsRemoved;
-                itemsRemoved.ensureStorageAllocated (num);
-
-                for (int i = 0; i < num; ++i)
-                    itemsRemoved.add (array->getReference (start + i));
-
-                array->removeRange (start, num);
-
-                for (int i = 2; i < a.numArguments; ++i)
-                    array->insert (start++, get (a, i));
-
-                return itemsRemoved;
-            }
-
-            return var::undefined();
-        }
-
-        static var indexOf (Args a)
-        {
-            if (auto* array = a.thisObject.getArray())
-            {
-                auto target = get (a, 0);
-
-                for (int i = (a.numArguments > 1 ? getInt (a, 1) : 0); i < array->size(); ++i)
-                    if (array->getReference(i) == target)
-                        return i;
-            }
-
-            return -1;
-        }
-    };
-
-    //==============================================================================
-    struct StringClass  : public DynamicObject
-    {
-        StringClass()
-        {
-            setMethod ("substring",     substring);
-            setMethod ("indexOf",       indexOf);
-            setMethod ("charAt",        charAt);
-            setMethod ("charCodeAt",    charCodeAt);
-            setMethod ("fromCharCode",  fromCharCode);
-            setMethod ("split",         split);
-        }
-
-        static Identifier getClassName()  { static const Identifier i ("String"); return i; }
-
-        static var fromCharCode (Args a)  { return String::charToString (static_cast<juce_wchar> (getInt (a, 0))); }
-        static var substring (Args a)     { return a.thisObject.toString().substring (getInt (a, 0), getInt (a, 1)); }
-        static var indexOf (Args a)       { return a.thisObject.toString().indexOf (getString (a, 0)); }
-        static var charCodeAt (Args a)    { return (int) a.thisObject.toString() [getInt (a, 0)]; }
-        static var charAt (Args a)        { int p = getInt (a, 0); return a.thisObject.toString().substring (p, p + 1); }
-
-        static var split (Args a)
-        {
-            auto str = a.thisObject.toString();
-            auto sep = getString (a, 0);
-            StringArray strings;
-
-            if (sep.isNotEmpty())
-                strings.addTokens (str, sep.substring (0, 1), {});
-            else // special-case for empty separator: split all chars separately
-                for (auto pos = str.getCharPointer(); ! pos.isEmpty(); ++pos)
-                    strings.add (String::charToString (*pos));
-
-            var array;
-
-            for (auto& s : strings)
-                array.append (s);
-
-            return array;
-        }
-    };
-
-    //==============================================================================
-    struct MathClass  : public DynamicObject
-    {
-        MathClass()
-        {
-            setMethod ("abs",       Math_abs);              setMethod ("round",     Math_round);
-            setMethod ("random",    Math_random);           setMethod ("randInt",   Math_randInt);
-            setMethod ("min",       Math_min);              setMethod ("max",       Math_max);
-            setMethod ("range",     Math_range);            setMethod ("sign",      Math_sign);
-            setMethod ("toDegrees", Math_toDegrees);        setMethod ("toRadians", Math_toRadians);
-            setMethod ("sin",       Math_sin);              setMethod ("asin",      Math_asin);
-            setMethod ("sinh",      Math_sinh);             setMethod ("asinh",     Math_asinh);
-            setMethod ("cos",       Math_cos);              setMethod ("acos",      Math_acos);
-            setMethod ("cosh",      Math_cosh);             setMethod ("acosh",     Math_acosh);
-            setMethod ("tan",       Math_tan);              setMethod ("atan",      Math_atan);
-            setMethod ("tanh",      Math_tanh);             setMethod ("atanh",     Math_atanh);
-            setMethod ("log",       Math_log);              setMethod ("log10",     Math_log10);
-            setMethod ("exp",       Math_exp);              setMethod ("pow",       Math_pow);
-            setMethod ("sqr",       Math_sqr);              setMethod ("sqrt",      Math_sqrt);
-            setMethod ("ceil",      Math_ceil);             setMethod ("floor",     Math_floor);
-
-            setProperty ("PI",      MathConstants<double>::pi);
-            setProperty ("E",       MathConstants<double>::euler);
-            setProperty ("SQRT2",   MathConstants<double>::sqrt2);
-            setProperty ("SQRT1_2", std::sqrt (0.5));
-            setProperty ("LN2",     std::log (2.0));
-            setProperty ("LN10",    std::log (10.0));
-            setProperty ("LOG2E",   std::log (MathConstants<double>::euler) / std::log (2.0));
-            setProperty ("LOG10E",  std::log (MathConstants<double>::euler) / std::log (10.0));
-        }
-
-        static var Math_random    (Args)   { return Random::getSystemRandom().nextDouble(); }
-        static var Math_randInt   (Args a) { return Random::getSystemRandom().nextInt (Range<int> (getInt (a, 0), getInt (a, 1))); }
-        static var Math_abs       (Args a) { return isInt (a, 0) ? var (std::abs   (getInt (a, 0))) : var (std::abs   (getDouble (a, 0))); }
-        static var Math_round     (Args a) { return isInt (a, 0) ? var (roundToInt (getInt (a, 0))) : var (roundToInt (getDouble (a, 0))); }
-        static var Math_sign      (Args a) { return isInt (a, 0) ? var (sign       (getInt (a, 0))) : var (sign       (getDouble (a, 0))); }
-        static var Math_range     (Args a) { return isInt (a, 0) ? var (jlimit (getInt (a, 1), getInt (a, 2), getInt (a, 0))) : var (jlimit (getDouble (a, 1), getDouble (a, 2), getDouble (a, 0))); }
-        static var Math_min       (Args a) { return (isInt (a, 0) && isInt (a, 1)) ? var (jmin (getInt (a, 0), getInt (a, 1))) : var (jmin (getDouble (a, 0), getDouble (a, 1))); }
-        static var Math_max       (Args a) { return (isInt (a, 0) && isInt (a, 1)) ? var (jmax (getInt (a, 0), getInt (a, 1))) : var (jmax (getDouble (a, 0), getDouble (a, 1))); }
-        static var Math_toDegrees (Args a) { return radiansToDegrees (getDouble (a, 0)); }
-        static var Math_toRadians (Args a) { return degreesToRadians (getDouble (a, 0)); }
-        static var Math_sin       (Args a) { return std::sin   (getDouble (a, 0)); }
-        static var Math_asin      (Args a) { return std::asin  (getDouble (a, 0)); }
-        static var Math_cos       (Args a) { return std::cos   (getDouble (a, 0)); }
-        static var Math_acos      (Args a) { return std::acos  (getDouble (a, 0)); }
-        static var Math_sinh      (Args a) { return std::sinh  (getDouble (a, 0)); }
-        static var Math_cosh      (Args a) { return std::cosh  (getDouble (a, 0)); }
-        static var Math_tan       (Args a) { return std::tan   (getDouble (a, 0)); }
-        static var Math_tanh      (Args a) { return std::tanh  (getDouble (a, 0)); }
-        static var Math_atan      (Args a) { return std::atan  (getDouble (a, 0)); }
-        static var Math_log       (Args a) { return std::log   (getDouble (a, 0)); }
-        static var Math_log10     (Args a) { return std::log10 (getDouble (a, 0)); }
-        static var Math_exp       (Args a) { return std::exp   (getDouble (a, 0)); }
-        static var Math_pow       (Args a) { return std::pow   (getDouble (a, 0), getDouble (a, 1)); }
-        static var Math_sqr       (Args a) { return square (getDouble (a, 0)); }
-        static var Math_sqrt      (Args a) { return std::sqrt  (getDouble (a, 0)); }
-        static var Math_ceil      (Args a) { return std::ceil  (getDouble (a, 0)); }
-        static var Math_floor     (Args a) { return std::floor (getDouble (a, 0)); }
-
-        // We can't use the std namespace equivalents of these functions without breaking
-        // compatibility with older versions of OS X.
-        static var Math_asinh     (Args a) { return asinh (getDouble (a, 0)); }
-        static var Math_acosh     (Args a) { return acosh (getDouble (a, 0)); }
-        static var Math_atanh     (Args a) { return atanh (getDouble (a, 0)); }
-
-        static Identifier getClassName()   { static const Identifier i ("Math"); return i; }
-        template <typename Type> static Type sign (Type n) noexcept  { return n > 0 ? (Type) 1 : (n < 0 ? (Type) -1 : 0); }
-    };
-
-    //==============================================================================
-    struct JSONClass  : public DynamicObject
-    {
-        JSONClass()                        { setMethod ("stringify", stringify); }
-        static Identifier getClassName()   { static const Identifier i ("JSON"); return i; }
-        static var stringify (Args a)      { return JSON::toString (get (a, 0)); }
-    };
-
-    //==============================================================================
-    struct IntegerClass  : public DynamicObject
-    {
-        IntegerClass()                     { setMethod ("parseInt",  parseInt); }
-        static Identifier getClassName()   { static const Identifier i ("Integer"); return i; }
-
-        static var parseInt (Args a)
-        {
-            auto s = getString (a, 0).trim();
-
-            return s[0] == '0' ? (s[1] == 'x' ? s.substring(2).getHexValue64() : getOctalValue (s))
-                               : s.getLargeIntValue();
-        }
-    };
-
-    //==============================================================================
-    static var trace (Args a)        { Logger::outputDebugString (JSON::toString (a.thisObject)); return var::undefined(); }
-    static var charToInt (Args a)    { return (int) (getString (a, 0)[0]); }
-    static var parseFloat (Args a)   { return getDouble (a, 0); }
-
     static var typeof_internal (Args a)
     {
         var v (get (a, 0));
@@ -1813,17 +1589,592 @@ struct JavascriptEngine::RootObject   : public DynamicObject
 
         return var::undefined();
     }
+
+    #define JUCE_JS_CREATE_METHOD(methodName) \
+        setMethod (JUCE_STRINGIFY (methodName), methodName);
+
+    //==============================================================================
+    struct ObjectClass  : public DynamicObject
+    {
+        ObjectClass()
+        {
+            setMethod ("dump",  dump);
+            setMethod ("clone", cloneFn);
+        }
+
+        static Identifier getClassName()   { static const Identifier i ("Object"); return i; }
+        static var dump  (Args a)          { DBG (JSON::toString (a.thisObject)); ignoreUnused (a); return var::undefined(); }
+        static var cloneFn (Args a)        { return a.thisObject.clone(); }
+    };
+
+    //==============================================================================
+    /*
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array
+    */
+    struct ArrayClass  : public DynamicObject
+    {
+        ArrayClass()
+        {
+            #define ARRAY_CLASS_METHODS(X) \
+                X (concat)      X (contains)    X (copyWithin)      X (entries) \
+                X (every)       X (fill)        X (filter)          X (find) \
+                X (findIndex)   X (forEach)     X (from)            X (includes) \
+                X (indexOf)     X (isArray)     X (join)            X (keys) \
+                X (lastIndexOf) X (map)         X (observe)         X (of) \
+                X (pop)         X (push)        X (reduce)          X (reduceRight) \
+                X (reverse)     X (shift)       X (slice)           X (some) \
+                X (sort)        X (splice)      X (toLocaleString)  X (toSource) \
+                X (toString)    X (unshift)     X (values)
+
+            ARRAY_CLASS_METHODS (JUCE_JS_CREATE_METHOD)
+
+            #undef ARRAY_CLASS_METHODS
+        }
+
+        static Identifier getClassName()            { static const Identifier i ("Array"); return i; }
+        static Array<var>* getThisArray (Args a)    { return a.thisObject.getArray(); }
+
+        static var entries (Args a)         { jassertfalse; return var(); } //TODO
+        static var filter (Args a)          { jassertfalse; return var(); } //TODO
+        static var find (Args a)            { jassertfalse; return var(); } //TODO
+        static var findIndex (Args a)       { jassertfalse; return var(); } //TODO
+        static var from (Args a)            { jassertfalse; return var(); } //TODO
+        static var includes (Args a)        { jassertfalse; return var(); } //TODO
+        static var isArray (Args a)         { jassertfalse; return var(); } //TODO
+        static var keys (Args a)            { jassertfalse; return var(); } //TODO
+        static var map (Args a)             { jassertfalse; return var(); } //TODO
+        static var observe (Args a)         { jassertfalse; return var(); } //TODO
+        static var of (Args a)              { return concat (a); }
+        static var reduce (Args a)          { jassertfalse; return var(); } //TODO
+        static var reduceRight (Args a)     { jassertfalse; return var(); } //TODO
+        static var reverse (Args a)         { jassertfalse; return var(); } //TODO
+        static var slice (Args a)           { jassertfalse; return var(); } //TODO
+        static var some (Args a)            { jassertfalse; return var(); } //TODO
+        static var sort (Args a)            { jassertfalse; return var(); } //TODO
+        static var toLocaleString (Args a)  { jassertfalse; return var(); } //TODO
+        static var toSource (Args a)        { jassertfalse; return var(); } //TODO
+        static var toString (Args a)        { jassertfalse; return var(); } //TODO
+        static var unshift (Args a)         { jassertfalse; return var(); } //TODO
+        static var values (Args a)          { jassertfalse; return var(); } //TODO
+
+        static var concat (Args a)
+        {
+            Array<var> result;
+
+            if (auto* sourceArray = getThisArray (a))
+            {
+                result = *sourceArray;
+
+                for (int i = 0; i < a.numArguments; ++i)
+                {
+                    auto target = get (a, 0);
+
+                    if (auto* targetArray = target.getArray())
+                    {
+                        result.addArray (*targetArray);
+                    }
+                    else if (target.isInt() || target.isInt64() || target.isBool()
+                          || target.isDouble() || target.isString())
+                    {
+                        result.add (target);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        static var contains (Args a)
+        {
+            if (auto* array = getThisArray (a))
+                return array->contains (get (a, 0));
+
+            return false;
+        }
+
+        static const var& copyWithin (Args a)
+        {
+            if (auto* sourceArray = getThisArray (a))
+            {
+                const int length = sourceArray->size();
+                const int startIndex = getInt (a, 0);
+
+                if (startIndex < 0 && std::abs (startIndex) > length)
+                    return a.thisObject;
+
+                jassertfalse; //TODO
+                return a.thisObject;
+            }
+
+            return globalUndefined;
+        }
+
+        static var every (Args a)
+        {
+            if (auto* array = getThisArray (a))
+            {
+                auto target = get (a, 0);
+
+                if (auto func = target.getNativeFunction())
+                {
+                    for (int i = 0; i < array->size(); ++i)
+                    {
+                        const var arguments[] =
+                        {
+                            array->getUnchecked (i),
+                            i,
+                            a.thisObject
+                        };
+
+                        if (static_cast<bool> (func ({ target, arguments, 3 })))
+                            return true;
+                    }
+                }
+                else
+                {
+                    if (auto* p = dynamic_cast<FunctionObject*> (target.getDynamicObject()))
+                    {
+                        for (int i = 0; i < array->size(); ++i)
+                        {
+                            const var arguments[] =
+                            {
+                                array->getUnchecked (i),
+                                i,
+                                a.thisObject
+                            };
+
+                            if (static_cast<bool> (p->invoke ({ nullptr, nullptr, p }, { target, arguments, 3 })))
+                                return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        static var fill (Args a)
+        {
+            Array<var> result;
+
+            if (auto* sourceArray = getThisArray (a))
+            {
+                auto value = getInt (a, 0);
+                auto start = getInt (a, 1);
+                auto end = getInt (a, 2);
+
+                for (int i = 0; i < a.numArguments; ++i)
+                {
+                    if (auto* targetArray = target.getArray())
+                    {
+                        result.addArray (*targetArray);
+                    }
+                    else if (target.isInt() || target.isInt64() || target.isBool()
+                          || target.isDouble() || target.isString())
+                    {
+                        result.add (target);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        static var forEach (Args a)
+        {
+            if (auto* array = getThisArray (a))
+            {
+                auto target = get (a, 0);
+
+                if (auto func = target.getNativeFunction())
+                {
+                    for (int i = 0; i < array->size(); ++i)
+                    {
+                        const var arguments[] =
+                        {
+                            array->getUnchecked (i),
+                            i,
+                            a.thisObject
+                        };
+
+                        func ({ target, arguments, 3 });
+                    }
+                }
+            }
+
+            return var::undefined();
+        }
+
+        static var indexOf (Args a)
+        {
+            if (auto* array = getThisArray (a))
+            {
+                auto target = get (a, 0);
+
+                for (int i = (a.numArguments > 1 ? getInt (a, 1) : 0); i < array->size(); ++i)
+                    if (array->getReference (i) == target)
+                        return i;
+            }
+
+            return -1;
+        }
+
+        static var lastIndexOf (Args a)
+        {
+            if (auto* array = getThisArray (a))
+            {
+                auto target = get (a, 0);
+                const auto startIndex = (a.numArguments > 1 ? getInt (a, 1) : 0);
+
+                for (int i = array->size(); --i >= startIndex;)
+                    if (array->getReference(i) == target)
+                        return i;
+            }
+
+            return -1;
+        }
+
+        static var join (Args a)
+        {
+            StringArray strings;
+
+            if (auto* array = getThisArray (a))
+                for (auto& v : *array)
+                    strings.add (v.toString());
+
+            return strings.joinIntoString (getString (a, 0));
+        }
+
+        static var pop (Args a)
+        {
+            if (auto* array = getThisArray (a))
+            {
+                for (int i = 0; i < a.numArguments; ++i)
+                    array->add (a.arguments[i]);
+
+                array->removeLast();
+                return array->size();
+            }
+
+            return var::undefined();
+        }
+
+        static var push (Args a)
+        {
+            if (auto* array = getThisArray (a))
+            {
+                for (int i = 0; i < a.numArguments; ++i)
+                    array->add (a.arguments[i]);
+
+                return array->size();
+            }
+
+            return var::undefined();
+        }
+
+        static var remove (Args a)
+        {
+            if (auto* array = getThisArray (a))
+            {
+                array->removeAllInstancesOf (get (a, 0));
+                return *array;
+            }
+
+            return var::undefined();
+        }
+
+        static var shift (Args a)
+        {
+            if (auto* array = getThisArray (a))
+                if (! array->isEmpty())
+                    return array->removeAndReturn (0);
+
+            return var::undefined();
+        }
+
+        static var splice (Args a)
+        {
+            if (auto* array = getThisArray (a))
+            {
+                auto arraySize = array->size();
+                int start = get (a, 0);
+
+                if (start < 0)
+                    start = jmax (0, arraySize + start);
+                else if (start > arraySize)
+                    start = arraySize;
+
+                const int num = a.numArguments > 1 ? jlimit (0, arraySize - start, getInt (a, 1))
+                                                   : arraySize - start;
+
+                Array<var> itemsRemoved;
+                itemsRemoved.ensureStorageAllocated (num);
+
+                for (int i = 0; i < num; ++i)
+                    itemsRemoved.add (array->getReference (start + i));
+
+                array->removeRange (start, num);
+
+                for (int i = 2; i < a.numArguments; ++i)
+                    array->insert (start++, get (a, i));
+
+                return itemsRemoved;
+            }
+
+            return var::undefined();
+        }
+    };
+
+    //==============================================================================
+    /**
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String
+    */
+    struct StringClass  : public DynamicObject
+    {
+        StringClass()
+        {
+            #define STRING_CLASS_METHODS(X) \
+                X (charAt)      X (charCodeAt)      X (codePointAt)     X (concat) \
+                X (endsWith)    X (fromCharCode)    X (fromCodePoint)   X (includes) \
+                X (indexOf)     X (lastIndexOf)     X (localeCompare)   X (match) \
+                X (normalize)   X (padEnd)          X (padStart)        X (quote) \
+                X (raw)         X (repeat)          X (replace)         X (search) \
+                X (slice)       X (split)           X (startsWith)      X (substr) \
+                X (substring)   X (toLocaleLowerCase) X (toLocaleUpperCase) X (toLowerCase) \
+                X (toString)    X (toUpperCase)     X (trim)            X (trimLeft) \
+                X (trimRight)   X (valueOf)
+
+            STRING_CLASS_METHODS (JUCE_JS_CREATE_METHOD)
+
+            #undef STRING_CLASS_METHODS
+        }
+
+        static Identifier getClassName()        { static const Identifier i ("String"); return i; }
+        static String getThisString (Args a)    { return a.thisObject.toString(); }
+
+        static var charAt (Args a)              { int p = getInt (a, 0); return getThisString (a).substring (p, p + 1); }
+        static var charCodeAt (Args a)          { return (int) getThisString (a) [getInt (a, 0)]; }
+        static var codePointAt (Args a)         { jassertfalse; return var(); } //TODO
+        static var concat (Args a)              { return getThisString (a) + getString (a, 0); }
+        static var endsWith (Args a)            { return getThisString (a).endsWith (getString (a, 0)); }
+        static var fromCharCode (Args a)        { return String::charToString (static_cast<juce_wchar> (getInt (a, 0))); }
+        static var fromCodePoint (Args a)       { jassertfalse; return var(); } //TODO
+        static var includes (Args a)            { return getThisString (a).substring (getInt (a, 1)).contains (getString (a, 0)); }
+        static var indexOf (Args a)             { return getThisString (a).indexOf (getString (a, 0)); }
+        static var lastIndexOf (Args a)         { return getThisString (a).lastIndexOf (getString (a, 0)); }
+        static var localeCompare (Args a)       { return getThisString (a).compare (getString (a, 0)); }
+        static var match (Args a)               { std::regex r (getString (a, 0).trim().toStdString()); return std::regex_match (getThisString (a).toStdString(), r); }
+        static var normalize (Args a)           { jassertfalse; return var(); } //TODO
+        static var padEnd (Args a)              { jassertfalse; return var(); } //TODO
+        static var padStart (Args a)            { jassertfalse; return var(); } //TODO
+        static var quote (Args a)               { return getThisString (a).quoted(); }
+        static var raw (Args a)                 { jassertfalse; return var(); } //TODO
+        static var repeat (Args a)              { return String::repeatedString (getString (a, 0), getInt (a, 1)); }
+        static var replace (Args a)             { return getThisString (a).replace (getString (a, 0), getString (a, 1)); }
+        static var search (Args a)              { jassertfalse; return var(); } //TODO
+        static var slice (Args a)               { jassertfalse; return var(); } //TODO
+        static var startsWith (Args a)          { return getThisString (a).startsWith (getString (a, 0)); }
+        static var substr (Args a)              { jassertfalse; return var(); } //TODO
+        static var substring (Args a)           { return getThisString (a).substring (getInt (a, 0), getInt (a, 1)); }
+        static var toLocaleLowerCase (Args a)   { return getThisString (a).toLowerCase(); }
+        static var toLocaleUpperCase (Args a)   { return getThisString (a).toUpperCase(); }
+        static var toLowerCase (Args a)         { return getThisString (a).toLowerCase(); }
+        static var toString (Args a)            { return getThisString (a); }
+        static var toUpperCase (Args a)         { return getThisString (a).toUpperCase(); }
+        static var trim (Args a)                { return getThisString (a).trim(); }
+        static var trimLeft (Args a)            { return getThisString (a).trimStart(); }
+        static var trimRight (Args a)           { return getThisString (a).trimEnd(); }
+        static var valueOf (Args a)             { jassertfalse; return var(); } //TODO
+
+        static var split (Args a)
+        {
+            auto str = a.thisObject.toString();
+            auto sep = getString (a, 0);
+            StringArray strings;
+
+            if (sep.isNotEmpty())
+                strings.addTokens (str, sep.substring (0, 1), {});
+            else // special-case for empty separator: split all chars separately
+                for (auto pos = str.getCharPointer(); ! pos.isEmpty(); ++pos)
+                    strings.add (String::charToString (*pos));
+
+            var array;
+
+            for (const auto& s : strings)
+                array.append (s);
+
+            return array;
+        }
+    };
+
+    //==============================================================================
+    struct MathClass  : public DynamicObject
+    {
+        MathClass()
+        {
+            #define MATH_CLASS_METHODS(X) \
+                X (abs)     X (acos)    X (acosh)   X (asin)    X (asinh) \
+                X (atan)    X (atan2)   X (atanh)   X (cbrt)    X (ceil) \
+                X (clz32)   X (cos)     X (cosh)    X (exp)     X (expm1) \
+                X (floor)   X (fround)  X (hypot)   X (imul)    X (log) \
+                X (log10)   X (log1p)   X (log2)    X (max)     X (min) \
+                X (pow)     X (randInt) X (random)  X (range)   X (round) \
+                X (sign)    X (sin)     X (sinh)    X (sqr)     X (sqrt) \
+                X (tan)     X (tanh)    X (trunc)   X (toDegrees) X (toRadians)
+
+            #define CREATE_MATH_METHOD(methodName) \
+                    setMethod (JUCE_STRINGIFY (methodName), Math_ ## methodName);
+
+            MATH_CLASS_METHODS (CREATE_MATH_METHOD)
+
+            #undef CREATE_MATH_METHOD
+            #undef MATH_CLASS_METHODS
+
+            setProperty ("PI",      MathConstants<double>::pi);
+            setProperty ("E",       MathConstants<double>::euler);
+            setProperty ("SQRT2",   MathConstants<double>::sqrt2);
+            setProperty ("SQRT1_2", std::sqrt (0.5));
+            setProperty ("LN2",     std::log (2.0));
+            setProperty ("LN10",    std::log (10.0));
+            setProperty ("LOG2E",   std::log (MathConstants<double>::euler) / std::log (2.0));
+            setProperty ("LOG10E",  std::log (MathConstants<double>::euler) / std::log (10.0));
+        }
+
+        static var Math_abs       (Args a) { return isInt (a, 0) ? var (std::abs   (getInt (a, 0))) : var (std::abs   (getDouble (a, 0))); }
+        static var Math_acos      (Args a) { return std::acos  (getDouble (a, 0)); }
+        static var Math_asin      (Args a) { return std::asin  (getDouble (a, 0)); }
+        static var Math_atan      (Args a) { return std::atan  (getDouble (a, 0)); }
+        static var Math_atan2     (Args a) { return std::atan2 (getDouble (a, 0), getDouble (a, 1)); }
+        static var Math_cbrt      (Args a) { return std::cbrt  (getDouble (a, 0)); }
+        static var Math_ceil      (Args a) { return std::ceil  (getDouble (a, 0)); }
+        static var Math_cos       (Args a) { return std::cos   (getDouble (a, 0)); }
+        static var Math_cosh      (Args a) { return std::cosh  (getDouble (a, 0)); }
+        static var Math_exp       (Args a) { return std::exp   (getDouble (a, 0)); }
+        static var Math_expm1     (Args a) { return std::expm1 (getDouble (a, 0)); }
+        static var Math_floor     (Args a) { return std::floor (getDouble (a, 0)); }
+        static var Math_fround    (Args a) { return Math_round (a); }
+        static var Math_hypot     (Args a) { return std::hypot (getDouble (a, 0), getDouble (a, 1)); }
+        static var Math_imul      (Args a) { return getInt (a, 0) * getInt (a, 1); }
+        static var Math_log       (Args a) { return std::log   (getDouble (a, 0)); }
+        static var Math_log1p     (Args a) { return std::log1p (getDouble (a, 0)); }
+        static var Math_log2      (Args a) { return std::log2  (getDouble (a, 0)); }
+        static var Math_log10     (Args a) { return std::log10 (getDouble (a, 0)); }
+        static var Math_max       (Args a) { return (isInt (a, 0) && isInt (a, 1)) ? var (jmax (getInt (a, 0), getInt (a, 1))) : var (jmax (getDouble (a, 0), getDouble (a, 1))); }
+        static var Math_min       (Args a) { return (isInt (a, 0) && isInt (a, 1)) ? var (jmin (getInt (a, 0), getInt (a, 1))) : var (jmin (getDouble (a, 0), getDouble (a, 1))); }
+        static var Math_pow       (Args a) { return std::pow   (getDouble (a, 0), getDouble (a, 1)); }
+        static var Math_randInt   (Args a) { return a.numArguments < 2 ? var::undefined() : Random::getSystemRandom().nextInt (Range<int> (getInt (a, 0), getInt (a, 1))); }
+        static var Math_random    (Args)   { return Random::getSystemRandom().nextDouble(); }
+        static var Math_range     (Args a) { return isInt (a, 0) ? var (jlimit (getInt (a, 1), getInt (a, 2), getInt (a, 0))) : var (jlimit (getDouble (a, 1), getDouble (a, 2), getDouble (a, 0))); }
+        static var Math_round     (Args a) { return isInt (a, 0) ? var (roundToInt (getInt (a, 0))) : var (roundToInt (getDouble (a, 0))); }
+        static var Math_sign      (Args a) { return isInt (a, 0) ? var (sign (getInt (a, 0))) : var (sign (getDouble (a, 0))); }
+        static var Math_sin       (Args a) { return std::sin   (getDouble (a, 0)); }
+        static var Math_sinh      (Args a) { return std::sinh  (getDouble (a, 0)); }
+        static var Math_sqr       (Args a) { return square     (getDouble (a, 0)); }
+        static var Math_sqrt      (Args a) { return std::sqrt  (getDouble (a, 0)); }
+        static var Math_tan       (Args a) { return std::tan   (getDouble (a, 0)); }
+        static var Math_tanh      (Args a) { return std::tanh  (getDouble (a, 0)); }
+        static var Math_toDegrees (Args a) { return radiansToDegrees (getDouble (a, 0)); }
+        static var Math_toRadians (Args a) { return degreesToRadians (getDouble (a, 0)); }
+        static var Math_trunc     (Args a) { return std::trunc (getDouble (a, 0)); }
+
+        static var Math_clz32 (Args a)
+        {
+            if (isInt (a, 0))
+                return 32 - BigInteger (std::abs (getInt (a, 0))).countNumberOfSetBits();
+
+            return 0;
+        }
+
+        // We can't use the std namespace equivalents of these functions without breaking
+        // compatibility with older versions of OS X.
+        static var Math_asinh     (Args a) { return asinh (getDouble (a, 0)); }
+        static var Math_acosh     (Args a) { return acosh (getDouble (a, 0)); }
+        static var Math_atanh     (Args a) { return atanh (getDouble (a, 0)); }
+
+        static Identifier getClassName()   { static const Identifier i ("Math"); return i; }
+        template <typename Type> static Type sign (Type n) noexcept  { return n > 0 ? (Type) 1 : (n < 0 ? (Type) -1 : 0); }
+    };
+
+    //==============================================================================
+    struct JSONClass  : public DynamicObject
+    {
+        JSONClass()                        { setMethod ("stringify", stringify); }
+        static Identifier getClassName()   { static const Identifier i ("JSON"); return i; }
+        static var stringify (Args a)      { return JSON::toString (get (a, 0)); }
+    };
+
+    //==============================================================================
+    /**
+
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Numbers_and_dates
+    */
+    struct NumberClass  : public DynamicObject
+    {
+        NumberClass()
+        {
+            setMethod ("parseInt",              parseInt);
+            setMethod ("parseFloat",            parseFloat);
+            setMethod ("isNaN",                 isNaN);
+            setMethod ("isFinite",              isFinite);
+            setMethod ("isInteger",             [] (Args a) { return isInt (a, 0); });
+            setMethod ("isSafeInteger",         [] (Args a) { return ! std::isnan (getDouble (a, 0)); });
+
+            setProperty ("EPSILON",             std::numeric_limits<double>::epsilon());
+            setProperty ("NaN",                 std::numeric_limits<double>::quiet_NaN());
+            setProperty ("NEGATIVE_INFINITY",   -std::numeric_limits<double>::infinity());
+            setProperty ("POSITIVE_INFINITY",   std::numeric_limits<double>::infinity());
+            setProperty ("MIN_SAFE_INTEGER",    std::numeric_limits<int64>::min());
+            setProperty ("MAX_SAFE_INTEGER",    std::numeric_limits<int64>::max());
+            setProperty ("MIN_VALUE",           std::numeric_limits<double>::min());
+            setProperty ("MAX_VALUE",           std::numeric_limits<double>::max());
+        }
+
+        static var parseInt (Args a)
+        {
+            auto s = getString (a, 0).trim();
+
+            return s[0] == '0' ? (s[1] == 'x' ? s.substring (2).getHexValue64() : getOctalValue (s))
+                               : s.getLargeIntValue();
+        }
+
+        static Identifier getClassName()    { static const Identifier i ("Number"); return i; }
+        static var parseFloat (Args a)      { return getDouble (a, 0); }
+        static var isNaN (Args a)           { return std::isnan (getDouble (a, 0)); }
+        static var isFinite (Args a)        { return std::isfinite (getDouble (a, 0)); }
+    };
+
+    //==============================================================================
+    /**
+
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+    */
+    struct BooleanClass  : public DynamicObject
+    {
+        BooleanClass()
+        {
+        }
+
+        static Identifier getClassName()    { static const Identifier i ("Boolean"); return i; }
+    };
+
+    //==============================================================================
+    /**
+
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+    */
+    struct RegExpClass  : public DynamicObject
+    {
+        RegExpClass()
+        {
+        }
+
+        static Identifier getClassName()    { static const Identifier i ("RegExp"); return i; }
+    };
 };
 
 //==============================================================================
 JavascriptEngine::JavascriptEngine()  : maximumExecutionTime (15.0), root (new RootObject())
 {
-    registerNativeObject (RootObject::ObjectClass  ::getClassName(),  new RootObject::ObjectClass());
-    registerNativeObject (RootObject::ArrayClass   ::getClassName(),  new RootObject::ArrayClass());
-    registerNativeObject (RootObject::StringClass  ::getClassName(),  new RootObject::StringClass());
-    registerNativeObject (RootObject::MathClass    ::getClassName(),  new RootObject::MathClass());
-    registerNativeObject (RootObject::JSONClass    ::getClassName(),  new RootObject::JSONClass());
-    registerNativeObject (RootObject::IntegerClass ::getClassName(),  new RootObject::IntegerClass());
 }
 
 JavascriptEngine::~JavascriptEngine() {}
