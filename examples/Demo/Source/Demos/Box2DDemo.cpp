@@ -56,13 +56,14 @@ struct Settings
 
 struct Test
 {
-    Test() : m_world (new b2World (b2Vec2 (0.0f, -10.0f))) {}
+    Test() : world ({ 0.0f, -10.0f }), m_world (&world) {}
     virtual ~Test() {}
 
-    virtual void Keyboard (unsigned char /*key*/) {}
-    virtual void KeyboardUp (unsigned char /*key*/) {}
+    virtual void keyDown (unsigned char /*key*/) {}
+    virtual void KeyUp (unsigned char /*key*/) {}
 
-    ScopedPointer<b2World> m_world;
+    b2World world;
+    b2World* m_world = nullptr;
 };
 
 #include "Box2DTests/AddPair.h"
@@ -125,14 +126,16 @@ struct Box2DRenderComponent  : public Component
         if (currentTest != nullptr)
         {
             Box2DRenderer renderer;
+            renderer.SetFlags (drawFlags);
 
-            renderer.render (g, *currentTest->m_world,
+            renderer.render (g, currentTest->world,
                              -16.0f, 30.0f, 16.0f, -1.0f,
                              getLocalBounds().toFloat().reduced (8.0f));
         }
     }
 
     ScopedPointer<Test> currentTest;
+    juce::uint32 drawFlags = b2Draw::e_shapeBit;
 };
 
 //==============================================================================
@@ -152,22 +155,34 @@ public:
 
     Box2DDemo()
         : testsList (getTestsList()),
-          testsListModel (testsList)
+          testsListModel (testsList),
+          drawShapes ("Draw Shapes"),
+          drawJoints ("Draw Joints"),
+          drawAABB ("Draw AABB"),
+          drawBroadPhasePairs ("Draw Broad-Phase Pairs"),
+          drawCentreOfMass ("Draw Centre of Mass")
     {
         setOpaque (true);
         setWantsKeyboardFocus (true);
 
+        drawShapes.setToggleState (true, dontSendNotification);
+
         testsListModel.addChangeListener (this);
 
-        addAndMakeVisible (renderComponent);
-
-        addAndMakeVisible (testsListBox);
         testsListBox.setModel (&testsListModel);
         testsListBox.selectRow (dominoes);
 
-        addAndMakeVisible (instructions);
         instructions.setMultiLine (true);
         instructions.setReadOnly (true);
+
+        addAndMakeVisible (drawShapes);
+        addAndMakeVisible (drawJoints);
+        addAndMakeVisible (drawAABB);
+        addAndMakeVisible (drawBroadPhasePairs);
+        addAndMakeVisible (drawCentreOfMass);
+        addAndMakeVisible (renderComponent);
+        addAndMakeVisible (testsListBox);
+        addAndMakeVisible (instructions);
 
         startTimerHz (60);
     }
@@ -184,14 +199,32 @@ public:
 
     void resized() override
     {
-        auto r = getLocalBounds().reduced (4);
+        const int margin = 4;
+        const auto gridUnit = Grid::TrackInfo (Grid::Fr (1));
 
-        auto area = r.removeFromBottom (150);
-        testsListBox.setBounds (area.removeFromLeft (150));
-        area.removeFromLeft (4);
-        instructions.setBounds (area);
-        r.removeFromBottom (6);
-        renderComponent.setBounds (r);
+        Grid grid;
+        grid.setGap (Grid::Px (margin));
+
+        grid.autoFlow           = Grid::AutoFlow::column;
+        grid.autoColumns        = gridUnit;
+        grid.autoRows           = gridUnit;
+        grid.templateColumns    = { gridUnit, gridUnit, gridUnit };
+        grid.templateRows       = { gridUnit, gridUnit, gridUnit, gridUnit, gridUnit, gridUnit };
+        grid.templateAreas      = { "h h h", "h h h", "h h h", "l c r", "l c r", "l c r" };
+
+        grid.items =
+        {
+            GridItem (renderComponent).withArea ("h"),
+            GridItem (testsListBox).withArea ("l"),
+            GridItem (instructions).withArea ("r"),
+            GridItem (drawShapes),
+            GridItem (drawJoints),
+            GridItem (drawAABB),
+            GridItem (drawBroadPhasePairs),
+            GridItem (drawCentreOfMass)
+        };
+
+        grid.performLayout (getLocalBounds().reduced (margin));
     }
 
     bool keyPressed (const KeyPress& key) override
@@ -218,6 +251,7 @@ private:
     StringArray testsList;
     Box2DTestList testsListModel;
 
+    ToggleButton drawShapes, drawJoints, drawAABB, drawBroadPhasePairs, drawCentreOfMass;
     Box2DRenderComponent renderComponent;
     ListBox testsListBox;
     TextEditor instructions;
@@ -256,7 +290,7 @@ private:
                 break;
         }
 
-        return String();
+        return {};
     }
 
     void checkKeys()
@@ -269,10 +303,10 @@ private:
         checkKeyCode ('d');
     }
 
-    void checkKeyCode (const int keyCode)
+    void checkKeyCode (int keyCode)
     {
         if (KeyPress::isKeyCurrentlyDown (keyCode))
-            renderComponent.currentTest->Keyboard ((unsigned char) keyCode);
+            renderComponent.currentTest->keyDown ((unsigned char) keyCode);
     }
 
     void timerCallback() override
@@ -282,7 +316,18 @@ private:
 
         grabKeyboardFocus();
         checkKeys();
-        renderComponent.currentTest->m_world->Step (1.0f / 60.0f, 6, 2);
+
+        juce::uint32 drawFlags = 0;
+
+        if (drawJoints.getToggleState())            drawFlags |= b2Draw::e_jointBit;
+        if (drawAABB.getToggleState())              drawFlags |= b2Draw::e_aabbBit;
+        if (drawBroadPhasePairs.getToggleState())   drawFlags |= b2Draw::e_pairBit;
+        if (drawCentreOfMass.getToggleState())      drawFlags |= b2Draw::e_centerOfMassBit;
+        if (drawShapes.getToggleState())            drawFlags |= b2Draw::e_shapeBit;
+
+        renderComponent.drawFlags = drawFlags;
+        renderComponent.currentTest->world.Step (1.0f / 60.0f, 6, 2);
+
         repaint();
     }
 

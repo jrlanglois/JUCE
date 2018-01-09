@@ -44,7 +44,7 @@ public:
 
     static Test* Create()
     {
-        return new AddPair;
+        return new AddPair();
     }
 };
 

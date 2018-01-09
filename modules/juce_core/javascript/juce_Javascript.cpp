@@ -33,7 +33,7 @@ namespace juce
     X(minusEquals,   "-=")       X(minusminus,   "--")      X(minus,        "-") \
     X(timesEquals,   "*=")       X(times,        "*")       X(divideEquals, "/=")   X(divide,     "/") \
     X(moduloEquals,  "%=")       X(modulo,       "%")       X(xorEquals,    "^=")   X(bitwiseXor, "^") \
-    X(andEquals,     "&=")       X(logicalAnd,   "&&")      X(bitwiseAnd,   "&") \
+    X(andEquals,     "&=")       X(logicalAnd,   "&&")      X(bitwiseAnd,   "&")    X(bitwiseNot, "~") \
     X(orEquals,      "|=")       X(logicalOr,    "||")      X(bitwiseOr,    "|") \
     X(leftShiftEquals,    "<<=") X(lessThanOrEqual,  "<=")  X(leftShift,    "<<")   X(lessThan,   "<") \
     X(rightShiftUnsigned, ">>>") X(rightShiftEquals, ">>=") X(rightShift,   ">>")   X(greaterThanOrEqual, ">=")  X(greaterThan,  ">")
@@ -287,7 +287,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
 
         ResultCode perform (const Scope& s, var* returnedValue) const override
         {
-            return (condition->getResult(s) ? trueBranch : falseBranch)->perform (s, returnedValue);
+            return (condition->getResult (s) ? trueBranch : falseBranch)->perform (s, returnedValue);
         }
 
         ExpPtr condition;
@@ -617,6 +617,12 @@ struct JavascriptEngine::RootObject   : public DynamicObject
     struct BitwiseXorOp  : public BinaryOperator
     {
         BitwiseXorOp (const CodeLocation& l, ExpPtr& a, ExpPtr& b) noexcept : BinaryOperator (l, a, b, TokenTypes::bitwiseXor) {}
+        var getWithInts (int64 a, int64 b) const override   { return a ^ b; }
+    };
+
+    struct BitwiseNotOp  : public BinaryOperator
+    {
+        BitwiseNotOp (const CodeLocation& l, ExpPtr& a, ExpPtr& b) noexcept : BinaryOperator (l, a, b, TokenTypes::bitwiseXor) {}
         var getWithInts (int64 a, int64 b) const override   { return a ^ b; }
     };
 
@@ -1414,6 +1420,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         {
             if (matchIf (TokenTypes::minus))       { ExpPtr a (new LiteralValue (location, (int) 0)), b (parseUnary()); return new SubtractionOp   (location, a, b); }
             if (matchIf (TokenTypes::logicalNot))  { ExpPtr a (new LiteralValue (location, (int) 0)), b (parseUnary()); return new EqualsOp        (location, a, b); }
+            if (matchIf (TokenTypes::bitwiseNot))  { ExpPtr a (new LiteralValue (location, (int) 0)), b (parseUnary()); return new BitwiseNotOp    (location, a, b); }
             if (matchIf (TokenTypes::plusplus))    return parsePreIncDec<AdditionOp>();
             if (matchIf (TokenTypes::minusminus))  return parsePreIncDec<SubtractionOp>();
             if (matchIf (TokenTypes::typeof_))     return parseTypeof();
@@ -1744,6 +1751,75 @@ struct JavascriptEngine::RootObject   : public DynamicObject
     };
 
     //==============================================================================
+    /**
+        https://www.w3schools.com/js/js_date_methods.asp
+        https://www.w3schools.com/js/js_dates.asp
+        https://www.w3schools.com/jsref/jsref_obj_date.asp
+    */
+    struct DateClass  : public DynamicObject
+    {
+        DateClass()
+        {
+            setProperty ("time",                Time::currentTimeMillis());
+
+            setMethod ("getDate",               [this] (Args) { return getTime().getDayOfMonth(); });
+            setMethod ("getDay",                [this] (Args) { return getTime().getDayOfWeek(); });
+            setMethod ("getFullYear",           [this] (Args) { return getTime().getYear(); });
+            setMethod ("getYear",               [this] (Args) { return getTime().getYear(); });
+            setMethod ("getHours",              [this] (Args) { return getTime().getHours(); });
+            setMethod ("getMilliseconds",       [this] (Args) { return getTime().getDayOfMonth(); });
+            setMethod ("getMinutes",            [this] (Args) { return getTime().getMilliseconds(); });
+            setMethod ("getMonth",              [this] (Args) { return getTime().getMonth(); });
+            setMethod ("getSeconds",            [this] (Args) { return getTime().getSeconds(); });
+            setMethod ("getTime",               [this] (Args) { return getTime().getMilliseconds(); });
+            setMethod ("getTimezoneOffset",     [this] (Args) { return getTime().getUTCOffsetSeconds() / 60; });
+            setMethod ("getUTCDate",            [this] (Args) { return 0; }); //TODO
+            setMethod ("getUTCDay",             [this] (Args) { return 0; }); //TODO
+            setMethod ("getUTCFullYear",        [this] (Args) { return 0; }); //TODO
+            setMethod ("getUTCHours",           [this] (Args) { return 0; }); //TODO
+            setMethod ("getUTCMilliseconds",    [this] (Args) { return 0; }); //TODO
+            setMethod ("getUTCMinutes",         [this] (Args) { return 0; }); //TODO
+            setMethod ("getUTCMonth",           [this] (Args) { return 0; }); //TODO
+            setMethod ("getUTCSeconds",         [this] (Args) { return 0; }); //TODO
+            setMethod ("now",                   [this] (Args) { return 0; }); //TODO
+            setMethod ("parse",                 [this] (Args) { return 0; }); //TODO
+            setMethod ("setDate",               [this] (Args) { }); //TODO
+            setMethod ("setFullYear",           [this] (Args) { }); //TODO
+            setMethod ("setYear",               [this] (Args) { }); //TODO
+            setMethod ("setHours",              [this] (Args) { }); //TODO
+            setMethod ("setMilliseconds",       [this] (Args) { }); //TODO
+            setMethod ("setMinutes",            [this] (Args) { }); //TODO
+            setMethod ("setMonth",              [this] (Args) { }); //TODO
+            setMethod ("setSeconds",            [this] (Args) { }); //TODO
+            setMethod ("setTime",               [this] (Args) { }); //TODO
+            setMethod ("setUTCDate",            [this] (Args) { }); //TODO
+            setMethod ("setUTCFullYear",        [this] (Args) { }); //TODO
+            setMethod ("setUTCHours",           [this] (Args) { }); //TODO
+            setMethod ("setUTCMilliseconds",    [this] (Args) { }); //TODO
+            setMethod ("setUTCMinutes",         [this] (Args) { }); //TODO
+            setMethod ("setUTCMonth",           [this] (Args) { }); //TODO
+            setMethod ("setUTCSeconds",         [this] (Args) { }); //TODO
+            setMethod ("toDateString",          [this] (Args) { return String(); }); //TODO
+            setMethod ("toGMTString",           [this] (Args) { return String(); }); //TODO
+            setMethod ("toISOString",           [this] (Args) { return String(); }); //TODO
+            setMethod ("toJSON",                [this] (Args) { return String(); }); //TODO
+            setMethod ("toLocaleDateString",    [this] (Args) { return String(); }); //TODO
+            setMethod ("toLocaleTimeString",    [this] (Args) { return String(); }); //TODO
+            setMethod ("toLocaleString",        [this] (Args) { return String(); }); //TODO
+            setMethod ("toString",              [this] (Args) { return String(); }); //TODO
+            setMethod ("toTimeString",          [this] (Args) { return String(); }); //TODO
+            setMethod ("toUTCString",           [this] (Args) { return String(); }); //TODO
+            setMethod ("UTC",                   [this] (Args) { return String(); }); //TODO
+            setMethod ("valueOf",               [this] (Args) { return 0; }); //TODO
+        }
+
+        static Identifier getClassName()    { static const Identifier i ("Date"); return i; }
+
+        int64 getTimeMs() const             { return static_cast<int64> (getProperty ("time")); }
+        Time getTime() const                { return Time (getTimeMs()); }
+    };
+
+    //==============================================================================
     struct JSONClass  : public DynamicObject
     {
         JSONClass()                        { setMethod ("stringify", stringify); }
@@ -1808,6 +1884,7 @@ JavascriptEngine::JavascriptEngine()  : maximumExecutionTime (15.0), root (new R
     registerNativeObject (RootObject::ArrayClass   ::getClassName(),  new RootObject::ArrayClass());
     registerNativeObject (RootObject::StringClass  ::getClassName(),  new RootObject::StringClass());
     registerNativeObject (RootObject::MathClass    ::getClassName(),  new RootObject::MathClass());
+    registerNativeObject (RootObject::DateClass    ::getClassName(),  new RootObject::DateClass());
     registerNativeObject (RootObject::JSONClass    ::getClassName(),  new RootObject::JSONClass());
     registerNativeObject (RootObject::IntegerClass ::getClassName(),  new RootObject::IntegerClass());
 }
