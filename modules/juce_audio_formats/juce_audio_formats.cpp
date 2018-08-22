@@ -61,6 +61,7 @@
 #include "format/juce_AudioSubsectionReader.cpp"
 #include "format/juce_BufferingAudioFormatReader.cpp"
 #include "sampler/juce_Sampler.cpp"
+#include "codecs/juce_ID3Tags.cpp"
 #include "codecs/juce_AiffAudioFormat.cpp"
 #include "codecs/juce_CoreAudioFormat.cpp"
 #include "codecs/juce_FlacAudioFormat.cpp"

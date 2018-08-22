@@ -37,7 +37,7 @@ class AudioFormat;
     A subclass that reads a specific type of audio format will be created by
     an AudioFormat object.
 
-    @see AudioFormat, AudioFormatWriter
+    @see AudioFormat, AudioFormatWriter, VorbisComment, ID3Tags
 
     @tags{Audio}
 */

@@ -118,6 +118,8 @@
 #include "format/juce_AudioFormatReaderSource.h"
 #include "format/juce_AudioSubsectionReader.h"
 #include "format/juce_BufferingAudioFormatReader.h"
+#include "codecs/juce_ID3Tags.h"
+#include "codecs/juce_VorbisComment.h"
 #include "codecs/juce_AiffAudioFormat.h"
 #include "codecs/juce_CoreAudioFormat.h"
 #include "codecs/juce_FlacAudioFormat.h"

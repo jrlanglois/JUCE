@@ -187,8 +187,8 @@ class FlacReader  : public AudioFormatReader
 public:
     FlacReader (InputStream* in)  : AudioFormatReader (in, flacFormatName)
     {
-        lengthInSamples = 0;
         decoder = FlacNamespace::FLAC__stream_decoder_new();
+        FLAC__stream_decoder_set_metadata_respond_all (decoder);
 
         ok = FLAC__stream_decoder_init_stream (decoder,
                                                readCallback_, seekCallback_, tellCallback_, lengthCallback_,
@@ -218,16 +218,6 @@ public:
     ~FlacReader() override
     {
         FlacNamespace::FLAC__stream_decoder_delete (decoder);
-    }
-
-    void useMetadata (const FlacNamespace::FLAC__StreamMetadata_StreamInfo& info)
-    {
-        sampleRate = info.sample_rate;
-        bitsPerSample = info.bits_per_sample;
-        lengthInSamples = (unsigned int) info.total_samples;
-        numChannels = info.channels;
-
-        reservoir.setSize ((int) numChannels, 2 * (int) info.max_blocksize, false, false, true);
     }
 
     // returns the number of samples read
@@ -313,7 +303,7 @@ public:
                 int n = i;
 
                 while (src == nullptr && n > 0)
-                    src = buffer [--n];
+                    src = buffer[--n];
 
                 if (src != nullptr)
                 {
@@ -329,53 +319,55 @@ public:
     }
 
     //==============================================================================
-    static FlacNamespace::FLAC__StreamDecoderReadStatus readCallback_ (const FlacNamespace::FLAC__StreamDecoder*, FlacNamespace::FLAC__byte buffer[], size_t* bytes, void* client_data)
+    static FlacNamespace::FLAC__StreamDecoderReadStatus readCallback_ (const FlacNamespace::FLAC__StreamDecoder*, FlacNamespace::FLAC__byte buffer[], size_t* bytes, void* clientData)
     {
-        *bytes = (size_t) static_cast<const FlacReader*> (client_data)->input->read (buffer, (int) *bytes);
+        *bytes = (size_t) static_cast<const FlacReader*> (clientData)->input->read (buffer, (int) *bytes);
         return FlacNamespace::FLAC__STREAM_DECODER_READ_STATUS_CONTINUE;
     }
 
-    static FlacNamespace::FLAC__StreamDecoderSeekStatus seekCallback_ (const FlacNamespace::FLAC__StreamDecoder*, FlacNamespace::FLAC__uint64 absolute_byte_offset, void* client_data)
+    static FlacNamespace::FLAC__StreamDecoderSeekStatus seekCallback_ (const FlacNamespace::FLAC__StreamDecoder*, FlacNamespace::FLAC__uint64 absolute_byte_offset, void* clientData)
     {
-        static_cast<const FlacReader*> (client_data)->input->setPosition ((int) absolute_byte_offset);
+        static_cast<const FlacReader*> (clientData)->input->setPosition ((int) absolute_byte_offset);
         return FlacNamespace::FLAC__STREAM_DECODER_SEEK_STATUS_OK;
     }
 
-    static FlacNamespace::FLAC__StreamDecoderTellStatus tellCallback_ (const FlacNamespace::FLAC__StreamDecoder*, FlacNamespace::FLAC__uint64* absolute_byte_offset, void* client_data)
+    static FlacNamespace::FLAC__StreamDecoderTellStatus tellCallback_ (const FlacNamespace::FLAC__StreamDecoder*, FlacNamespace::FLAC__uint64* absolute_byte_offset, void* clientData)
     {
-        *absolute_byte_offset = (uint64) static_cast<const FlacReader*> (client_data)->input->getPosition();
+        *absolute_byte_offset = (uint64) static_cast<const FlacReader*> (clientData)->input->getPosition();
         return FlacNamespace::FLAC__STREAM_DECODER_TELL_STATUS_OK;
     }
 
-    static FlacNamespace::FLAC__StreamDecoderLengthStatus lengthCallback_ (const FlacNamespace::FLAC__StreamDecoder*, FlacNamespace::FLAC__uint64* stream_length, void* client_data)
+    static FlacNamespace::FLAC__StreamDecoderLengthStatus lengthCallback_ (const FlacNamespace::FLAC__StreamDecoder*, FlacNamespace::FLAC__uint64* stream_length, void* clientData)
     {
-        *stream_length = (uint64) static_cast<const FlacReader*> (client_data)->input->getTotalLength();
+        *stream_length = (uint64) static_cast<const FlacReader*> (clientData)->input->getTotalLength();
         return FlacNamespace::FLAC__STREAM_DECODER_LENGTH_STATUS_OK;
     }
 
-    static FlacNamespace::FLAC__bool eofCallback_ (const FlacNamespace::FLAC__StreamDecoder*, void* client_data)
+    static FlacNamespace::FLAC__bool eofCallback_ (const FlacNamespace::FLAC__StreamDecoder*, void* clientData)
     {
-        return static_cast<const FlacReader*> (client_data)->input->isExhausted();
+        return static_cast<const FlacReader*> (clientData)->input->isExhausted();
     }
 
     static FlacNamespace::FLAC__StreamDecoderWriteStatus writeCallback_ (const FlacNamespace::FLAC__StreamDecoder*,
                                                                          const FlacNamespace::FLAC__Frame* frame,
                                                                          const FlacNamespace::FLAC__int32* const buffer[],
-                                                                         void* client_data)
+                                                                         void* clientData)
     {
-        static_cast<FlacReader*> (client_data)->useSamples (buffer, (int) frame->header.blocksize);
+        static_cast<FlacReader*> (clientData)->useSamples (buffer, (int) frame->header.blocksize);
         return FlacNamespace::FLAC__STREAM_DECODER_WRITE_STATUS_CONTINUE;
     }
 
     static void metadataCallback_ (const FlacNamespace::FLAC__StreamDecoder*,
                                    const FlacNamespace::FLAC__StreamMetadata* metadata,
-                                   void* client_data)
+                                   void* clientData)
     {
-        static_cast<FlacReader*> (client_data)->useMetadata (metadata->data.stream_info);
+        if (metadata != nullptr)
+            static_cast<FlacReader*> (clientData)->useMetadata (*metadata);
     }
 
     static void errorCallback_ (const FlacNamespace::FLAC__StreamDecoder*, FlacNamespace::FLAC__StreamDecoderErrorStatus, void*)
     {
+        jassertfalse;
     }
 
 private:
@@ -383,6 +375,49 @@ private:
     AudioBuffer<float> reservoir;
     int reservoirStart = 0, samplesInReservoir = 0;
     bool ok = false, scanningForLength = false;
+
+    void useMetadata (const FlacNamespace::FLAC__StreamMetadata& metadata)
+    {
+        switch (metadata.type)
+        {
+            case FlacNamespace::FLAC__METADATA_TYPE_STREAMINFO:
+            {
+                const auto& info = metadata.data.stream_info;
+
+                sampleRate = (double) info.sample_rate;
+                bitsPerSample = (unsigned int) info.bits_per_sample;
+                lengthInSamples = (int64) info.total_samples;
+                numChannels = (unsigned int) info.channels;
+
+                reservoir.setSize ((int) numChannels, 2 * (int) info.max_blocksize, false, false, true);
+            }
+            break;
+
+            case FlacNamespace::FLAC__METADATA_TYPE_VORBIS_COMMENT:
+            {
+                const auto& c = metadata.data.vorbis_comment;
+
+                for (size_t i = 0; i < (size_t) c.num_comments; ++i)
+                {
+                    const auto& ent = c.comments[i];
+
+                    const auto e = String ((const char*) ent.entry, ent.length).trim();
+                    const auto tag = e.upToFirstOccurrenceOf ("=", false, true).trim();
+
+                    if (VorbisComment::isVorbisComment (tag) || ID3Tags::isID3Tag (tag))
+                    {
+                        const auto value = e.fromFirstOccurrenceOf ("=", false, true).trim();
+                        if (value.isNotEmpty())
+                            metadataValues.set (tag, metadataValues[tag] + " " + value);
+                    }
+                }
+            }
+            break;
+
+            default:
+            break;
+        };
+    }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FlacReader)
 };
@@ -559,13 +594,14 @@ FlacAudioFormat::~FlacAudioFormat() {}
 
 Array<int> FlacAudioFormat::getPossibleSampleRates()
 {
-    return { 8000, 11025, 12000, 16000, 22050, 32000, 44100, 48000,
-             88200, 96000, 176400, 192000, 352800, 384000 };
+    //For more details please see https://xiph.org/flac/format.html#frame_header
+    return { 8000, 16000, 22050, 24000, 32000, 44100,
+             48000, 88200, 96000, 176400, 192000 };
 }
 
 Array<int> FlacAudioFormat::getPossibleBitDepths()
 {
-    return { 16, 24 };
+    return { 8, 16, 24 };
 }
 
 bool FlacAudioFormat::canDoStereo()     { return true; }
