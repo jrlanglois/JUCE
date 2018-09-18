@@ -54,6 +54,7 @@
 #include <sstream>
 #include <iomanip>
 #include <map>
+#include <regex>
 
 //==============================================================================
 #include "juce_CompilerSupport.h"

@@ -87,6 +87,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         registerNativeObject<NumberClass>();
         registerNativeObject<BooleanClass>();
         registerNativeObject<RegExpClass>();
+        registerNativeObject<ConsoleClass>();
     }
 
     template<typename RootClass>
@@ -291,6 +292,8 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         virtual void assign (const Scope&, const var&) const  { location.throwError ("Cannot assign to this expression!"); }
 
         ResultCode perform (const Scope& s, var*) const override  { getResult (s); return ok; }
+
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Expression)
     };
 
     using ExpPtr = std::unique_ptr<Expression>;
@@ -542,7 +545,10 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         }
 
         var throwError (const char* typeName) const
-            { location.throwError (getTokenName (operation) + " is not allowed on the " + typeName + " type"); return {}; }
+        {
+            location.throwError (getTokenName (operation) + " is not allowed on the " + typeName + " type");
+            return {};
+        }
     };
 
     struct EqualsOp  : public BinaryOperator
@@ -565,46 +571,25 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         var getWithArrayOrObject (const var& a, const var& b) const override   { return a != b; }
     };
 
-    struct LessThanOp  : public BinaryOperator
-    {
-        LessThanOp (const CodeLocation& l, ExpPtr& a, ExpPtr& b) noexcept : BinaryOperator (l, a, b, TokenTypes::lessThan) {}
-        var getWithDoubles (double a, double b) const override                 { return a < b; }
-        var getWithInts (int64 a, int64 b) const override                      { return a < b; }
-        var getWithStrings (const String& a, const String& b) const override   { return a < b; }
-    };
+    #undef JUCE_JAVASCRIPT_BINARY_OP
+    #define JUCE_JAVASCRIPT_BINARY_OP(name, operationToPerform, tokenTypeToUse) \
+        struct name  : public BinaryOperator \
+        { \
+            name (const CodeLocation& l, ExpPtr& a, ExpPtr& b) noexcept : BinaryOperator (l, a, b, TokenTypes::tokenTypeToUse) {} \
+            var getWithDoubles (double a, double b) const override                 { return a operationToPerform b; } \
+            var getWithInts (int64 a, int64 b) const override                      { return a operationToPerform b; } \
+            var getWithStrings (const String& a, const String& b) const override   { return a operationToPerform b; } \
+        };
 
-    struct LessThanOrEqualOp  : public BinaryOperator
-    {
-        LessThanOrEqualOp (const CodeLocation& l, ExpPtr& a, ExpPtr& b) noexcept : BinaryOperator (l, a, b, TokenTypes::lessThanOrEqual) {}
-        var getWithDoubles (double a, double b) const override                 { return a <= b; }
-        var getWithInts (int64 a, int64 b) const override                      { return a <= b; }
-        var getWithStrings (const String& a, const String& b) const override   { return a <= b; }
-    };
+    JUCE_JAVASCRIPT_BINARY_OP (LessThanOp, <, lessThan)
+    JUCE_JAVASCRIPT_BINARY_OP (LessThanOrEqualOp, <=, lessThanOrEqual)
+    JUCE_JAVASCRIPT_BINARY_OP (GreaterThanOp, >, greaterThan)
+    JUCE_JAVASCRIPT_BINARY_OP (GreaterThanOrEqualOp, >=, greaterThanOrEqual)
+    JUCE_JAVASCRIPT_BINARY_OP (AdditionOp, +, plus)
 
-    struct GreaterThanOp  : public BinaryOperator
-    {
-        GreaterThanOp (const CodeLocation& l, ExpPtr& a, ExpPtr& b) noexcept : BinaryOperator (l, a, b, TokenTypes::greaterThan) {}
-        var getWithDoubles (double a, double b) const override                 { return a > b; }
-        var getWithInts (int64 a, int64 b) const override                      { return a > b; }
-        var getWithStrings (const String& a, const String& b) const override   { return a > b; }
-    };
+    #undef JUCE_JAVASCRIPT_BINARY_OP
 
-    struct GreaterThanOrEqualOp  : public BinaryOperator
-    {
-        GreaterThanOrEqualOp (const CodeLocation& l, ExpPtr& a, ExpPtr& b) noexcept : BinaryOperator (l, a, b, TokenTypes::greaterThanOrEqual) {}
-        var getWithDoubles (double a, double b) const override                 { return a >= b; }
-        var getWithInts (int64 a, int64 b) const override                      { return a >= b; }
-        var getWithStrings (const String& a, const String& b) const override   { return a >= b; }
-    };
-
-    struct AdditionOp  : public BinaryOperator
-    {
-        AdditionOp (const CodeLocation& l, ExpPtr& a, ExpPtr& b) noexcept : BinaryOperator (l, a, b, TokenTypes::plus) {}
-        var getWithDoubles (double a, double b) const override                 { return a + b; }
-        var getWithInts (int64 a, int64 b) const override                      { return a + b; }
-        var getWithStrings (const String& a, const String& b) const override   { return a + b; }
-    };
-
+    //NB: String does not support operator-()
     struct SubtractionOp  : public BinaryOperator
     {
         SubtractionOp (const CodeLocation& l, ExpPtr& a, ExpPtr& b) noexcept : BinaryOperator (l, a, b, TokenTypes::minus) {}
@@ -633,23 +618,19 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         var getWithInts (int64 a, int64 b) const override       { return b != 0 ? var (a % b) : var (std::numeric_limits<double>::infinity()); }
     };
 
-    struct BitwiseOrOp  : public BinaryOperator
-    {
-        BitwiseOrOp (const CodeLocation& l, ExpPtr& a, ExpPtr& b) noexcept : BinaryOperator (l, a, b, TokenTypes::bitwiseOr) {}
-        var getWithInts (int64 a, int64 b) const override   { return a | b; }
-    };
+    #undef JUCE_JAVASCRIPT_BITWISE_OP
+    #define JUCE_JAVASCRIPT_BITWISE_OP(name, operationToPerform, tokenTypeToUse) \
+        struct name  : public BinaryOperator \
+        { \
+            name (const CodeLocation& l, ExpPtr& a, ExpPtr& b) noexcept : BinaryOperator (l, a, b, TokenTypes::tokenTypeToUse) {} \
+            var getWithInts (int64 a, int64 b) const override   { return a operationToPerform b; } \
+        };
 
-    struct BitwiseAndOp  : public BinaryOperator
-    {
-        BitwiseAndOp (const CodeLocation& l, ExpPtr& a, ExpPtr& b) noexcept : BinaryOperator (l, a, b, TokenTypes::bitwiseAnd) {}
-        var getWithInts (int64 a, int64 b) const override   { return a & b; }
-    };
+    JUCE_JAVASCRIPT_BITWISE_OP (BitwiseOrOp, |, bitwiseOr)
+    JUCE_JAVASCRIPT_BITWISE_OP (BitwiseAndOp, &, bitwiseAnd)
+    JUCE_JAVASCRIPT_BITWISE_OP (BitwiseXorOp, ^, bitwiseXor)
 
-    struct BitwiseXorOp  : public BinaryOperator
-    {
-        BitwiseXorOp (const CodeLocation& l, ExpPtr& a, ExpPtr& b) noexcept : BinaryOperator (l, a, b, TokenTypes::bitwiseXor) {}
-        var getWithInts (int64 a, int64 b) const override   { return a ^ b; }
-    };
+    #undef JUCE_JAVASCRIPT_BITWISE_OP
 
     struct LeftShiftOp  : public BinaryOperator
     {
@@ -796,7 +777,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
 
         var getResult (const Scope& s) const override
         {
-            var classOrFunc = object->getResult (s);
+            auto classOrFunc = object->getResult (s);
             const bool isFunc = isFunction (classOrFunc);
 
             if (! (isFunc || classOrFunc.getDynamicObject() != nullptr))
@@ -821,8 +802,10 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         {
             DynamicObject::Ptr newObject (new DynamicObject());
 
+            jassert (names.size() == initialisers.size());
+
             for (int i = 0; i < names.size(); ++i)
-                newObject->setProperty (names.getUnchecked(i), initialisers.getUnchecked(i)->getResult (s));
+                newObject->setProperty (names.getUnchecked (i), initialisers.getUnchecked (i)->getResult (s));
 
             return newObject.get();
         }
@@ -839,8 +822,8 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         {
             Array<var> a;
 
-            for (int i = 0; i < values.size(); ++i)
-                a.add (values.getUnchecked(i)->getResult (s));
+            for (const auto& v : values)
+                a.add (v->getResult (s));
 
             return a;
         }
@@ -853,7 +836,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
     {
         FunctionObject() noexcept {}
 
-        FunctionObject (const FunctionObject& other)  : DynamicObject(), functionCode (other.functionCode)
+        FunctionObject (const FunctionObject& other)  : functionCode (other.functionCode)
         {
             ExpressionTreeBuilder tb (functionCode);
             tb.parseFunctionParamsAndBody (*this);
@@ -874,7 +857,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
             functionRoot->setProperty (thisIdent, args.thisObject);
 
             for (int i = 0; i < parameters.size(); ++i)
-                functionRoot->setProperty (parameters.getReference(i),
+                functionRoot->setProperty (parameters.getReference (i),
                                            i < args.numArguments ? args.arguments[i] : var::undefined());
 
             var result;
@@ -1025,7 +1008,8 @@ struct JavascriptEngine::RootObject   : public DynamicObject
             const bool hasPoint = (*t == '.');
 
             if (hasPoint)
-                while ((++t).isDigit())  ++numDigits;
+                while ((++t).isDigit())
+                    ++numDigits;
 
             if (numDigits == 0)
                 return false;
@@ -1041,7 +1025,8 @@ struct JavascriptEngine::RootObject   : public DynamicObject
                 while ((++t).isDigit()) {}
             }
 
-            if (! (hasExponent || hasPoint)) return false;
+            if (! (hasExponent || hasPoint))
+                return false;
 
             currentValue = CharacterFunctions::getDoubleValue (p);  p = t;
             return true;
@@ -1051,7 +1036,8 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         {
             auto t = p;
             int64 v = *t - '0';
-            if (v != 0) return false;  // first digit of octal must be 0
+            if (v != 0)
+                return false;  // first digit of octal must be 0
 
             for (;;)
             {
@@ -1061,7 +1047,8 @@ struct JavascriptEngine::RootObject   : public DynamicObject
                 else break;
             }
 
-            currentValue = v;  p = t;
+            currentValue = v;
+            p = t;
             return true;
         }
 
@@ -1134,11 +1121,11 @@ struct JavascriptEngine::RootObject   : public DynamicObject
     private:
         void throwError (const String& err) const  { location.throwError (err); }
 
-        template <typename OpType>
+        template<typename OpType>
         Expression* parseInPlaceOpExpression (ExpPtr& lhs)
         {
             ExpPtr rhs (parseExpression());
-            Expression* bareLHS = lhs.get(); // careful - bare pointer is deliberately aliased
+            auto* bareLHS = lhs.get(); // careful - bare pointer is deliberately aliased
             return new SelfAssignment (location, bareLHS, new OpType (location, lhs, rhs));
         }
 
@@ -1237,7 +1224,9 @@ struct JavascriptEngine::RootObject   : public DynamicObject
             s->initialiser.reset (parseStatement());
 
             if (matchIf (TokenTypes::semicolon))
+            {
                 s->condition.reset (new LiteralValue (location, true));
+            }
             else
             {
                 s->condition.reset (parseExpression());
@@ -1245,7 +1234,9 @@ struct JavascriptEngine::RootObject   : public DynamicObject
             }
 
             if (matchIf (TokenTypes::closeParen))
+            {
                 s->iterator.reset (new Statement (location));
+            }
             else
             {
                 s->iterator.reset (parseExpression());
@@ -1421,18 +1412,18 @@ struct JavascriptEngine::RootObject   : public DynamicObject
             return nullptr;
         }
 
-        template <typename OpType>
+        template<typename OpType>
         Expression* parsePreIncDec()
         {
-            Expression* e = parseFactor(); // careful - bare pointer is deliberately aliased
+            auto* e = parseFactor(); // careful - bare pointer is deliberately aliased
             ExpPtr lhs (e), one (new LiteralValue (location, (int) 1));
             return new SelfAssignment (location, e, new OpType (location, lhs, one));
         }
 
-        template <typename OpType>
+        template<typename OpType>
         Expression* parsePostIncDec (ExpPtr& lhs)
         {
-            Expression* e = lhs.release(); // careful - bare pointer is deliberately aliased
+            auto* e = lhs.release(); // careful - bare pointer is deliberately aliased
             ExpPtr lhs2 (e), one (new LiteralValue (location, (int) 1));
             return new PostAssignment (location, e, new OpType (location, lhs2, one));
         }
@@ -1553,8 +1544,8 @@ struct JavascriptEngine::RootObject   : public DynamicObject
     //==============================================================================
     static var get (Args a, int index) noexcept             { return index < a.numArguments ? a.arguments[index] : var(); }
     static bool isInt (Args a, int index) noexcept          { return get (a, index).isInt() || get (a, index).isInt64(); }
-    static int getInt (Args a, int index) noexcept          { return get (a, index); }
-    static double getDouble (Args a, int index) noexcept    { return get (a, index); }
+    static int getInt (Args a, int index) noexcept          { return static_cast<int> (get (a, index)); }
+    static double getDouble (Args a, int index) noexcept    { return static_cast<double> (get (a, index)); }
     static String getString (Args a, int index) noexcept    { return get (a, index).toString(); }
 
     static var trace (Args a)                               { Logger::outputDebugString (JSON::toString (a.thisObject)); return var::undefined(); }
@@ -1594,6 +1585,32 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         setMethod (JUCE_STRINGIFY (methodName), methodName);
 
     //==============================================================================
+    /** A simple helper class to allow debugging and testing using copy/paste Javascript code from Mozilla examples. */
+    struct ConsoleClass  : public DynamicObject
+    {
+        ConsoleClass()
+        {
+            setMethod ("log", logMethod);
+        }
+
+        static Identifier getClassName()    { static const Identifier i ("console"); return i; }
+
+        static var logMethod (Args a)
+        {
+            ignoreUnused (a);
+
+            MemoryOutputStream mo (1024);
+
+            for (int i = 0; i < a.numArguments; ++i)
+                mo << a.arguments[i].toString() << newLine;
+
+            Logger::writeToLog (mo.toString());
+
+            return globalUndefined;
+        }
+    };
+
+    //==============================================================================
     struct ObjectClass  : public DynamicObject
     {
         ObjectClass()
@@ -1603,7 +1620,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         }
 
         static Identifier getClassName()   { static const Identifier i ("Object"); return i; }
-        static var dump  (Args a)          { DBG (JSON::toString (a.thisObject)); ignoreUnused (a); return var::undefined(); }
+        static var dump  (Args a)          { DBG (JSON::toString (a.thisObject)); ignoreUnused (a); return globalUndefined; }
         static var cloneFn (Args a)        { return a.thisObject.clone(); }
     };
 
@@ -1647,15 +1664,74 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         static var of (Args a)              { return concat (a); }
         static var reduce (Args a)          { jassertfalse; return var(); } //TODO
         static var reduceRight (Args a)     { jassertfalse; return var(); } //TODO
-        static var reverse (Args a)         { jassertfalse; return var(); } //TODO
         static var slice (Args a)           { jassertfalse; return var(); } //TODO
         static var some (Args a)            { jassertfalse; return var(); } //TODO
-        static var sort (Args a)            { jassertfalse; return var(); } //TODO
         static var toLocaleString (Args a)  { jassertfalse; return var(); } //TODO
         static var toSource (Args a)        { jassertfalse; return var(); } //TODO
         static var toString (Args a)        { jassertfalse; return var(); } //TODO
         static var unshift (Args a)         { jassertfalse; return var(); } //TODO
         static var values (Args a)          { jassertfalse; return var(); } //TODO
+
+        /**
+            @see http://www.ecma-international.org/ecma-262/6.0/#sec-sortcompare
+            @see https://github.com/svaarala/duktape/blob/master/src-input/duk_bi_array.c#L640
+        */
+        static int compareVars (var& a, var& b, std::function<var (var&, var&)> compareFunc)
+        {
+            if (a.isUndefined() && b.isUndefined()) return 0;
+            else if (a.isUndefined())               return 1;
+            else if (b.isUndefined())               return -1;
+
+            if (compareFunc != nullptr)
+            {
+                const auto v = compareFunc (a, b);
+                if (v.isUndefined())
+                    return 0;
+
+                return jlimit (-1, 1, static_cast<int> (v));
+            }
+
+            if (a.isDouble() && b.isDouble())
+            {
+                const auto first = static_cast<double> (a);
+                const auto second = static_cast<double> (b);
+
+                if (first)
+            }
+
+            if (a.isString() && b.isString())
+                return a.toString().compareNatural (b.toString());
+
+            return 0;
+        }
+
+        static var sort (Args a)
+        {
+            static auto f = [](var& a, var& b) { return 0; };
+
+            if (auto* sourceArray = getThisArray (a))
+            {
+                if (a.numArguments > 0)
+                {
+                    auto sortMethod = get (a, 0);
+                    if (sortMethod.isMethod())
+                    {
+                        jassertfalse; //TODO!
+                        //sourceArray->sort();
+                    }
+                    else
+                    {
+                        jassertfalse; //Bogus sort function!
+                    }
+                }
+                else
+                {
+                    sourceArray->sort (compareVars);
+                }
+            }
+
+            return globalUndefined;
+        }
 
         static var concat (Args a)
         {
@@ -1681,6 +1757,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
                 }
             }
 
+            result.minimiseStorageOverheads();
             return result;
         }
 
@@ -1755,29 +1832,30 @@ struct JavascriptEngine::RootObject   : public DynamicObject
 
         static var fill (Args a)
         {
-            Array<var> result;
-
             if (auto* sourceArray = getThisArray (a))
             {
-                auto value = getInt (a, 0);
-                auto start = getInt (a, 1);
-                auto end = getInt (a, 2);
+                const auto value = get (a, 0);
 
-                for (int i = 0; i < a.numArguments; ++i)
-                {
-                    if (auto* targetArray = target.getArray())
-                    {
-                        result.addArray (*targetArray);
-                    }
-                    else if (target.isInt() || target.isInt64() || target.isBool()
-                          || target.isDouble() || target.isString())
-                    {
-                        result.add (target);
-                    }
-                }
+                auto length = sourceArray->size();
+                auto start  = a.numArguments >= 1 ? getInt (a, 1) : 0;
+                auto end    = a.numArguments >= 2 ? getInt (a, 2) : length;
+
+                if (start < 0)
+                    start = length + start;
+
+                if (end < 0)
+                    end = length + end;
+
+                if (start > end)
+                    std::swap (start, end);
+
+                for (int i = start; i < end; ++i)
+                    sourceArray->getReference (i) = value;
+
+                return *sourceArray;
             }
 
-            return result;
+            return Array<var>(); //NB: Purposely constructing an array of vars here
         }
 
         static var forEach (Args a)
@@ -1802,7 +1880,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
                 }
             }
 
-            return var::undefined();
+            return globalUndefined;
         }
 
         static var indexOf (Args a)
@@ -1827,7 +1905,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
                 const auto startIndex = (a.numArguments > 1 ? getInt (a, 1) : 0);
 
                 for (int i = array->size(); --i >= startIndex;)
-                    if (array->getReference(i) == target)
+                    if (array->getReference (i) == target)
                         return i;
             }
 
@@ -1856,7 +1934,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
                 return array->size();
             }
 
-            return var::undefined();
+            return globalUndefined;
         }
 
         static var push (Args a)
@@ -1869,7 +1947,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
                 return array->size();
             }
 
-            return var::undefined();
+            return globalUndefined;
         }
 
         static var remove (Args a)
@@ -1880,7 +1958,15 @@ struct JavascriptEngine::RootObject   : public DynamicObject
                 return *array;
             }
 
-            return var::undefined();
+            return globalUndefined;
+        }
+
+        static var reverse (Args a)
+        {
+            if (auto* sourceArray = getThisArray (a))
+                std::reverse (sourceArray->begin(), sourceArray->end());
+
+            return globalUndefined;
         }
 
         static var shift (Args a)
@@ -1889,7 +1975,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
                 if (! array->isEmpty())
                     return array->removeAndReturn (0);
 
-            return var::undefined();
+            return globalUndefined;
         }
 
         static var splice (Args a)
@@ -1921,7 +2007,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
                 return itemsRemoved;
             }
 
-            return var::undefined();
+            return globalUndefined;
         }
     };
 
@@ -2030,14 +2116,17 @@ struct JavascriptEngine::RootObject   : public DynamicObject
             #undef CREATE_MATH_METHOD
             #undef MATH_CLASS_METHODS
 
+            const auto log2 = std::log (2.0);
+            const auto log10 = std::log (2.0);
+
             setProperty ("PI",      MathConstants<double>::pi);
             setProperty ("E",       MathConstants<double>::euler);
             setProperty ("SQRT2",   MathConstants<double>::sqrt2);
             setProperty ("SQRT1_2", std::sqrt (0.5));
-            setProperty ("LN2",     std::log (2.0));
-            setProperty ("LN10",    std::log (10.0));
-            setProperty ("LOG2E",   std::log (MathConstants<double>::euler) / std::log (2.0));
-            setProperty ("LOG10E",  std::log (MathConstants<double>::euler) / std::log (10.0));
+            setProperty ("LN2",     log2);
+            setProperty ("LN10",    log10);
+            setProperty ("LOG2E",   std::log (MathConstants<double>::euler) / log2);
+            setProperty ("LOG10E",  std::log (MathConstants<double>::euler) / log10);
         }
 
         static var Math_abs       (Args a) { return isInt (a, 0) ? var (std::abs   (getInt (a, 0))) : var (std::abs   (getDouble (a, 0))); }
@@ -2062,7 +2151,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         static var Math_max       (Args a) { return (isInt (a, 0) && isInt (a, 1)) ? var (jmax (getInt (a, 0), getInt (a, 1))) : var (jmax (getDouble (a, 0), getDouble (a, 1))); }
         static var Math_min       (Args a) { return (isInt (a, 0) && isInt (a, 1)) ? var (jmin (getInt (a, 0), getInt (a, 1))) : var (jmin (getDouble (a, 0), getDouble (a, 1))); }
         static var Math_pow       (Args a) { return std::pow   (getDouble (a, 0), getDouble (a, 1)); }
-        static var Math_randInt   (Args a) { return a.numArguments < 2 ? var::undefined() : Random::getSystemRandom().nextInt (Range<int> (getInt (a, 0), getInt (a, 1))); }
+        static var Math_randInt   (Args a) { return a.numArguments < 2 ? globalUndefined : Random::getSystemRandom().nextInt (Range<int> (getInt (a, 0), getInt (a, 1))); }
         static var Math_random    (Args)   { return Random::getSystemRandom().nextDouble(); }
         static var Math_range     (Args a) { return isInt (a, 0) ? var (jlimit (getInt (a, 1), getInt (a, 2), getInt (a, 0))) : var (jlimit (getDouble (a, 1), getDouble (a, 2), getDouble (a, 0))); }
         static var Math_round     (Args a) { return isInt (a, 0) ? var (roundToInt (getInt (a, 0))) : var (roundToInt (getDouble (a, 0))); }
@@ -2092,7 +2181,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         static var Math_atanh     (Args a) { return atanh (getDouble (a, 0)); }
 
         static Identifier getClassName()   { static const Identifier i ("Math"); return i; }
-        template <typename Type> static Type sign (Type n) noexcept  { return n > 0 ? (Type) 1 : (n < 0 ? (Type) -1 : 0); }
+        template<typename Type> static Type sign (Type n) noexcept  { return n > 0 ? (Type) 1 : (n < 0 ? (Type) -1 : 0); }
     };
 
     //==============================================================================
