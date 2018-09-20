@@ -79,23 +79,42 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         setProperty ("Infinity",    std::numeric_limits<double>::infinity());
         setProperty ("NaN",         std::numeric_limits<double>::quiet_NaN());
 
-        registerNativeObject<ObjectClass>();
+        registerNativeObject<ArrayBufferClass>();
         registerNativeObject<ArrayClass>();
-        registerNativeObject<StringClass>();
-        registerNativeObject<MathClass>();
-        registerNativeObject<JSONClass>();
-        registerNativeObject<NumberClass>();
         registerNativeObject<BooleanClass>();
+        registerNativeObject<DataViewClass>();
+        registerNativeObject<DateClass>();
+        registerNativeObject<JSONClass>();
+        registerNativeObject<MapClass>();
+        registerNativeObject<MathClass>();
+        registerNativeObject<NumberClass>();
+        registerNativeObject<ObjectClass>();
         registerNativeObject<RegExpClass>();
+        registerNativeObject<SetClass>();
+        registerNativeObject<StringClass>();
+        registerNativeObject<WeakMapClass>();
+        registerNativeObject<WeakSetClass>();
+
         registerNativeObject<ConsoleClass>();
     }
 
+    //==============================================================================
+    /** */
+    #define JUCE_JS_CREATE_METHOD(methodName) \
+        setMethod (JUCE_STRINGIFY (methodName), methodName);
+
+    /** */
+    #define JUCE_JS_IDENTIFY_CLASS(className) \
+        static Identifier getClassName() { static const Identifier i (className); return i; }
+
+    /** */
     template<typename RootClass>
     void registerNativeObject()
     {
         setProperty (RootClass::getClassName(), new RootClass());
     }
 
+    //==============================================================================
     Time timeout;
 
     using Args = const var::NativeFunctionArgs&;
@@ -465,7 +484,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
 
             if (const auto* array = arrayVar.getArray())
                 if (key.isInt() || key.isInt64() || key.isDouble())
-                    return (*array) [static_cast<int> (key)];
+                    return (*array)[static_cast<int> (key)];
 
             if (auto* o = arrayVar.getDynamicObject())
                 if (key.isString())
@@ -1581,24 +1600,20 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         return var::undefined();
     }
 
-    #define JUCE_JS_CREATE_METHOD(methodName) \
-        setMethod (JUCE_STRINGIFY (methodName), methodName);
-
     //==============================================================================
-    /** A simple helper class to allow debugging and testing using copy/paste Javascript code from Mozilla examples. */
+    /** A simple helper class to allow debugging and testing using copy/paste Javascript code from official examples online. */
     struct ConsoleClass  : public DynamicObject
     {
         ConsoleClass()
         {
             setMethod ("log", logMethod);
+            setMethod ("print", logMethod);
         }
 
-        static Identifier getClassName()    { static const Identifier i ("console"); return i; }
+        JUCE_JS_IDENTIFY_CLASS ("console")
 
         static var logMethod (Args a)
         {
-            ignoreUnused (a);
-
             MemoryOutputStream mo (1024);
 
             for (int i = 0; i < a.numArguments; ++i)
@@ -1611,6 +1626,25 @@ struct JavascriptEngine::RootObject   : public DynamicObject
     };
 
     //==============================================================================
+    //Fundamental objects:
+
+    /**
+
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+    */
+    struct BooleanClass  : public DynamicObject
+    {
+        BooleanClass()
+        {
+        }
+
+        JUCE_JS_IDENTIFY_CLASS ("Boolean")
+    };
+
+    /**
+
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object
+    */
     struct ObjectClass  : public DynamicObject
     {
         ObjectClass()
@@ -1619,12 +1653,15 @@ struct JavascriptEngine::RootObject   : public DynamicObject
             setMethod ("clone", cloneFn);
         }
 
-        static Identifier getClassName()   { static const Identifier i ("Object"); return i; }
+        JUCE_JS_IDENTIFY_CLASS ("Object")
+
         static var dump  (Args a)          { DBG (JSON::toString (a.thisObject)); ignoreUnused (a); return globalUndefined; }
         static var cloneFn (Args a)        { return a.thisObject.clone(); }
     };
 
     //==============================================================================
+    //Indexed collections:
+
     /*
         https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array
     */
@@ -1648,35 +1685,32 @@ struct JavascriptEngine::RootObject   : public DynamicObject
             #undef ARRAY_CLASS_METHODS
         }
 
-        static Identifier getClassName()            { static const Identifier i ("Array"); return i; }
+        JUCE_JS_IDENTIFY_CLASS ("Array")
+
         static Array<var>* getThisArray (Args a)    { return a.thisObject.getArray(); }
 
-        static var entries (Args a)         { jassertfalse; return var(); } //TODO
-        static var filter (Args a)          { jassertfalse; return var(); } //TODO
-        static var find (Args a)            { jassertfalse; return var(); } //TODO
-        static var findIndex (Args a)       { jassertfalse; return var(); } //TODO
-        static var from (Args a)            { jassertfalse; return var(); } //TODO
-        static var includes (Args a)        { jassertfalse; return var(); } //TODO
-        static var isArray (Args a)         { jassertfalse; return var(); } //TODO
-        static var keys (Args a)            { jassertfalse; return var(); } //TODO
-        static var map (Args a)             { jassertfalse; return var(); } //TODO
-        static var observe (Args a)         { jassertfalse; return var(); } //TODO
+        static var entries (Args a)         { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var from (Args a)            { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var isArray (Args a)         { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var keys (Args a)            { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var map (Args a)             { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var observe (Args a)         { ignoreUnused (a); jassertfalse; return var(); } //TODO
         static var of (Args a)              { return concat (a); }
-        static var reduce (Args a)          { jassertfalse; return var(); } //TODO
-        static var reduceRight (Args a)     { jassertfalse; return var(); } //TODO
-        static var slice (Args a)           { jassertfalse; return var(); } //TODO
-        static var some (Args a)            { jassertfalse; return var(); } //TODO
-        static var toLocaleString (Args a)  { jassertfalse; return var(); } //TODO
-        static var toSource (Args a)        { jassertfalse; return var(); } //TODO
-        static var toString (Args a)        { jassertfalse; return var(); } //TODO
-        static var unshift (Args a)         { jassertfalse; return var(); } //TODO
-        static var values (Args a)          { jassertfalse; return var(); } //TODO
+        static var reduce (Args a)          { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var reduceRight (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var slice (Args a)           { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var some (Args a)            { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var toLocaleString (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var toSource (Args a)        { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var toString (Args a)        { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var unshift (Args a)         { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var values (Args a)          { ignoreUnused (a); jassertfalse; return var(); } //TODO
 
         /**
             @see http://www.ecma-international.org/ecma-262/6.0/#sec-sortcompare
             @see https://github.com/svaarala/duktape/blob/master/src-input/duk_bi_array.c#L640
         */
-        static int compareVars (var& a, var& b, std::function<var (var&, var&)> compareFunc)
+        static int compareVars (var& a, var& b, std::function<var (var&, var&)> compareFunc = nullptr)
         {
             if (a.isUndefined() && b.isUndefined()) return 0;
             else if (a.isUndefined())               return 1;
@@ -1685,10 +1719,16 @@ struct JavascriptEngine::RootObject   : public DynamicObject
             if (compareFunc != nullptr)
             {
                 const auto v = compareFunc (a, b);
-                if (v.isUndefined())
-                    return 0;
 
-                return jlimit (-1, 1, static_cast<int> (v));
+                if (v.isUndefined())    return 0; //return std::numeric_limits<double>::quiet_NaN();
+                if (v.isVoid())         return 0;
+                if (v.isString())       return static_cast<bool> (v);
+
+                if (v.isObject())
+                {
+                }
+
+                return v;
             }
 
             if (a.isDouble() && b.isDouble())
@@ -1696,7 +1736,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
                 const auto first = static_cast<double> (a);
                 const auto second = static_cast<double> (b);
 
-                if (first)
+                //if (first)
             }
 
             if (a.isString() && b.isString())
@@ -1707,8 +1747,6 @@ struct JavascriptEngine::RootObject   : public DynamicObject
 
         static var sort (Args a)
         {
-            static auto f = [](var& a, var& b) { return 0; };
-
             if (auto* sourceArray = getThisArray (a))
             {
                 if (a.numArguments > 0)
@@ -1726,7 +1764,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
                 }
                 else
                 {
-                    sourceArray->sort (compareVars);
+                    //sourceArray->sort (compareVars);
                 }
             }
 
@@ -1855,7 +1893,112 @@ struct JavascriptEngine::RootObject   : public DynamicObject
                 return *sourceArray;
             }
 
-            return Array<var>(); //NB: Purposely constructing an array of vars here
+            return Array<var>(); //NB: Purposely constructing an empty array of vars here
+        }
+
+        static var filter (Args a)
+        {
+            Array<var> resultArray;
+
+            if (auto* array = getThisArray (a))
+            {
+                auto target = get (a, 0);
+
+                if (auto func = target.getNativeFunction())
+                {
+                    for (int i = 0; i < array->size(); ++i)
+                    {
+                        const var arguments[] =
+                        {
+                            array->getUnchecked (i),
+                            i,
+                            a.thisObject
+                        };
+
+                        auto result = func ({ target, arguments, 3 });
+                        if (! result.isBool())
+                        {
+                            jassertfalse; //Hackerman strikes again.
+                            return globalUndefined;
+                        }
+
+                        if (static_cast<bool> (result))
+                            resultArray.add (array->getUnchecked (i));
+                    }
+                }
+            }
+
+            resultArray.minimiseStorageOverheads();
+            return resultArray;
+        }
+
+        static var find (Args a)
+        {
+            if (auto* array = getThisArray (a))
+            {
+                auto target = get (a, 0);
+
+                if (auto func = target.getNativeFunction())
+                {
+                    for (int i = 0; i < array->size(); ++i)
+                    {
+                        const var arguments[] =
+                        {
+                            array->getUnchecked (i),
+                            i,
+                            a.thisObject
+                        };
+
+                        auto result = func ({ target, arguments, 3 });
+                        if (result.isBool())
+                        {
+                            if (static_cast<bool> (result))
+                                return array->getUnchecked (i);
+                        }
+                        else
+                        {
+                            jassertfalse; //Hackerman strikes again.
+                            break;
+                        }
+
+                    }
+                }
+            }
+
+            return globalUndefined;
+        }
+
+        static var findIndex (Args a)
+        {
+            if (auto* array = getThisArray (a))
+            {
+                auto target = get (a, 0);
+
+                if (auto func = target.getNativeFunction())
+                {
+                    for (int i = 0; i < array->size(); ++i)
+                    {
+                        const var arguments[] =
+                        {
+                            array->getUnchecked (i),
+                            i,
+                            a.thisObject
+                        };
+
+                        auto result = func ({ target, arguments, 3 });
+                        if (! result.isBool())
+                        {
+                            jassertfalse; //Hackerman strikes again.
+                            return globalUndefined;
+                        }
+
+                        if (static_cast<bool> (result))
+                            return i;
+                    }
+                }
+            }
+
+            return -1;
         }
 
         static var forEach (Args a)
@@ -1881,6 +2024,20 @@ struct JavascriptEngine::RootObject   : public DynamicObject
             }
 
             return globalUndefined;
+        }
+
+        static var includes (Args a)
+        {
+            if (a.numArguments <= 0)
+            {
+                jassertfalse;
+                return false;
+            }
+
+            if (auto* array = getThisArray (a))
+                return array->contains (get (a, 0));
+
+            return false;
         }
 
         static var indexOf (Args a)
@@ -1912,12 +2069,18 @@ struct JavascriptEngine::RootObject   : public DynamicObject
             return -1;
         }
 
+        /** This method is a special case where  all elements of the array are joined
+            into a string and returns this string, regardless of the element's type.
+
+            @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/join
+            @see https://www.w3schools.com/jsref/jsref_join.asp
+        */
         static var join (Args a)
         {
             StringArray strings;
 
             if (auto* array = getThisArray (a))
-                for (auto& v : *array)
+                for (const auto& v : *array)
                     strings.add (v.toString());
 
             return strings.joinIntoString (getString (a, 0));
@@ -2012,6 +2175,8 @@ struct JavascriptEngine::RootObject   : public DynamicObject
     };
 
     //==============================================================================
+    //Text processing:
+
     /**
         https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String
     */
@@ -2035,32 +2200,35 @@ struct JavascriptEngine::RootObject   : public DynamicObject
             #undef STRING_CLASS_METHODS
         }
 
-        static Identifier getClassName()        { static const Identifier i ("String"); return i; }
+        JUCE_JS_IDENTIFY_CLASS ("String")
+
         static String getThisString (Args a)    { return a.thisObject.toString(); }
 
+        static var codePointAt (Args a)         { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var fromCodePoint (Args a)       { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var normalize (Args a)           { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var padEnd (Args a)              { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var padStart (Args a)            { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var raw (Args a)                 { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var search (Args a)              { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var slice (Args a)               { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var substr (Args a)              { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var valueOf (Args a)             { ignoreUnused (a); jassertfalse; return var(); } //TODO
+
         static var charAt (Args a)              { int p = getInt (a, 0); return getThisString (a).substring (p, p + 1); }
-        static var charCodeAt (Args a)          { return (int) getThisString (a) [getInt (a, 0)]; }
-        static var codePointAt (Args a)         { jassertfalse; return var(); } //TODO
+        static var charCodeAt (Args a)          { return (int) getThisString (a)[getInt (a, 0)]; }
         static var concat (Args a)              { return getThisString (a) + getString (a, 0); }
         static var endsWith (Args a)            { return getThisString (a).endsWith (getString (a, 0)); }
         static var fromCharCode (Args a)        { return String::charToString (static_cast<juce_wchar> (getInt (a, 0))); }
-        static var fromCodePoint (Args a)       { jassertfalse; return var(); } //TODO
         static var includes (Args a)            { return getThisString (a).substring (getInt (a, 1)).contains (getString (a, 0)); }
         static var indexOf (Args a)             { return getThisString (a).indexOf (getString (a, 0)); }
         static var lastIndexOf (Args a)         { return getThisString (a).lastIndexOf (getString (a, 0)); }
         static var localeCompare (Args a)       { return getThisString (a).compare (getString (a, 0)); }
         static var match (Args a)               { std::regex r (getString (a, 0).trim().toStdString()); return std::regex_match (getThisString (a).toStdString(), r); }
-        static var normalize (Args a)           { jassertfalse; return var(); } //TODO
-        static var padEnd (Args a)              { jassertfalse; return var(); } //TODO
-        static var padStart (Args a)            { jassertfalse; return var(); } //TODO
         static var quote (Args a)               { return getThisString (a).quoted(); }
-        static var raw (Args a)                 { jassertfalse; return var(); } //TODO
         static var repeat (Args a)              { return String::repeatedString (getString (a, 0), getInt (a, 1)); }
         static var replace (Args a)             { return getThisString (a).replace (getString (a, 0), getString (a, 1)); }
-        static var search (Args a)              { jassertfalse; return var(); } //TODO
-        static var slice (Args a)               { jassertfalse; return var(); } //TODO
         static var startsWith (Args a)          { return getThisString (a).startsWith (getString (a, 0)); }
-        static var substr (Args a)              { jassertfalse; return var(); } //TODO
         static var substring (Args a)           { return getThisString (a).substring (getInt (a, 0), getInt (a, 1)); }
         static var toLocaleLowerCase (Args a)   { return getThisString (a).toLowerCase(); }
         static var toLocaleUpperCase (Args a)   { return getThisString (a).toUpperCase(); }
@@ -2070,7 +2238,6 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         static var trim (Args a)                { return getThisString (a).trim(); }
         static var trimLeft (Args a)            { return getThisString (a).trimStart(); }
         static var trimRight (Args a)           { return getThisString (a).trimEnd(); }
-        static var valueOf (Args a)             { jassertfalse; return var(); } //TODO
 
         static var split (Args a)
         {
@@ -2093,28 +2260,121 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         }
     };
 
+    /**
+
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp
+    */
+    struct RegExpClass  : public DynamicObject
+    {
+        RegExpClass()
+        {
+        }
+
+        JUCE_JS_IDENTIFY_CLASS ("RegExp")
+
+        static var compile (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var exec (Args a)        { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var test (Args a)        { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var toSource (Args a)    { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var toString (Args a)    { ignoreUnused (a); jassertfalse; return var(); } //TODO
+    };
+
     //==============================================================================
+    //Numbers and dates:
+
+    /**
+
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date
+    */
+    struct DateClass  : public DynamicObject
+    {
+        DateClass()
+        {
+        }
+
+        JUCE_JS_IDENTIFY_CLASS ("Date")
+
+        //statics...
+        static var UTC (Args a)         { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var now (Args a)         { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var parse (Args a)       { ignoreUnused (a); jassertfalse; return var(); } //TODO
+
+        //methods...
+        static var getDate (Args a)         { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getFullYear (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getHours (Args a)        { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getMilliseconds (Args a) { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getMinutes (Args a)      { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getMonth (Args a)        { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getSeconds (Args a)      { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getTime (Args a)         { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getTimezoneOffset (Args a)   { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getUTCDate (Args a)      { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getUTCDay (Args a)       { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getUTCFullYear (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getUTCHours (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getUTCMilliseconds (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getUTCMinutes (Args a)   { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getUTCMonth (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getUTCSeconds (Args a)   { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getYear (Args a)         { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setDate (Args a)         { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setFullYear (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setHours (Args a)        { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setMilliseconds (Args a) { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setMinutes (Args a)      { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setMonth (Args a)        { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setSeconds (Args a)      { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setTime (Args a)         { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setUTCDate (Args a)      { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setUTCFullYear (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setUTCHours (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setUTCMilliseconds (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setUTCMinutes (Args a)   { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setUTCMonth (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setUTCSeconds (Args a)   { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setYear (Args a)         { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var toDateString (Args a)    { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var toGMTString (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+
+        static var toISOString (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var toJSON (Args a)          { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var toLocaleDateString (Args a)    { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var toLocaleFormat (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var toLocaleString (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var toLocaleTimeString (Args a)    { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var toSource (Args a)        { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var toString (Args a)        { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var toTimeString (Args a)    { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var toUTCString (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var valueOf (Args a)         { ignoreUnused (a); jassertfalse; return var(); } //TODO
+    };
+
+    /**
+
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math
+    */
     struct MathClass  : public DynamicObject
     {
         MathClass()
         {
-            #define MATH_CLASS_METHODS(X) \
-                X (abs)     X (acos)    X (acosh)   X (asin)    X (asinh) \
-                X (atan)    X (atan2)   X (atanh)   X (cbrt)    X (ceil) \
-                X (clz32)   X (cos)     X (cosh)    X (exp)     X (expm1) \
-                X (floor)   X (fround)  X (hypot)   X (imul)    X (log) \
-                X (log10)   X (log1p)   X (log2)    X (max)     X (min) \
-                X (pow)     X (randInt) X (random)  X (range)   X (round) \
-                X (sign)    X (sin)     X (sinh)    X (sqr)     X (sqrt) \
-                X (tan)     X (tanh)    X (trunc)   X (toDegrees) X (toRadians)
+            #define JUCE_MATH_CLASS_METHODS(X) \
+                X (abs)     X (acos)    X (acosh)   X (asin)        X (asinh) \
+                X (atan)    X (atan2)   X (atanh)   X (cbrt)        X (ceil) \
+                X (clz32)   X (cos)     X (cosh)    X (exp)         X (expm1) \
+                X (floor)   X (fround)  X (hypot)   X (imul)        X (log) \
+                X (log10)   X (log1p)   X (log2)    X (max)         X (min) \
+                X (pow)     X (randInt) X (random)  X (range)       X (round) \
+                X (sign)    X (sin)     X (sinh)    X (sqr)         X (sqrt) \
+                X (tan)     X (tanh)    X (trunc)   X (toDegrees)   X (toRadians)
 
-            #define CREATE_MATH_METHOD(methodName) \
+            #define JUCE_CREATE_MATH_METHOD(methodName) \
                     setMethod (JUCE_STRINGIFY (methodName), Math_ ## methodName);
 
-            MATH_CLASS_METHODS (CREATE_MATH_METHOD)
+            JUCE_MATH_CLASS_METHODS (JUCE_CREATE_MATH_METHOD)
 
-            #undef CREATE_MATH_METHOD
-            #undef MATH_CLASS_METHODS
+            #undef JUCE_CREATE_MATH_METHOD
+            #undef JUCE_MATH_CLASS_METHODS
 
             const auto log2 = std::log (2.0);
             const auto log10 = std::log (2.0);
@@ -2128,6 +2388,8 @@ struct JavascriptEngine::RootObject   : public DynamicObject
             setProperty ("LOG2E",   std::log (MathConstants<double>::euler) / log2);
             setProperty ("LOG10E",  std::log (MathConstants<double>::euler) / log10);
         }
+
+        JUCE_JS_IDENTIFY_CLASS ("Math")
 
         static var Math_abs       (Args a) { return isInt (a, 0) ? var (std::abs   (getInt (a, 0))) : var (std::abs   (getDouble (a, 0))); }
         static var Math_acos      (Args a) { return std::acos  (getDouble (a, 0)); }
@@ -2180,22 +2442,12 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         static var Math_acosh     (Args a) { return acosh (getDouble (a, 0)); }
         static var Math_atanh     (Args a) { return atanh (getDouble (a, 0)); }
 
-        static Identifier getClassName()   { static const Identifier i ("Math"); return i; }
         template<typename Type> static Type sign (Type n) noexcept  { return n > 0 ? (Type) 1 : (n < 0 ? (Type) -1 : 0); }
     };
 
-    //==============================================================================
-    struct JSONClass  : public DynamicObject
-    {
-        JSONClass()                        { setMethod ("stringify", stringify); }
-        static Identifier getClassName()   { static const Identifier i ("JSON"); return i; }
-        static var stringify (Args a)      { return JSON::toString (get (a, 0)); }
-    };
-
-    //==============================================================================
     /**
 
-        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Numbers_and_dates
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number
     */
     struct NumberClass  : public DynamicObject
     {
@@ -2205,8 +2457,8 @@ struct JavascriptEngine::RootObject   : public DynamicObject
             setMethod ("parseFloat",            parseFloat);
             setMethod ("isNaN",                 isNaN);
             setMethod ("isFinite",              isFinite);
-            setMethod ("isInteger",             [] (Args a) { return isInt (a, 0); });
-            setMethod ("isSafeInteger",         [] (Args a) { return ! std::isnan (getDouble (a, 0)); });
+            setMethod ("isInteger",             [](Args a) { return isInt (a, 0); });
+            setMethod ("isSafeInteger",         [](Args a) { return ! std::isnan (getDouble (a, 0)); });
 
             setProperty ("EPSILON",             std::numeric_limits<double>::epsilon());
             setProperty ("NaN",                 std::numeric_limits<double>::quiet_NaN());
@@ -2218,6 +2470,8 @@ struct JavascriptEngine::RootObject   : public DynamicObject
             setProperty ("MAX_VALUE",           std::numeric_limits<double>::max());
         }
 
+        JUCE_JS_IDENTIFY_CLASS ("Number")
+
         static var parseInt (Args a)
         {
             auto s = getString (a, 0).trim();
@@ -2226,38 +2480,176 @@ struct JavascriptEngine::RootObject   : public DynamicObject
                                : s.getLargeIntValue();
         }
 
-        static Identifier getClassName()    { static const Identifier i ("Number"); return i; }
         static var parseFloat (Args a)      { return getDouble (a, 0); }
         static var isNaN (Args a)           { return std::isnan (getDouble (a, 0)); }
         static var isFinite (Args a)        { return std::isfinite (getDouble (a, 0)); }
     };
 
     //==============================================================================
+    //Keyed collections:
+
     /**
 
-        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map
     */
-    struct BooleanClass  : public DynamicObject
+    struct MapClass  : public DynamicObject
     {
-        BooleanClass()
+        MapClass()
         {
         }
 
-        static Identifier getClassName()    { static const Identifier i ("Boolean"); return i; }
+        JUCE_JS_IDENTIFY_CLASS ("Map")
+
+        static var Map_delete (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
+
+        static var clear (Args a)   { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var entries (Args a) { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var forEach (Args a) { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var get (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var has (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var keys (Args a)    { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var set (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var values (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
+
+        //operator[]
+        static var Map_operatorBrackets (Args a)
+        {
+            ignoreUnused (a); jassertfalse; return var();
+        }
+    };
+
+    /**
+
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
+    */
+    struct SetClass  : public DynamicObject
+    {
+        SetClass()
+        {
+        }
+
+        JUCE_JS_IDENTIFY_CLASS ("Set")
+
+        static var Set_delete (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
+
+        static var add (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var clear (Args a)   { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var entries (Args a) { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var forEach (Args a) { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var has (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var values (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
+
+        //operator[]
+        static var Set_operatorBrackets (Args a)
+        {
+            ignoreUnused (a); jassertfalse; return var();
+        }
+    };
+
+    /**
+
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap
+    */
+    struct WeakMapClass  : public DynamicObject
+    {
+        WeakMapClass()
+        {
+        }
+
+        JUCE_JS_IDENTIFY_CLASS ("WeakMap")
+
+        static var WeakMap_delete (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
+
+        static var clear (Args a)   { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var get (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var has (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var set (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+    };
+
+    /**
+
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakSet
+    */
+    struct WeakSetClass  : public DynamicObject
+    {
+        WeakSetClass()
+        {
+        }
+
+        JUCE_JS_IDENTIFY_CLASS ("WeakSet")
+
+        static var WeakMap_add (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var WeakMap_clear (Args a)   { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var WeakMap_delete (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var WeakMap_has (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
     };
 
     //==============================================================================
+    //Structured data:
+
     /**
 
-        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer
     */
-    struct RegExpClass  : public DynamicObject
+    struct ArrayBufferClass  : public DynamicObject
     {
-        RegExpClass()
+        ArrayBufferClass()
         {
         }
 
-        static Identifier getClassName()    { static const Identifier i ("RegExp"); return i; }
+        JUCE_JS_IDENTIFY_CLASS ("ArrayBuffer")
+
+        static var isView (Args a)      { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var slice (Args a)       { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var transfer (Args a)    { ignoreUnused (a); jassertfalse; return var(); } //TODO
+    };
+
+    /**
+
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView
+    */
+    struct DataViewClass  : public DynamicObject
+    {
+        DataViewClass()
+        {
+        }
+
+        JUCE_JS_IDENTIFY_CLASS ("DataView")
+
+        static var getFloat32 (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getFloat64 (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getInt8 (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getInt16 (Args a)    { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getInt32 (Args a)    { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getUint8 (Args a)    { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getUint16 (Args a)   { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var getUint32 (Args a)   { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setFloat32 (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setFloat64 (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setInt8 (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setInt16 (Args a)    { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setInt32 (Args a)    { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setUint8 (Args a)    { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setUint16 (Args a)   { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var setUint32 (Args a)   { ignoreUnused (a); jassertfalse; return var(); } //TODO
+    };
+
+    /**
+
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON
+    */
+    struct JSONClass  : public DynamicObject
+    {
+        JSONClass()
+        {
+            setMethod ("parse", parse);
+            setMethod ("stringify", stringify);
+        }
+
+        JUCE_JS_IDENTIFY_CLASS ("JSON")
+
+        static var parse (Args a)       { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var stringify (Args a)   { return JSON::toString (get (a, 0)); }
     };
 };
 
