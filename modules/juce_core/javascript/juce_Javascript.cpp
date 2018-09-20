@@ -1696,8 +1696,6 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         static var map (Args a)             { ignoreUnused (a); jassertfalse; return var(); } //TODO
         static var observe (Args a)         { ignoreUnused (a); jassertfalse; return var(); } //TODO
         static var of (Args a)              { return concat (a); }
-        static var reduce (Args a)          { ignoreUnused (a); jassertfalse; return var(); } //TODO
-        static var reduceRight (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
         static var slice (Args a)           { ignoreUnused (a); jassertfalse; return var(); } //TODO
         static var some (Args a)            { ignoreUnused (a); jassertfalse; return var(); } //TODO
         static var toLocaleString (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
@@ -1706,43 +1704,32 @@ struct JavascriptEngine::RootObject   : public DynamicObject
         static var unshift (Args a)         { ignoreUnused (a); jassertfalse; return var(); } //TODO
         static var values (Args a)          { ignoreUnused (a); jassertfalse; return var(); } //TODO
 
-        /**
-            @see http://www.ecma-international.org/ecma-262/6.0/#sec-sortcompare
-            @see https://github.com/svaarala/duktape/blob/master/src-input/duk_bi_array.c#L640
-        */
-        static int compareVars (var& a, var& b, std::function<var (var&, var&)> compareFunc = nullptr)
+        static var reduceRight (Args a)     { ignoreUnused (a); jassertfalse; return var(); } //TODO
+
+        static var reduce (Args a)
         {
-            if (a.isUndefined() && b.isUndefined()) return 0;
-            else if (a.isUndefined())               return 1;
-            else if (b.isUndefined())               return -1;
-
-            if (compareFunc != nullptr)
+            if (auto* sourceArray = getThisArray (a))
             {
-                const auto v = compareFunc (a, b);
-
-                if (v.isUndefined())    return 0; //return std::numeric_limits<double>::quiet_NaN();
-                if (v.isVoid())         return 0;
-                if (v.isString())       return static_cast<bool> (v);
-
-                if (v.isObject())
+                if (a.numArguments > 0)
                 {
+                    auto sortMethod = get (a, 0);
+                    if (sortMethod.isMethod())
+                    {
+                        jassertfalse; //TODO!
+                        //sourceArray->sort();
+                    }
+                    else
+                    {
+                        jassertfalse; //Bogus sort function!
+                    }
                 }
-
-                return v;
+                else
+                {
+                    sourceArray->sort();
+                }
             }
 
-            if (a.isDouble() && b.isDouble())
-            {
-                const auto first = static_cast<double> (a);
-                const auto second = static_cast<double> (b);
-
-                //if (first)
-            }
-
-            if (a.isString() && b.isString())
-                return a.toString().compareNatural (b.toString());
-
-            return 0;
+            return globalUndefined;
         }
 
         static var sort (Args a)
@@ -1764,7 +1751,7 @@ struct JavascriptEngine::RootObject   : public DynamicObject
                 }
                 else
                 {
-                    //sourceArray->sort (compareVars);
+                    sourceArray->sort();
                 }
             }
 

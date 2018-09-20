@@ -22,9 +22,6 @@
 
 namespace juce
 {
-//==============================================================================
-//==============================================================================
-#if JUCE_UNIT_TESTS
 
 class JavascriptTests  : public UnitTest
 {
@@ -33,11 +30,56 @@ public:
 
     void runTest() override
     {
+        JavascriptEngine engine;
+
+        beginTest ("Globals");
+
+        expect (engine.evaluate ("exec").isUndefined());
+        expect (static_cast<int> (engine.evaluate ("eval (10 * 10)")) == 100);
+        expect (engine.evaluate ("trace").isUndefined());
+        expect (engine.evaluate ("typeof").isUndefined());
+        expect (engine.evaluate ("charToInt").isUndefined());
+        expect (engine.evaluate ("parseInt").isUndefined());
+        expect (engine.evaluate ("parseFloat").isUndefined());
+        expect (engine.evaluate ("isNaN").isUndefined());
+        expect (engine.evaluate ("isFinite").isUndefined());
+        expect (engine.evaluate ("Infinity").isUndefined());
+        expect (engine.evaluate ("NaN").isUndefined());
+
+        beginTest ("ArrayBuffer");
+
+        beginTest ("Array");
+
+        beginTest ("Boolean");
+
+        beginTest ("DataView");
+
+        beginTest ("Date");
+
         beginTest ("JSON");
+
+        beginTest ("Map");
+
+        beginTest ("Math");
+
+        beginTest ("Number");
+
+        beginTest ("Object");
+
+        beginTest ("RegExp");
+
+        beginTest ("Set");
+
+        beginTest ("String");
+
+        beginTest ("WeakMap");
+
+        beginTest ("WeakSet");
+
+        beginTest ("Console");
     }
 };
 
-static JavascriptTests JavascriptUnitTests;
+static JavascriptTests javascriptUnitTests;
 
-#endif
 } // namespace juce

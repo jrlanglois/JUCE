@@ -246,7 +246,12 @@
 
 //==============================================================================
 #if JUCE_UNIT_TESTS
+<<<<<<< HEAD
  #include "containers/juce_HashMap_test.cpp"
+=======
+#include "containers/juce_HashMap_test.cpp"
+#include "javascript/juce_JavascriptUnitTests.cpp"
+>>>>>>> Unit test fixes.
 #endif
 
 //==============================================================================
