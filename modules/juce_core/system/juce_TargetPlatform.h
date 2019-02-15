@@ -174,8 +174,16 @@
 
   #if defined (__arm__) || defined (__arm64__) || defined (__aarch64__)
     #define JUCE_ARM 1
+  #elif defined (__mips__) || defined (mips) || defined (__mips) || defined (__MIPS__)
+    #define JUCE_MIPS 1
   #elif __MMX__ || __SSE__ || __amd64__
     #define JUCE_INTEL 1
+  #endif
+
+  #if defined (__LP64__) || defined (_LP64) || defined (__arm64__)
+    #define JUCE_64BIT 1
+  #else
+    #define JUCE_32BIT 1
   #endif
 #endif
 
