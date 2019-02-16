@@ -352,6 +352,19 @@ namespace Ids
     DECLARE_ID (compilerFlagSchemes);
     DECLARE_ID (compilerFlagScheme);
 
+    //Cross-compiling:
+    DECLARE_ID (GCC_SourceFolder);
+    DECLARE_ID (GCC_ToolchainPrefix);
+    DECLARE_ID (GCC_CC);
+    DECLARE_ID (GCC_CXX);
+    DECLARE_ID (GCC_AR);
+    DECLARE_ID (GCC_Linker);
+    DECLARE_ID (GCC_NM);
+    DECLARE_ID (GCC_ObjCopy);
+    DECLARE_ID (GCC_ObjDump);
+    DECLARE_ID (GCC_RanLib);
+    DECLARE_ID (GCC_Strip);
+
     const Identifier ID ("id");
     const Identifier ID_uppercase ("ID");
     const Identifier class_ ("class");

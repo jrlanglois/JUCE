@@ -26,7 +26,6 @@
 
 #pragma once
 
-
 //==============================================================================
 class MakefileProjectExporter  : public ProjectExporter
 {
@@ -37,7 +36,18 @@ protected:
     public:
         MakeBuildConfiguration (Project& p, const ValueTree& settings, const ProjectExporter& e)
             : BuildConfiguration (p, settings, e),
-              architectureTypeValue (config, Ids::linuxArchitecture, getUndoManager(), "-march=native")
+              architectureTypeValue (config, Ids::linuxArchitecture, getUndoManager(), "-march=native"),
+              gccSourceFolder (config, Ids::GCC_SourceFolder, getUndoManager(), ""),
+              gccToolchainPrefix (config, Ids::GCC_ToolchainPrefix, getUndoManager(), ""),
+              gccCC (config, Ids::GCC_CC, getUndoManager(), "gcc"),
+              gccCXX (config, Ids::GCC_CXX, getUndoManager(), "g++"),
+              gccAR (config, Ids::GCC_AR, getUndoManager(), "ar"),
+              gccLinker (config, Ids::GCC_Linker, getUndoManager(), "ld"),
+              gccNM (config, Ids::GCC_NM, getUndoManager(), "nm"),
+              gccObjCopy (config, Ids::GCC_ObjCopy, getUndoManager(), "objcopy"),
+              gccObjDump (config, Ids::GCC_ObjDump, getUndoManager(), "objdump"),
+              gccRanLib (config, Ids::GCC_RanLib, getUndoManager(), "ranlib"),
+              gccStrip (config, Ids::GCC_Strip, getUndoManager(), "strip")
         {
             linkTimeOptimisationValue.setDefault (false);
             optimisationLevelValue.setDefault (isDebug() ? gccO0 : gccO3);
@@ -45,12 +55,45 @@ protected:
 
         void createConfigProperties (PropertyListBuilder& props) override
         {
-            addGCCOptimisationProperty (props);
+            props.add (new TextPropertyComponent (gccSourceFolder, "Toolchain Binaries Path", 0, false),
+                       "A path to the overarching toolchain \"bin/\" folder.\nThis will apply to all properties below.");
+
+            props.add (new TextPropertyComponent (gccToolchainPrefix, "Toolchain Prefix", 0, false),
+                       "A prefix that applies to all toolchain binaries the same.");
+
+            props.add (new TextPropertyComponent (gccCC, "C Compiler", 0, false),
+                       "A path to the custom C compiler you want to use.");
+
+            props.add (new TextPropertyComponent (gccCXX, "C++ Compiler", 0, false),
+                       "A path to the custom C++ compiler you want to use.");
+
+            props.add (new TextPropertyComponent (gccAR, "Archiver", 0, false),
+                       "A path to the custom Archiver you want to use.");
+
+            props.add (new TextPropertyComponent (gccLinker, "Linker", 0, false),
+                       "A path to the custom Linker you want to use.");
+
+            props.add (new TextPropertyComponent (gccNM, "NM", 0, false),
+                       "A path to the custom NM you want to use.");
+
+            props.add (new TextPropertyComponent (gccObjCopy, "ObjCopy", 0, false),
+                       "A path to the custom ObjCopy you want to use.");
+
+            props.add (new TextPropertyComponent (gccObjDump, "ObjDump", 0, false),
+                       "A path to the custom ObjDump you want to use.");
+
+            props.add (new TextPropertyComponent (gccRanLib, "RanLib", 0, false),
+                       "A path to the custom RanLib you want to use.");
+
+            props.add (new TextPropertyComponent (gccStrip, "Strip", 0, false),
+                       "A path to the custom Strip you want to use.");
 
             props.add (new ChoicePropertyComponent (architectureTypeValue, "Architecture",
-                                                    { "<None>",     "Native",        "32-bit (-m32)", "64-bit (-m64)", "ARM v6",       "ARM v7" },
-                                                    { { String() }, "-march=native", "-m32",          "-m64",          "-march=armv6", "-march=armv7" }),
+                                                    { "<None>", "Native", "32-bit (-m32)", "64-bit (-m64)", "ARM v6",  "ARM v7", "MIPS32", "MIPS64" },
+                                                    { { String() }, "-march=native", "-m32", "-m64", "-march=armv6", "-march=armv7", "-march=mips32", "-march=mips64" }),
                        "Specifies the 32/64-bit architecture to use.");
+
+            addGCCOptimisationProperty (props);
         }
 
         String getModuleLibraryArchName() const override
@@ -73,7 +116,9 @@ protected:
         String getArchitectureTypeString() const    { return architectureTypeValue.get(); }
 
         //==============================================================================
-        ValueWithDefault architectureTypeValue;
+        ValueWithDefault architectureTypeValue, gccSourceFolder, gccToolchainPrefix,
+                         gccCC, gccCXX, gccAR, gccLinker, gccNM,
+                         gccObjCopy, gccObjDump, gccRanLib, gccStrip;
     };
 
     BuildConfiguration::Ptr createBuildConfig (const ValueTree& tree) const override
@@ -143,6 +188,28 @@ public:
                 defines.add ("-D" + key + "=" + defs[key]);
 
             StringArray s;
+
+            auto addVarIfNotEmpty = [&](const ValueWithDefault& v, StringRef macro)
+            {
+                String result;
+                result
+                    << macro << "="
+                    << config.gccSourceFolder.get().toString()
+                    << config.gccToolchainPrefix.get().toString()
+                    << v.get().toString();
+
+                s.add (result);
+            };
+
+            addVarIfNotEmpty (config.gccCC,         "CC");
+            addVarIfNotEmpty (config.gccCXX,        "CXX");
+            addVarIfNotEmpty (config.gccAR,         "AR");
+            addVarIfNotEmpty (config.gccLinker,     "LINKER");
+            addVarIfNotEmpty (config.gccNM,         "NM");
+            addVarIfNotEmpty (config.gccObjCopy,    "OBJCOPY");
+            addVarIfNotEmpty (config.gccObjDump,    "OBJDUMP");
+            addVarIfNotEmpty (config.gccRanLib,     "RANLIB");
+            addVarIfNotEmpty (config.gccStrip,      "STRIP");
 
             auto cppflagsVarName = "JUCE_CPPFLAGS_" + getTargetVarName();
 
@@ -597,7 +664,7 @@ private:
 
     bool isWebBrowserComponentEnabled() const
     {
-        static String guiExtrasModule ("juce_gui_extra");
+        static const String guiExtrasModule ("juce_gui_extra");
 
         return (project.getEnabledModules().isModuleEnabled (guiExtrasModule)
                 && project.isConfigFlagEnabled ("JUCE_WEB_BROWSER", true));
@@ -605,7 +672,7 @@ private:
 
     bool isLoadCurlSymbolsLazilyEnabled() const
     {
-        static String juceCoreModule ("juce_core");
+        static const String juceCoreModule ("juce_core");
 
         return (project.getEnabledModules().isModuleEnabled (juceCoreModule)
                 && project.isConfigFlagEnabled ("JUCE_LOAD_CURL_SYMBOLS_LAZILY", false));
@@ -859,16 +926,6 @@ private:
             << "DEPFLAGS := $(if $(word 2, $(TARGET_ARCH)), , -MMD)"                       << newLine
             << newLine;
 
-        out << "ifndef STRIP"  << newLine
-            << "  STRIP=strip" << newLine
-            << "endif"         << newLine
-            << newLine;
-
-        out << "ifndef AR" << newLine
-            << "  AR=ar"   << newLine
-            << "endif"     << newLine
-            << newLine;
-
         out << "ifndef CONFIG"                                              << newLine
             << "  CONFIG=" << escapeSpaces (getConfiguration(0)->getName()) << newLine
             << "endif"                                                      << newLine
@@ -917,7 +974,8 @@ private:
 
         out << "strip:"                                                       << newLine
             << "\t@echo Stripping " << projectName                            << newLine
-            << "\t-$(V_AT)$(STRIP) --strip-unneeded $(JUCE_OUTDIR)/$(TARGET)" << newLine
+            << "\t-$(V_AT)$(STRIP) --strip-unneeded --strip-debug $(JUCE_OUTDIR)/$(TARGET)" << newLine
+            << "\t-$(V_AT)$(STRIP) -s -R .comment -R .gnu.version -R .note $(JUCE_OUTDIR)/$(TARGET)" << newLine
             << newLine;
 
         writeIncludeLines (out);
