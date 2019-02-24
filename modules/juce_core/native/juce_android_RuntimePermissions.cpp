@@ -33,6 +33,7 @@ static String jucePermissionToAndroidPermission (RuntimePermissions::PermissionI
         case RuntimePermissions::readExternalStorage:    return "android.permission.READ_EXTERNAL_STORAGE";
         case RuntimePermissions::writeExternalStorage:   return "android.permission.WRITE_EXTERNAL_STORAGE";
         case RuntimePermissions::camera:                 return "android.permission.CAMERA";
+        case RuntimePermissions::gpsLocation:            return "android.permission.ACCESS_FINE_LOCATION";
     }
 
     // invalid permission
@@ -47,6 +48,8 @@ static RuntimePermissions::PermissionID androidPermissionToJucePermission (const
     else if (permission == "android.permission.READ_EXTERNAL_STORAGE")    return RuntimePermissions::readExternalStorage;
     else if (permission == "android.permission.WRITE_EXTERNAL_STORAGE")   return RuntimePermissions::writeExternalStorage;
     else if (permission == "android.permission.CAMERA")                   return RuntimePermissions::camera;
+    else if (permission == "android.permission.ACCESS_COARSE_LOCATION")   return RuntimePermissions::gpsLocation;
+    else if (permission == "android.permission.ACCESS_FINE_LOCATION")     return RuntimePermissions::gpsLocation;
 
     return static_cast<RuntimePermissions::PermissionID> (-1);
 }
