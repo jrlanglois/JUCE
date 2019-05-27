@@ -100,7 +100,7 @@ public:
                      androidMinimumSDK, androidTargetSDK, androidTheme, androidExtraAssetsFolder, androidOboeRepositoryPath, androidInternetNeeded, androidMicNeeded, androidCameraNeeded,
                      androidBluetoothNeeded, androidExternalReadPermission, androidExternalWritePermission, androidInAppBillingPermission, androidVibratePermission, androidOtherPermissions,
                      androidPushNotifications, androidEnableRemoteNotifications, androidRemoteNotificationsConfigFile, androidEnableContentSharing, androidKeyStore, androidKeyStorePass,
-                     androidKeyAlias, androidKeyAliasPass, gradleVersion, gradleToolchain, androidPluginVersion;
+                     androidKeyAlias, androidKeyAliasPass, gradleVersion, gradleToolchain, androidPluginVersion, androidGPSCoarseNeeded, androidGPSFineNeeded;
 
     //==============================================================================
     AndroidProjectExporter (Project& p, const ValueTree& t)
@@ -124,6 +124,8 @@ public:
           androidExtraAssetsFolder             (settings, Ids::androidExtraAssetsFolder,             getUndoManager()),
           androidOboeRepositoryPath            (settings, Ids::androidOboeRepositoryPath,            getUndoManager()),
           androidInternetNeeded                (settings, Ids::androidInternetNeeded,                getUndoManager(), true),
+          androidGPSCoarseNeeded               (settings, Ids::androidGPSCoarseNeeded,               getUndoManager(), false),
+          androidGPSFineNeeded                 (settings, Ids::androidGPSFineNeeded,                 getUndoManager(), false),
           androidMicNeeded                     (settings, Ids::microphonePermissionNeeded,           getUndoManager(), false),
           androidCameraNeeded                  (settings, Ids::cameraPermissionNeeded,               getUndoManager(), false),
           androidBluetoothNeeded               (settings, Ids::androidBluetoothNeeded,               getUndoManager(), true),
@@ -1065,6 +1067,12 @@ private:
         props.add (new ChoicePropertyComponent (androidInternetNeeded, "Internet Access"),
                    "If enabled, this will set the android.permission.INTERNET flag in the manifest.");
 
+        props.add (new ChoicePropertyComponent (androidGPSCoarseNeeded, "GPS (Coarse) Access"),
+                   "If enabled, this will set the android.permission.ACCESS_COARSE_LOCATION flag in the manifest.");
+
+        props.add (new ChoicePropertyComponent (androidGPSFineNeeded, "GPS (Fine) Access"),
+                   "If enabled, this will set the android.permission.ACCESS_FINE_LOCATION flag in the manifest.");
+
         props.add (new ChoicePropertyComponent (androidMicNeeded, "Audio Input Required"),
                    "If enabled, this will set the android.permission.RECORD_AUDIO flag in the manifest.");
 
@@ -1570,6 +1578,7 @@ private:
     {
         auto manifest = createManifestElement();
 
+        createGPSPermissionElement   (*manifest);
         createSupportsScreensElement (*manifest);
         createPermissionElements     (*manifest);
         createOpenGlFeatureElement   (*manifest);
@@ -1601,6 +1610,18 @@ private:
         setAttributeIfNotPresent (*manifest, "package", project.getBundleIdentifierString());
 
         return manifest;
+    }
+
+    void createGPSPermissionElement (XmlElement& manifest) const
+    {
+        if (static_cast<int> (androidMinimumSDK.get()) >= 21)
+        {
+            if (androidGPSCoarseNeeded.get())
+                manifest.createNewChildElement ("uses-feature")->setAttribute ("android:name", "android.hardware.location.network");
+
+            if (androidGPSFineNeeded.get())
+                manifest.createNewChildElement ("uses-feature")->setAttribute ("android:name", "android.hardware.location.gps");
+        }
     }
 
     void createSupportsScreensElement (XmlElement& manifest) const
@@ -1806,10 +1827,16 @@ private:
 
     StringArray getPermissionsRequired() const
     {
-        StringArray s = StringArray::fromTokens (androidOtherPermissions.get().toString(), ", ", {});
+        auto s = StringArray::fromTokens (androidOtherPermissions.get().toString(), ", ", {});          
 
         if (androidInternetNeeded.get())
             s.add ("android.permission.INTERNET");
+
+        if (androidGPSCoarseNeeded.get())
+            s.add ("android.permission.ACCESS_COARSE_LOCATION");
+
+        if (androidGPSFineNeeded.get())
+            s.add ("android.permission.ACCESS_FINE_LOCATION");
 
         if (androidMicNeeded.get())
             s.add ("android.permission.RECORD_AUDIO");
@@ -1821,7 +1848,9 @@ private:
         {
             s.add ("android.permission.BLUETOOTH");
             s.add ("android.permission.BLUETOOTH_ADMIN");
-            s.add ("android.permission.ACCESS_COARSE_LOCATION");
+
+            if (! androidGPSCoarseNeeded.get()) //Would already have been added...
+                s.add ("android.permission.ACCESS_COARSE_LOCATION");
         }
 
         if (androidExternalReadPermission.get())

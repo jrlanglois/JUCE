@@ -86,7 +86,13 @@ public:
         writeExternalStorage = 4,
 
         /** Permission to use camera */
-        camera = 5
+        camera = 5,
+
+        /** Permission to use fine GPS location */
+        gpsLocationFine = 6,
+
+        /** Permission to use coarse GPS location */
+        gpsLocationCoarse = 7
     };
 
     //==============================================================================

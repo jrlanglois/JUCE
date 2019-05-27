@@ -62,6 +62,12 @@ ProjucerApplication::ProjucerApplication() :  isRunningCommandLine (false)
 
 void ProjucerApplication::initialise (const String& commandLine)
 {
+    GPSLocation the;
+    if (GPSLocation::isLocationAvailable())
+        the = GPSLocation::getCurrentLocation();
+
+    the = GPSLocation::getCurrentLocation();
+
     if (commandLine.trimStart().startsWith ("--server"))
     {
         initialiseLogger ("Compiler_Log_");

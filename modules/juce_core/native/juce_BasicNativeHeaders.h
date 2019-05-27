@@ -27,6 +27,10 @@
 //==============================================================================
 #if JUCE_MAC || JUCE_IOS
 
+ #if JUCE_ENABLE_GPS_LOCATION_SERVICES
+  #import <CoreLocation/CoreLocation.h>
+ #endif
+  
  #if JUCE_IOS
   #if JUCE_MODULE_AVAILABLE_juce_opengl && defined (__IPHONE_12_0) && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_12_0
    #define GLES_SILENCE_DEPRECATION 1
@@ -138,20 +142,20 @@
  #include <windows.h>
  #include <shellapi.h>
  #include <tchar.h>
- #include <stddef.h>
- #include <ctime>
  #include <wininet.h>
  #include <nb30.h>
  #include <winsock2.h>
  #include <ws2tcpip.h>
  #include <iphlpapi.h>
  #include <mapi.h>
- #include <float.h>
  #include <process.h>
  #include <shlobj.h>
  #include <shlwapi.h>
  #include <mmsystem.h>
  #include <winioctl.h>
+ #if JUCE_ENABLE_GPS_LOCATION_SERVICES 
+ #include <locationapi.h>
+ #endif
 
  #if JUCE_MINGW
   #include <basetyps.h>

@@ -130,6 +130,12 @@
  #define JUCE_ZLIB_INCLUDE_PATH <zlib.h>
 #endif
 
+/** Config: JUCE_ENABLE_GPS_LOCATION_SERVICES
+*/
+#ifndef JUCE_ENABLE_GPS_LOCATION_SERVICES
+ #define JUCE_ENABLE_GPS_LOCATION_SERVICES 1
+#endif
+
 /** Config: JUCE_USE_CURL
     Enables http/https support via libcurl (Linux only). Enabling this will add an additional
     run-time dynamic dependency to libcurl.
@@ -334,6 +340,7 @@ namespace juce
 #include "zip/juce_ZipFile.h"
 #include "containers/juce_PropertySet.h"
 #include "memory/juce_SharedResourcePointer.h"
+#include "gps/juce_GPSLocation.h"
 
 #if JUCE_CORE_INCLUDE_OBJC_HELPERS && (JUCE_MAC || JUCE_IOS)
  #include "native/juce_osx_ObjCHelpers.h"

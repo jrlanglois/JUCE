@@ -184,6 +184,8 @@
 #include "files/juce_FileFilter.cpp"
 #include "files/juce_WildcardFileFilter.cpp"
 
+#include "gps/juce_GPSLocation.cpp"
+
 //==============================================================================
 #if ! JUCE_WINDOWS
  #include "native/juce_posix_SharedCode.h"
@@ -200,6 +202,8 @@
  #include "native/juce_mac_Strings.mm"
  #include "native/juce_mac_SystemStats.mm"
  #include "native/juce_mac_Threads.mm"
+
+#include "gps/juce_GPSLocation.mm"
 
 //==============================================================================
 #elif JUCE_WINDOWS

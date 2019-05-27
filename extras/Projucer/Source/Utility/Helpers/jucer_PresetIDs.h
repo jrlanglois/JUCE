@@ -194,6 +194,8 @@ namespace Ids
     DECLARE_ID (microphonePermissionsText);
     DECLARE_ID (cameraPermissionNeeded);
     DECLARE_ID (cameraPermissionText);
+    DECLARE_ID (locationPermissionNeeded);
+    DECLARE_ID (locationPermissionText);
     DECLARE_ID (androidJavaLibs);
     DECLARE_ID (androidAdditionalJavaFolders);
     DECLARE_ID (androidAdditionalResourceFolders);
@@ -214,6 +216,8 @@ namespace Ids
     DECLARE_ID (androidNDKPath);
     DECLARE_ID (androidOboeRepositoryPath);
     DECLARE_ID (androidInternetNeeded);
+    DECLARE_ID (androidGPSCoarseNeeded);
+    DECLARE_ID (androidGPSFineNeeded);
     DECLARE_ID (androidArchitectures);
     DECLARE_ID (androidManifestCustomXmlElements);
     DECLARE_ID (androidGradleSettingsContent);

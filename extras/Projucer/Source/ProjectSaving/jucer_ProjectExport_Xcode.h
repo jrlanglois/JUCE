@@ -104,6 +104,9 @@ public:
           cameraPermissionNeededValue                  (settings, Ids::cameraPermissionNeeded,                  getUndoManager()),
           cameraPermissionTextValue                    (settings, Ids::cameraPermissionText,                    getUndoManager(),
                                                         "This app requires access to the camera to function correctly."),
+          locationPermissionNeededValue                (settings, Ids::locationPermissionNeeded,                getUndoManager()),
+          locationPermissionTextValue                  (settings, Ids::locationPermissionText,                  getUndoManager(),
+                                                        "This app requires access to the GPS to function correctly."),
           uiFileSharingEnabledValue                    (settings, Ids::UIFileSharingEnabled,                    getUndoManager()),
           uiSupportsDocumentBrowserValue               (settings, Ids::UISupportsDocumentBrowser,               getUndoManager()),
           uiStatusBarHiddenValue                       (settings, Ids::UIStatusBarHidden,                       getUndoManager()),
@@ -172,6 +175,9 @@ public:
 
     bool isCameraPermissionEnabled() const             { return cameraPermissionNeededValue.get(); }
     String getCameraPermissionTextString() const       { return cameraPermissionTextValue.get(); }
+
+    bool isLocationPermissionEnabled() const           { return locationPermissionNeededValue.get(); }
+    String getLocationPermissionsTextString() const    { return locationPermissionTextValue.get(); }
 
     bool isInAppPurchasesEnabled() const               { return iosInAppPurchasesValue.get(); }
     bool isBackgroundAudioEnabled() const              { return iosBackgroundAudioValue.get(); }
@@ -397,6 +403,18 @@ public:
         props.add (new TextPropertyComponentWithEnablement (cameraPermissionTextValue, cameraPermissionNeededValue,
                                                             "Camera Access Text", 1024, false),
                    "A short description of why your app requires camera access.");
+
+        if (project.getEnabledModules().isModuleEnabled ("juce_core")
+            && project.isConfigFlagEnabled ("JUCE_ENABLE_GPS_LOCATION_SERVICES", false))
+        {
+            props.add (new ChoicePropertyComponent (locationPermissionNeededValue, "Location Access"),
+                       "Enable this to allow your app to use the location services (GPS). "
+                       "The user of your app will be prompted to grant location (GPS) permissions.");
+
+            props.add (new TextPropertyComponentWithEnablement (locationPermissionTextValue, locationPermissionNeededValue,
+                                                                "Location Access Text", 1024, false),
+                       "A short description of why your app requires location (GPS) access.");
+        }
 
         props.add (new ChoicePropertyComponent (iosInAppPurchasesValue, "In-App Purchases Capability"),
                    "Enable this to grant your app the capability for in-app purchases. "
@@ -1510,6 +1528,17 @@ public:
             if (owner.isCameraPermissionEnabled())
                 addPlistDictionaryKey (dict, "NSCameraUsageDescription", owner.getCameraPermissionTextString());
 
+            if (owner.isLocationPermissionEnabled())
+            {
+                const auto explanation = owner.getLocationPermissionsTextString();
+
+                //NB: Apparently you need all three entries to make location services work at all.
+                //    This seems to be iOS version dependant.
+                addPlistDictionaryKey (dict, "NSLocationAlwaysAndWhenInUseUsageDescription", explanation);
+                addPlistDictionaryKey (dict, "NSLocationAlwaysUsageDescription", explanation);
+                addPlistDictionaryKey (dict, "NSLocationWhenInUseUsageDescription", explanation);
+            }
+
             if (owner.iOS)
             {
                 addPlistDictionaryKeyBool (dict, "LSRequiresIPhoneOS", true);
@@ -1953,7 +1982,7 @@ private:
                      iPadScreenOrientationValue, customXcodeResourceFoldersValue, customXcassetsFolderValue,
                      appSandboxValue, appSandboxOptionsValue,
                      hardenedRuntimeValue, hardenedRuntimeOptionsValue,
-                     microphonePermissionNeededValue, microphonePermissionsTextValue, cameraPermissionNeededValue, cameraPermissionTextValue,
+                     microphonePermissionNeededValue, microphonePermissionsTextValue, cameraPermissionNeededValue, cameraPermissionTextValue, locationPermissionNeededValue, locationPermissionTextValue,
                      uiFileSharingEnabledValue, uiSupportsDocumentBrowserValue, uiStatusBarHiddenValue, documentExtensionsValue, iosInAppPurchasesValue,
                      iosBackgroundAudioValue, iosBackgroundBleValue, iosPushNotificationsValue, iosAppGroupsValue, iCloudPermissionsValue,
                      iosDevelopmentTeamIDValue, iosAppGroupsIDValue, keepCustomXcodeSchemesValue, useHeaderMapValue, customLaunchStoryboardValue,

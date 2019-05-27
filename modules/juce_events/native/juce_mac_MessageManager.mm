@@ -127,10 +127,23 @@ private:
             addMethod (@selector (application:didReceiveRemoteNotification:),                     didReceiveRemoteNotification,           "v@:@@");
            #endif
 
+           #if JUCE_ENABLE_GPS_LOCATION_SERVICES
+            //==============================================================================
+            locationManager = [[CLLocationManager alloc] init];
+            locationManager.desiredAccuracy = kCLLocationAccuracyBest;
+            locationManager.distanceFilter = kCLDistanceFilterNone;
+           #endif
+
             registerClass();
         }
 
+       #if JUCE_ENABLE_GPS_LOCATION_SERVICES
+        //==============================================================================
+        CLLocationManager* locationManager = nullptr;
+       #endif
+
     private:
+       
         static void applicationWillFinishLaunching (id self, SEL, NSNotification*)
         {
             [[NSAppleEventManager sharedAppleEventManager] setEventHandler: self
