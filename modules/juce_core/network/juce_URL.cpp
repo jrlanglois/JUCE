@@ -171,7 +171,6 @@ URL::URL (File localFile)
             url = "/" + url;
     }
 
-
     url = "file://" + url;
 
     jassert (isWellFormed());
@@ -338,8 +337,41 @@ bool URL::isEmpty() const noexcept
 
 bool URL::isWellFormed() const
 {
-    //xxx TODO
-    return url.isNotEmpty();
+    if (isLocalFile())
+        return true;
+
+    const auto fullUrl = toString (false);
+    if (fullUrl.isEmpty() || fullUrl.containsAnyOf (" \t"))
+        return false;
+
+    /** We have to avoid specific reserved, unsafe, and unwise chars.
+        Notes:
+        - We must exclude the ':' from the list for the later scheme-based checking.
+        - The char '/' is here because there are such things as protocol URLs,
+          which are only references to URLs for browsers to assume the scheme based
+          on the current page's scheme.
+        - The '#' represents an anchor, so we skip
+    */
+    const auto domain = getDomain();
+    if (domain.isEmpty() || domain.containsAnyOf ("/!@<>#%;|?&=+$,{}|\\^[]`"))
+        return false;
+
+    const auto scheme = getScheme();
+    if (scheme.isEmpty())
+        return false;
+
+    //Schemes must be followed by a ':':
+    if (! fullUrl.substring (scheme.length()).startsWithIgnoreCase (":"))
+        return false;
+
+    const auto possibleIp = domain.toStdString();
+    const auto ipRegex = std::regex ("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
+    if (std::regex_match (possibleIp, ipRegex))
+        return true;
+
+    const auto s = fullUrl.toStdString();
+    const auto r = std::regex ("^(?:http(s)?:\\/\\/)?[\\w.-]+(?:\\.[\\w\\.-]+)+[\\w\\-\\._~:/?#[\\]@!\\$&'\\(\\)\\*\\+,;=.]+$");
+    return std::regex_match (s, r);
 }
 
 String URL::getDomain() const
@@ -766,7 +798,7 @@ OutputStream* URL::createOutputStream() const
 bool URL::readEntireBinaryStream (MemoryBlock& destData, bool usePostCommand) const
 {
     const std::unique_ptr<InputStream> in (isLocalFile() ? getLocalFile().createInputStream()
-                                                         : static_cast<InputStream*> (createInputStream (usePostCommand)));
+                                                         : createInputStream (usePostCommand));
 
     if (in != nullptr)
     {
@@ -780,7 +812,7 @@ bool URL::readEntireBinaryStream (MemoryBlock& destData, bool usePostCommand) co
 String URL::readEntireTextStream (bool usePostCommand) const
 {
     const std::unique_ptr<InputStream> in (isLocalFile() ? getLocalFile().createInputStream()
-                                                         : static_cast<InputStream*> (createInputStream (usePostCommand)));
+                                                         : createInputStream (usePostCommand));
 
     if (in != nullptr)
         return in->readEntireStreamAsString();
@@ -924,5 +956,168 @@ bool URL::launchInDefaultBrowser() const
 
     return Process::openDocument (u, {});
 }
+
+//==============================================================================
+#if JUCE_UNIT_TESTS
+
+struct URLTests  : public UnitTest
+{
+    URLTests()
+        : UnitTest ("URL", "URL")
+    {}
+
+    void runTest (const String& title,
+                  const StringArray& urlsToTest,
+                  StringRef expectation = "well-formed",
+                  bool mustBeWellFormed = true)
+    {
+        beginTest (title);
+
+        for (const auto& url : urlsToTest)
+            expect (URL (url).isWellFormed() && mustBeWellFormed,
+                    String ("Expected URL to be EXP:\n\t\"XYZ\"\n")
+                        .replace ("EXP", expectation)
+                        .replace ("XYZ", url));
+    }
+
+    void runTest() override
+    {
+        {
+            const StringArray wellFormed =
+            {
+                "http://foo.bar?q=Spaces should be encoded",    //The whitespace should be encoded and inserted as a parameter.
+                "https://www.example.com",
+                "http://www.example.com",
+                "http://blog.example.com",
+                "http://www.example.com/product",
+                "http://www.example.com/products?id=1&page=2",
+                "http://www.example.com#up",                    //Contains an anchor.
+                "http://valid.com/perl.cgi?key=",               //The value for params doesn't have to be specified according to RFC
+                "http://web-site.com/cgi-bin/perl.cgi?key1=value1&key2",
+                "http://www.site.com:8008",
+                "http://foo.com/blah_blah",
+                "http://foo.com/blah_blah/",
+                "http://foo.com/blah_blah_(wikipedia)",
+                "http://foo.com/blah_blah_(wikipedia)_(again)",
+                "http://www.example.com/wpstyle/?p=364",
+                "https://www.example.com/foo/?bar=baz&inga=42&quux",
+                "http://foo.com/blah_(wikipedia)#cite-1",
+                "http://foo.com/blah_(wikipedia)_blah#cite-1",
+                "http://foo.com/(something)?after=parens",
+                "http://code.google.com/events/#&product=browser",
+                "http://j.mp",
+                "ftp://foo.bar/baz",
+                "http://1337.net",
+                "http://a.b-c.de",
+                "https://foo_bar.example.com/",
+                "http://foo.bar/?q=Test%20URL-encoded%20stuff",
+                "http://-.~_!$&\'()*+,;=:%40:80%2f::::::@example.com"
+            };
+
+            runTest ("Well-formed URLs", wellFormed, "well-formed");
+        }
+
+        {
+            const StringArray wellFormed =
+            {
+                "http://0.0.0.0",
+                "http://1.1.1.1.1",
+                "http://10.1.1.0",
+                "http://10.1.1.1",
+                "http://10.1.1.254",
+                "http://10.1.1.255",
+                "http://123.123.123",
+                "http://142.42.1.1/",
+                "http://142.42.1.1:8080/",
+                "http://223.255.255.254",
+                "http://224.1.1.1",
+                "http://255.255.255.255"
+            };
+
+            runTest ("Well-formed IP address URLs", wellFormed, "well-formed");
+        }
+
+        {
+            const StringArray wellFormed =
+            {
+                "http://userid:password@example.com:8080",
+                "http://userid:password@example.com:8080/",
+                "http://userid@example.com",
+                "http://userid@example.com/",
+                "http://userid@example.com:8080",
+                "http://userid@example.com:8080/",
+                "http://userid:password@example.com",
+                "http://userid:password@example.com/"
+            };
+
+            runTest ("Well-formed email address URLs", wellFormed, "well-formed");
+        }
+
+        {
+            const StringArray wellFormed =
+            {
+                String::fromUTF8 ("http://foo.com/unicode_(\xe2\x9c\xaa)_in_parens"),
+                String::fromUTF8 ("http://\xe2\x98\xba.damowmow.com/"),
+                String::fromUTF8 ("http://\xe2\x9e\xa1.ws/\xe4\xa8\xb9"),
+                String::fromUTF8 ("http://\xe2\x8c\x98.ws"),
+                String::fromUTF8 ("http://\xe2\x8c\x98.ws/"),
+                String::fromUTF8 ("http://\xd9\x85\xd8\xab\xd8\xa7\xd9\x84.\xd8\xa5\xd8\xae\xd8\xaa\xd8\xa8\xd8\xa7\xd8\xb1"),
+                String::fromUTF8 ("http://\xe4\xbe\x8b\xe5\xad\x90.\xe6\xb5\x8b\xe8\xaf\x95"),
+                String::fromUTF8 ("http://\xe0\xa4\x89\xe0\xa4\xa6\xe0\xa4\xbe\xe0\xa4\xb9\xe0\xa4\xb0\xe0\xa4\xa3.\xe0\xa4\xaa\xe0\xa4\xb0\xe0\xa5\x80\xe0\xa4\x95\xe0\xa5\x8d\xe0\xa4\xb7\xe0\xa4\xbe")
+            };
+
+            runTest ("Well-formed Unicode URLs", wellFormed);
+        }
+
+        {
+            const StringArray broken =
+            {
+                //The following 2 groups only make sense in a browser context where it can assume http or https based on the present page.
+                //These are protocol URLs:
+                "//",
+                "//a",
+                //These are valid URI references, but invalid absolute URIs:
+                "foo.com",
+                "www.example.com",
+                "example.com",
+                "255.255.255.255",
+
+                "http:// shouldfail.com",
+                ":// should fail",
+                "http://",
+                "http://.",
+                "http://..",
+                "http://../",
+                "http://?",
+                "http://?\?",
+                "http://?\?/",
+                "http://#",
+                "http://##",
+                "http://##/",
+                "///a",
+                "///",
+                "http:///a",
+                "rdar://1234",
+                "h://test",
+                "http://foo.bar/foo(bar)baz quux",
+                "ftps://foo.bar/",
+                "http://-error-.invalid/",
+                "http://a.b--c.de/",
+                "http://-a.b.co",
+                "http://a.b-.co",
+                "http://.www.foo.bar/",
+                "http://www.foo.bar./",
+                "http://.www.foo.bar./",
+                "http://3628126748"
+            };
+
+            runTest ("Purposely Broken URLs", broken, "broken", false);
+        }
+    }
+};
+
+static URLTests urlTests;
+
+#endif
 
 } // namespace juce

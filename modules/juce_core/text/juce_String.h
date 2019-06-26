@@ -195,7 +195,7 @@ public:
     /** Appends a decimal number at the end of this string. */
     String& operator+= (int numberToAppend);
     /** Appends a decimal number at the end of this string. */
-    String& operator+= (long numberToAppend);
+    String& operator+= (long numberToAppend) JUCE_DELETED_FUNCTION;
     /** Appends a decimal number at the end of this string. */
     String& operator+= (int64 numberToAppend);
     /** Appends a decimal number at the end of this string. */
