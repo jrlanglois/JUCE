@@ -107,7 +107,7 @@ public:
     }
 
 private:
-    WildcardFileFilter imagesWildcardFilter  { "*.jpeg;*.jpg;*.png;*.gif", "*", "Image File Filter"};
+    WildcardFileFilter imagesWildcardFilter  { "*.jpeg;*.jpg;*.png;*.gif;*.bmp;*.dib", "*", "Image File Filter"};
     TimeSliceThread directoryThread          { "Image File Scanner Thread" };
     DirectoryContentsList imageList          { &imagesWildcardFilter, directoryThread };
     FileTreeComponent fileTree               { imageList };

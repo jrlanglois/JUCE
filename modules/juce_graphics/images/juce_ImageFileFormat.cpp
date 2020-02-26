@@ -38,24 +38,26 @@ struct DefaultImageFormats
 private:
     DefaultImageFormats() noexcept
     {
-        formats[0] = &png;
-        formats[1] = &jpg;
-        formats[2] = &gif;
-        formats[3] = nullptr;
+        formats[0] = &bmp;
+        formats[1] = &png;
+        formats[2] = &jpg;
+        formats[3] = &gif;
+        formats[4] = nullptr;
     }
 
+    BMPImageFormat  bmp;
     PNGImageFormat  png;
     JPEGImageFormat jpg;
     GIFImageFormat  gif;
 
-    ImageFileFormat* formats[4];
+    ImageFileFormat* formats[5];
 };
 
 ImageFileFormat* ImageFileFormat::findImageFormatForStream (InputStream& input)
 {
     const int64 streamPos = input.getPosition();
 
-    for (ImageFileFormat** i = DefaultImageFormats::get(); *i != nullptr; ++i)
+    for (auto** i = DefaultImageFormats::get(); *i != nullptr; ++i)
     {
         const bool found = (*i)->canUnderstand (input);
         input.setPosition (streamPos);
@@ -69,7 +71,7 @@ ImageFileFormat* ImageFileFormat::findImageFormatForStream (InputStream& input)
 
 ImageFileFormat* ImageFileFormat::findImageFormatForFileExtension (const File& file)
 {
-    for (ImageFileFormat** i = DefaultImageFormats::get(); *i != nullptr; ++i)
+    for (auto** i = DefaultImageFormats::get(); *i != nullptr; ++i)
         if ((*i)->usesFileExtension (file))
             return *i;
 
@@ -79,7 +81,7 @@ ImageFileFormat* ImageFileFormat::findImageFormatForFileExtension (const File& f
 //==============================================================================
 Image ImageFileFormat::loadFrom (InputStream& input)
 {
-    if (ImageFileFormat* format = findImageFormatForStream (input))
+    if (auto* format = findImageFormatForStream (input))
         return format->decodeImage (input);
 
     return Image();

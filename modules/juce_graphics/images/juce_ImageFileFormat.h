@@ -30,7 +30,7 @@ namespace juce
 //==============================================================================
 /**
     Base-class for codecs that can read and write image file formats such
-    as PNG, JPEG, etc.
+    as PNG, JPEG, GIF, and BMP.
 
     This class also contains static methods to make it easy to load images
     from files, streams or from memory.
@@ -144,7 +144,7 @@ public:
 /**
     A subclass of ImageFileFormat for reading and writing PNG files.
 
-    @see ImageFileFormat, JPEGImageFormat
+    @see ImageFileFormat, JPEGImageFormat, GIFImageFormat, BMPImageFormat
 
     @tags{Graphics}
 */
@@ -168,7 +168,7 @@ public:
 /**
     A subclass of ImageFileFormat for reading and writing JPEG files.
 
-    @see ImageFileFormat, PNGImageFormat
+    @see ImageFileFormat, PNGImageFormat, GIFImageFormat, BMPImageFormat
 
     @tags{Graphics}
 */
@@ -202,7 +202,7 @@ private:
 /**
     A subclass of ImageFileFormat for reading GIF files.
 
-    @see ImageFileFormat, PNGImageFormat, JPEGImageFormat
+    @see ImageFileFormat, PNGImageFormat, JPEGImageFormat, BMPImageFormat
 
     @tags{Graphics}
 */
@@ -212,6 +212,36 @@ public:
     //==============================================================================
     GIFImageFormat();
     ~GIFImageFormat() override;
+
+    //==============================================================================
+    String getFormatName() override;
+    bool usesFileExtension (const File&) override;
+    bool canUnderstand (InputStream&) override;
+    Image decodeImage (InputStream&) override;
+    bool writeImageToStream (const Image&, OutputStream&) override;
+};
+
+//==============================================================================
+/**
+    A subclass of ImageFileFormat for reading BMP files.
+
+    Supports uncompressed 8, 24 and 32-bit images, which should
+    be enough to cover the large majority of cases.
+
+    Always writes 32-bit images.
+
+    Does not support 1, 4, or 16-bit colour images, nor images with RLE compression.
+
+    @see ImageFileFormat, PNGImageFormat, JPEGImageFormat, GIFImageFormat
+
+    @tags{Graphics}
+*/
+class JUCE_API  BMPImageFormat  : public ImageFileFormat
+{
+public:
+    //==============================================================================
+    BMPImageFormat();
+    ~BMPImageFormat() override;
 
     //==============================================================================
     String getFormatName() override;
