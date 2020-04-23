@@ -86,7 +86,7 @@
 //==============================================================================
 #if JUCE_WINDOWS
   #ifdef _MSC_VER
-    #ifdef _WIN64
+    #if defined (_WIN64) || defined (_M_ARM64)
       #define JUCE_64BIT 1
     #else
       #define JUCE_32BIT 1
@@ -106,10 +106,26 @@
     #endif
   #endif
 
-  /** If defined, this indicates that the processor is little-endian. */
-  #define JUCE_LITTLE_ENDIAN 1
+  #if defined (_M_ARM) || defined (_M_ARM64)
+    #define JUCE_ARM 1
 
-  #define JUCE_INTEL 1
+    #if __ARM_NEON__
+      #define JUCE_USE_ARM_NEON 1
+    #endif
+
+    #if defined (__LITTLE_ENDIAN__)
+      /** If defined, this indicates that the processor is little-endian. */
+      #define JUCE_LITTLE_ENDIAN 1
+    #else
+      /** If defined, this indicates that the processor is big-endian. */
+      #define JUCE_BIG_ENDIAN 1
+    #endif
+  #else
+    /** If defined, this indicates that the processor is little-endian. */
+    #define JUCE_LITTLE_ENDIAN 1
+
+    #define JUCE_INTEL 1
+  #endif
 #endif
 
 //==============================================================================
@@ -168,7 +184,7 @@
     #define JUCE_BIG_ENDIAN 1
   #endif
 
-  #if defined (__LP64__) || defined (_LP64) || defined (__arm64__)
+  #if defined (__LP64__) || defined (_LP64) || defined (__arm64__) || defined (__aarch64__)
     #define JUCE_64BIT 1
   #else
     #define JUCE_32BIT 1

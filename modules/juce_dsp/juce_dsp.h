@@ -75,7 +75,7 @@
   #include <immintrin.h>
  #endif
 
-#elif defined (__ARM_NEON__) || defined (__ARM_NEON) || defined (__arm64__) || defined (__aarch64__)
+#elif JUCE_ARM || JUCE_ARM_NEON
 
  #ifndef JUCE_USE_SIMD
   #define JUCE_USE_SIMD 1

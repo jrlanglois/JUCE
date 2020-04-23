@@ -23,7 +23,7 @@
 namespace juce
 {
 
-#if JUCE_MSVC
+#if JUCE_MSVC && ! JUCE_ARM
  #pragma intrinsic (__cpuid)
  #pragma intrinsic (__rdtsc)
 #endif
@@ -44,24 +44,30 @@ void Logger::outputDebugString (const String& text)
 #if JUCE_MINGW || JUCE_CLANG
 static void callCPUID (int result[4], uint32 type)
 {
-  uint32 la = result[0], lb = result[1], lc = result[2], ld = result[3];
+   #if JUCE_ARM
+    std::fill (result, result + numElementsInArray (result), 0);
+    ignoreUnused (type);
+   #else
+	uint32 la = result[0], lb = result[1], lc = result[2], ld = result[3];
 
-  asm ("mov %%ebx, %%esi \n\t"
-       "cpuid \n\t"
-       "xchg %%esi, %%ebx"
-       : "=a" (la), "=S" (lb), "=c" (lc), "=d" (ld) : "a" (type)
-        #if JUCE_64BIT
-     , "b" (lb), "c" (lc), "d" (ld)
-        #endif
-       );
+	asm ("mov %%ebx, %%esi \n\t"
+		 "cpuid \n\t"
+		 "xchg %%esi, %%ebx"
+		 : "=a" (la), "=S" (lb), "=c" (lc), "=d" (ld) : "a" (type)
+		 #if JUCE_64BIT
+		 , "b" (lb), "c" (lc), "d" (ld)
+		 #endif
+		 );
 
-  result[0] = la; result[1] = lb; result[2] = lc; result[3] = ld;
+	result[0] = la; result[1] = lb; result[2] = lc; result[3] = ld;
+   #endif
 }
 #else
 static void callCPUID (int result[4], int infoType)
 {
-   #if JUCE_PROJUCER_LIVE_BUILD
-    std::fill (result, result + 4, 0);
+   #if JUCE_PROJUCER_LIVE_BUILD || JUCE_ARM
+    std::fill (result, result + numElementsInArray (result), 0);
+    ignoreUnused (infoType);
    #else
     __cpuid (result, infoType);
    #endif
@@ -135,6 +141,7 @@ static int findNumberOfPhysicalCores() noexcept
 //==============================================================================
 void CPUInformation::initialise() noexcept
 {
+   #if ! JUCE_ARM
     int info[4] = { 0 };
     callCPUID (info, 1);
 
@@ -166,6 +173,7 @@ void CPUInformation::initialise() noexcept
     hasAVX512VL        = (info[1] & (1u << 31)) != 0;
     hasAVX512VBMI      = (info[2] & (1u <<  1)) != 0;
     hasAVX512VPOPCNTDQ = (info[2] & (1u << 14)) != 0;
+   #endif
 
     SYSTEM_INFO systemInfo;
     GetNativeSystemInfo (&systemInfo);
@@ -408,7 +416,11 @@ static int64 juce_getClockCycleCounter() noexcept
 {
    #if JUCE_MSVC
     // MS intrinsics version...
-    return (int64) __rdtsc();
+    #if JUCE_ARM && JUCE_64BIT
+      return _ReadStatusReg (ARM64_PMCCNTR_EL0);
+    #else
+      return (int64) __rdtsc();
+    #endif
 
    #elif JUCE_GCC || JUCE_CLANG
     // GNU inline asm version...

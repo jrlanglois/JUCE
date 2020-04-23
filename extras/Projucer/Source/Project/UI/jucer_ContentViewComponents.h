@@ -159,8 +159,7 @@ public:
     InfoButton (const String& infoToDisplay = {})
         : Button ({})
     {
-        if (infoToDisplay.isNotEmpty())
-            setInfoToDisplay (infoToDisplay);
+        setInfoToDisplay (infoToDisplay);
     }
 
     void paintButton (Graphics& g, bool isMouseOverButton, bool isButtonDown) override
@@ -179,25 +178,13 @@ public:
 
     void clicked() override
     {
-        auto* w = new InfoWindow (info);
-        w->setSize (width, w->getHeight() * numLines + 10);
-
-        CallOutBox::launchAsynchronously (w, getScreenBounds(), nullptr);
+        jassert (info.isNotEmpty());
+        CallOutBox::launchAsynchronously (new InfoWindow (info), getScreenBounds(), nullptr);
     }
-
-    using Button::clicked;
 
     void setInfoToDisplay (const String& infoToDisplay)
     {
-        if (infoToDisplay.isNotEmpty())
-        {
-            info = infoToDisplay;
-
-            auto stringWidth = roundToInt (Font (14.0f).getStringWidthFloat (info));
-            width = jmin (300, stringWidth);
-
-            numLines += static_cast<int> (stringWidth / width);
-        }
+        info = infoToDisplay.trim();
     }
 
     void setAssociatedComponent (Component* comp)    { associatedComponent = comp; }
@@ -206,28 +193,28 @@ public:
 private:
     String info;
     Component* associatedComponent = nullptr;
-    int width;
-    int numLines = 1;
 
     //==============================================================================
     struct InfoWindow    : public Component
     {
-        InfoWindow (const String& s)
-            : stringToDisplay (s)
+        InfoWindow (const String& text)
         {
-            setSize (150, 14);
+            AttributedString s;
+            s.setJustification (Justification::centred);
+            s.append (text, Font (14.0f), findColour (defaultTextColourId));
+
+            tl.createLayoutWithBalancedLineLengths (s, 300.0f);
+
+            setSize ((int) tl.getWidth() + 1, (int) tl.getHeight() + 1);
         }
 
         void paint (Graphics& g) override
         {
             g.fillAll (findColour (secondaryBackgroundColourId));
-
-            g.setColour (findColour (defaultTextColourId));
-            g.setFont (Font (14.0f));
-            g.drawFittedText (stringToDisplay, getLocalBounds(), Justification::centred, 10, 1.0f);
+            tl.draw (g, getLocalBounds().toFloat());
         }
 
-        String stringToDisplay;
+        TextLayout tl;
     };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (InfoButton)

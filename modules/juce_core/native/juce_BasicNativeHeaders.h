@@ -177,6 +177,16 @@
 
  #undef PACKED
 
+ #if ! JUCE_MINGW && JUCE_USE_ARM_NEON
+   #if defined (_M_ARM)
+     #include <armintr.h>
+     #include <arm_neon.h>
+   #elif defined (_M_ARM64)
+     #include <arm64intr.h>
+     #include <arm64_neon.h>
+   #endif
+ #endif
+
  #if JUCE_MSVC
   #pragma warning (pop)
   #pragma warning (4: 4511 4512 4100)

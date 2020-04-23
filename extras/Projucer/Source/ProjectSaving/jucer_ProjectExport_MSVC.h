@@ -44,11 +44,12 @@ public:
     }
 
     virtual int getVisualStudioVersion() const = 0;
-
     virtual String getSolutionComment() const = 0;
     virtual String getToolsVersion() const = 0;
     virtual String getDefaultToolset() const = 0;
     virtual String getDefaultWindowsTargetPlatformVersion() const = 0;
+
+    virtual bool supportsARM() const                  { return true; }
 
     //==============================================================================
     String getIPPLibrary() const                      { return IPPLibraryValue.get(); }
@@ -166,6 +167,8 @@ public:
         String getCharacterSetString() const              { return characterSetValue.get(); }
         String get64BitArchName() const                   { return "x64"; }
         String get32BitArchName() const                   { return "Win32"; }
+        String getARM64BitArchName() const                { return "ARM64"; }
+        String getARM32BitArchName() const                { return "ARM"; }
         String getArchitectureString() const              { return architectureTypeValue.get(); }
         String getDebugInformationFormatString() const    { return debugInformationFormatValue.get(); }
 
@@ -174,14 +177,22 @@ public:
         bool shouldLinkIncremental() const                { return enableIncrementalLinkingValue.get(); }
         bool isUsingRuntimeLibDLL() const                 { return useRuntimeLibDLLValue.get(); }
         bool shouldUseMultiProcessorCompilation() const   { return multiProcessorCompilationValue.get(); }
-        bool is64Bit() const                              { return getArchitectureString() == get64BitArchName(); }
+        bool isARM() const                                { const auto s = getArchitectureString(); return s == getARM32BitArchName() || s == getARM64BitArchName(); }
+        bool is64Bit() const                              { const auto s = getArchitectureString(); return s == get64BitArchName() || s == getARM64BitArchName(); }
         bool isFastMathEnabled() const                    { return fastMathValue.get(); }
         bool isPluginBinaryCopyStepEnabled() const        { return pluginBinaryCopyStepValue.get(); }
 
         //==============================================================================
         String createMSVCConfigName() const
         {
-            return getName() + "|" + (is64Bit() ? "x64" : "Win32");
+            auto configName = getName() + "|";
+
+            if (isARM())
+                configName << (is64Bit() ? get64BitArchName() : get32BitArchName());
+            else
+                configName << (is64Bit() ? getARM64BitArchName() : getARM32BitArchName());
+                
+            return configName;
         }
 
         String getOutputFilename (const String& suffix, bool forceSuffix, bool forceUnityPrefix) const
@@ -199,11 +210,23 @@ public:
             if (project.isAudioPluginProject())
                 addVisualStudioPluginInstallPathProperties (props);
 
-            props.add (new ChoicePropertyComponent (architectureTypeValue, "Architecture",
-                                                    { get32BitArchName(), get64BitArchName() },
-                                                    { get32BitArchName(), get64BitArchName() }),
-                       "Whether to use a 32-bit or 64-bit architecture.");
+            {
+                StringArray archChoices = { get32BitArchName(), get64BitArchName() };
+                Array<var> archChoicesVars = { get32BitArchName(), get64BitArchName() };
 
+                if (! project.isAudioPluginProject() && static_cast<const MSVCProjectExporterBase&> (exporter).supportsARM())
+                {
+                    archChoices.add (getARM32BitArchName());
+                    archChoicesVars.add (getARM32BitArchName());
+                    archChoices.add (getARM64BitArchName());
+                    archChoicesVars.add (getARM64BitArchName());
+                }
+
+                props.add (new ChoicePropertyComponent (architectureTypeValue, "Architecture", archChoices, archChoicesVars),
+                           "Whether to use a 32-bit or 64-bit, Intel (or ARM when available) architecture.\n\n"
+                           "ARM and ARM64 are only available for the latest version of VS2017, and above.\n\n"
+                           "It is important to note that ARM support is disabled for plugins.");
+            }
 
             props.add (new ChoicePropertyComponentWithEnablement (debugInformationFormatValue,
                                                                   isDebug() ? isDebugValue : generateDebugSymbolsValue,
@@ -211,8 +234,8 @@ public:
                                                                   { "None", "C7 Compatible (/Z7)", "Program Database (/Zi)", "Program Database for Edit And Continue (/ZI)" },
                                                                   { "None", "OldStyle",            "ProgramDatabase",        "EditAndContinue" }),
                        "The type of debugging information created for your program for this configuration."
-                       " This will always be used in a debug configuration and will be used in a release configuration"
-                       " with forced generation of debug symbols.");
+                       "This will always be used in a debug configuration and will be used in a release configuration"
+                       "with forced generation of debug symbols.");
 
             props.add (new ChoicePropertyComponent (fastMathValue, "Relax IEEE Compliance"),
                        "Enable this to use FAST_MATH non-IEEE mode. (Warning: this can have unexpected results!)");
@@ -389,8 +412,10 @@ public:
                     auto* e = configsGroup->createNewChildElement ("ProjectConfiguration");
                     e->setAttribute ("Include", config.createMSVCConfigName());
                     e->createNewChildElement ("Configuration")->addTextElement (config.getName());
-                    e->createNewChildElement ("Platform")->addTextElement (config.is64Bit() ? config.get64BitArchName()
-                                                                                            : config.get32BitArchName());
+                    e->createNewChildElement ("Platform")->addTextElement (config.createMSVCConfigName());
+
+                    if (config.isARM() && config.is64Bit())
+                        e->createNewChildElement ("WindowsSDKDesktopARM64Support")->addTextElement ("true");
                 }
             }
 
@@ -601,8 +626,19 @@ public:
                     link->createNewChildElement ("ProgramDatabaseFile")->addTextElement (getOwner().getIntDirFile (config, config.getOutputFilename (".pdb", true, type == UnityPlugIn)));
                     link->createNewChildElement ("SubSystem")->addTextElement (type == ConsoleApp ? "Console" : "Windows");
 
-                    if (! config.is64Bit())
-                        link->createNewChildElement ("TargetMachine")->addTextElement ("MachineX86");
+                    {
+                        auto configureTargetMachine = [&](StringRef tm)
+                        {
+                            link->createNewChildElement ("TargetMachine")->addTextElement (tm);
+                        };
+
+                        if (config.isARM() && config.is64Bit())
+                            configureTargetMachine ("ARM64");
+                        else if (config.isARM())
+                            configureTargetMachine ("ARM");
+                        else if (! config.is64Bit())
+                            configureTargetMachine ("MachineX86");
+                    }
 
                     if (isUsingEditAndContinue)
                         link->createNewChildElement ("ImageHasSafeExceptionHandlers")->addTextElement ("false");
@@ -663,10 +699,21 @@ public:
                                                                RelativePath::buildTargetFolder).toWindowsStyle());
                 }
 
-                if (getTargetFileType() == staticLibrary && ! config.is64Bit())
+                if (getTargetFileType() == staticLibrary)
                 {
-                    auto* lib = group->createNewChildElement ("Lib");
-                    lib->createNewChildElement ("TargetMachine")->addTextElement ("MachineX86");
+                    auto configureTargetMachine = [&](StringRef tm)
+                    {
+                        group->createNewChildElement ("Lib")
+                             ->createNewChildElement ("TargetMachine")
+                             ->addTextElement (tm);
+                    };
+
+                    if (config.isARM() && config.is64Bit())
+                        configureTargetMachine ("ARM64");
+                    else if (config.isARM())
+                        configureTargetMachine ("ARM");
+                    else if (! config.is64Bit())
+                        configureTargetMachine ("MachineX86");
                 }
 
                 auto preBuild = getPreBuildSteps (config);
@@ -682,7 +729,7 @@ public:
                          ->addTextElement (postBuild);
             }
 
-            std::unique_ptr<XmlElement> otherFilesGroup (new XmlElement ("ItemGroup"));
+            auto otherFilesGroup  = std::make_unique<XmlElement> ("ItemGroup");
 
             {
                 auto* cppFiles    = projectXml.createNewChildElement ("ItemGroup");
@@ -874,10 +921,10 @@ public:
             filterXml.setAttribute ("ToolsVersion", getOwner().getToolsVersion());
             filterXml.setAttribute ("xmlns", "http://schemas.microsoft.com/developer/msbuild/2003");
 
-            auto* groupsXml  = filterXml.createNewChildElement ("ItemGroup");
-            auto* cpps       = filterXml.createNewChildElement ("ItemGroup");
-            auto* headers    = filterXml.createNewChildElement ("ItemGroup");
-            std::unique_ptr<XmlElement> otherFilesGroup (new XmlElement ("ItemGroup"));
+            auto* groupsXml         = filterXml.createNewChildElement ("ItemGroup");
+            auto* cpps              = filterXml.createNewChildElement ("ItemGroup");
+            auto* headers           = filterXml.createNewChildElement ("ItemGroup");
+            auto otherFilesGroup    = std::make_unique<XmlElement> ("ItemGroup");
 
             for (int i = 0; i < getOwner().getAllGroups().size(); ++i)
             {
@@ -1851,6 +1898,9 @@ public:
     String getToolsVersion() const override                          { return "14.0"; }
     String getDefaultToolset() const override                        { return "v140"; }
     String getDefaultWindowsTargetPlatformVersion() const override   { return "8.1"; }
+
+    /** @note ARM with ARM64 support was only added to later editions of VS2017 (15.8). */
+    bool supportsARM() const override                                { return false; }
 
     static MSVCProjectExporterVC2015* createForSettings (Project& projectToUse, const ValueTree& settingsToUse)
     {
