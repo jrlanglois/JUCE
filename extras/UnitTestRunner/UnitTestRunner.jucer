@@ -67,9 +67,10 @@
     </LINUX_MAKE>
     <VS2017 targetFolder="Builds/VisualStudio2017" extraCompilerFlags="/w44265 /w45038 /w44062">
       <CONFIGURATIONS>
-        <CONFIGURATION name="Debug" isDebug="1" targetName="UnitTestRunner" warningsAreErrors="1"/>
+        <CONFIGURATION name="Debug" isDebug="1" targetName="UnitTestRunner" warningsAreErrors="1"
+                       winArchitecture="x64"/>
         <CONFIGURATION name="Release" isDebug="0" targetName="UnitTestRunner" debugInformationFormat="None"
-                       warningsAreErrors="1"/>
+                       warningsAreErrors="1" winArchitecture="x64"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_video" path="../../modules"/>
@@ -95,9 +96,10 @@
     </VS2017>
     <VS2019 targetFolder="Builds/VisualStudio2019" extraCompilerFlags="/w44265 /w45038 /w44062">
       <CONFIGURATIONS>
-        <CONFIGURATION name="Debug" isDebug="1" targetName="UnitTestRunner" warningsAreErrors="1"/>
+        <CONFIGURATION name="Debug" isDebug="1" targetName="UnitTestRunner" warningsAreErrors="1"
+                       winArchitecture="x64"/>
         <CONFIGURATION name="Release" isDebug="0" targetName="UnitTestRunner" debugInformationFormat="None"
-                       warningsAreErrors="1"/>
+                       warningsAreErrors="1" winArchitecture="x64"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_video" path="../../modules"/>
@@ -147,5 +149,6 @@
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
   <LIVE_SETTINGS>
     <OSX enableCxx11="1"/>
+    <WINDOWS/>
   </LIVE_SETTINGS>
 </JUCERPROJECT>
