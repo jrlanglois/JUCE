@@ -302,10 +302,31 @@ const int KeyPress::numberPadSeparator    = (XK_KP_Separator & 0xff) | Keys::ext
 const int KeyPress::numberPadDecimalPoint = (XK_KP_Decimal   & 0xff) | Keys::extendedKeyModifier;
 const int KeyPress::numberPadEquals       = (XK_KP_Equal     & 0xff) | Keys::extendedKeyModifier;
 const int KeyPress::numberPadDelete       = (XK_KP_Delete    & 0xff) | Keys::extendedKeyModifier;
-const int KeyPress::playKey               = ((int) 0xffeeff00)       | Keys::extendedKeyModifier;
-const int KeyPress::stopKey               = ((int) 0xffeeff01)       | Keys::extendedKeyModifier;
-const int KeyPress::fastForwardKey        = ((int) 0xffeeff02)       | Keys::extendedKeyModifier;
-const int KeyPress::rewindKey             = ((int) 0xffeeff03)       | Keys::extendedKeyModifier;
+
+const int KeyPress::sleepKey                = XF86XK_Sleep;
+const int KeyPress::screenshotKey           = XK_3270_PrintScreen;
+const int KeyPress::browserForwardKey       = XF86XK_Forward;
+const int KeyPress::browserBackKey          = XF86XK_Back;
+const int KeyPress::browserRefreshKey       = XF86XK_Refresh;
+const int KeyPress::browserStopKey          = XF86XK_Stop;
+const int KeyPress::browserSearchKey        = XF86XK_Search;
+const int KeyPress::browserFavouritesKey    = XF86XK_Favorites;
+const int KeyPress::browserHomeKey          = XF86XK_HomePage;
+const int KeyPress::playKey                 = XF86XK_AudioPlay;
+const int KeyPress::pauseKey                = XF86XK_AudioPause;
+const int KeyPress::stopKey                 = XF86XK_AudioStop;
+const int KeyPress::fastForwardKey          = XF86XK_AudioForward;
+const int KeyPress::rewindKey               = XF86XK_AudioRewind;
+const int KeyPress::muteKey                 = XF86XK_AudioMute;
+const int KeyPress::recordKey               = XF86XK_AudioRecord;
+const int KeyPress::volumeUpKey             = XF86XK_AudioRaiseVolume;
+const int KeyPress::volumeDownKey           = XF86XK_AudioLowerVolume;
+const int KeyPress::nextTrackKey            = XF86XK_AudioNext;
+const int KeyPress::previousTrackKey        = XF86XK_AudioPrev;
+const int KeyPress::channelUpKey            = ((int) 0xffeeff00) | Keys::extendedKeyModifier;
+const int KeyPress::channelDownKey          = ((int) 0xffeeff01) | Keys::extendedKeyModifier;
+const int KeyPress::findKey                 = XK_Find;
+const int KeyPress::helpKey                 = XK_Help;
 
 static void updateKeyStates (int keycode, bool press) noexcept
 {

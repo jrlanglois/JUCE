@@ -653,7 +653,7 @@ int64 getMouseEventTime()
 }
 
 //==============================================================================
-const int extendedKeyModifier               = 0x10000;
+constexpr int extendedKeyModifier           = 0x10000;
 
 const int KeyPress::spaceKey                = VK_SPACE;
 const int KeyPress::returnKey               = VK_RETURN;
@@ -722,13 +722,32 @@ const int KeyPress::numberPadMultiply       = VK_MULTIPLY       | extendedKeyMod
 const int KeyPress::numberPadDivide         = VK_DIVIDE         | extendedKeyModifier;
 const int KeyPress::numberPadSeparator      = VK_SEPARATOR      | extendedKeyModifier;
 const int KeyPress::numberPadDecimalPoint   = VK_DECIMAL        | extendedKeyModifier;
-const int KeyPress::numberPadEquals         = 0x92 /*VK_OEM_NEC_EQUAL*/  | extendedKeyModifier;
+const int KeyPress::numberPadEquals         = 0x92 /*VK_OEM_NEC_EQUAL*/ | extendedKeyModifier;
 const int KeyPress::numberPadDelete         = VK_DELETE         | extendedKeyModifier;
-const int KeyPress::playKey                 = 0x30000;
-const int KeyPress::stopKey                 = 0x30001;
-const int KeyPress::fastForwardKey          = 0x30002;
-const int KeyPress::rewindKey               = 0x30003;
-
+const int KeyPress::sleepKey                = VK_SLEEP          | extendedKeyModifier;
+const int KeyPress::screenshotKey           = VK_SNAPSHOT       | extendedKeyModifier;
+const int KeyPress::browserForwardKey       = VK_BROWSER_FORWARD    | extendedKeyModifier;
+const int KeyPress::browserBackKey          = VK_BROWSER_BACK       | extendedKeyModifier;
+const int KeyPress::browserRefreshKey       = VK_BROWSER_REFRESH    | extendedKeyModifier;
+const int KeyPress::browserStopKey          = VK_BROWSER_STOP       | extendedKeyModifier;
+const int KeyPress::browserSearchKey        = VK_BROWSER_SEARCH     | extendedKeyModifier;
+const int KeyPress::browserFavouritesKey    = VK_BROWSER_FAVORITES  | extendedKeyModifier;
+const int KeyPress::browserHomeKey          = VK_BROWSER_HOME       | extendedKeyModifier;
+const int KeyPress::playKey                 = VK_MEDIA_PLAY_PAUSE   | extendedKeyModifier;
+const int KeyPress::pauseKey                = VK_PAUSE              | extendedKeyModifier;
+const int KeyPress::stopKey                 = VK_MEDIA_STOP         | extendedKeyModifier;
+const int KeyPress::fastForwardKey          = 0x30001               | extendedKeyModifier;
+const int KeyPress::rewindKey               = 0x30002               | extendedKeyModifier;
+const int KeyPress::muteKey                 = VK_VOLUME_MUTE        | extendedKeyModifier;
+const int KeyPress::recordKey               = 0x30003               | extendedKeyModifier;
+const int KeyPress::volumeUpKey             = VK_VOLUME_UP          | extendedKeyModifier;
+const int KeyPress::volumeDownKey           = VK_VOLUME_DOWN        | extendedKeyModifier;
+const int KeyPress::nextTrackKey            = VK_MEDIA_NEXT_TRACK   | extendedKeyModifier;
+const int KeyPress::previousTrackKey        = VK_MEDIA_PREV_TRACK   | extendedKeyModifier;
+const int KeyPress::channelUpKey            = 0x30004               | extendedKeyModifier;
+const int KeyPress::channelDownKey          = 0x30005               | extendedKeyModifier;
+const int KeyPress::findKey                 = 0x30006               | extendedKeyModifier;
+const int KeyPress::helpKey                 = VK_HELP               | extendedKeyModifier;
 
 //==============================================================================
 class WindowsBitmapImage  : public ImagePixelData
@@ -3040,6 +3059,24 @@ private:
                 sendModifierKeyChangeIfNeeded();
                 break;
 
+            case VK_SLEEP:
+            case VK_SNAPSHOT:
+            case VK_BROWSER_BACK:
+            case VK_BROWSER_FORWARD:
+            case VK_BROWSER_REFRESH:
+            case VK_BROWSER_STOP:
+            case VK_BROWSER_SEARCH:
+            case VK_BROWSER_FAVORITES:
+            case VK_BROWSER_HOME:
+            case VK_MEDIA_PLAY_PAUSE:
+            case VK_MEDIA_STOP:
+            case VK_VOLUME_MUTE:
+            case VK_VOLUME_UP:
+            case VK_VOLUME_DOWN:
+            case VK_MEDIA_NEXT_TRACK:
+            case VK_MEDIA_PREV_TRACK:
+            case VK_PAUSE:
+            case VK_HELP:
             case VK_LEFT:
             case VK_RIGHT:
             case VK_UP:
@@ -3164,10 +3201,29 @@ private:
 
         switch (GET_APPCOMMAND_LPARAM (lParam))
         {
+            case APPCOMMAND_MEDIA_PLAY:
             case APPCOMMAND_MEDIA_PLAY_PAUSE:       key = KeyPress::playKey; break;
+            case APPCOMMAND_MEDIA_PAUSE:            key = KeyPress::pauseKey; break;
             case APPCOMMAND_MEDIA_STOP:             key = KeyPress::stopKey; break;
-            case APPCOMMAND_MEDIA_NEXTTRACK:        key = KeyPress::fastForwardKey; break;
-            case APPCOMMAND_MEDIA_PREVIOUSTRACK:    key = KeyPress::rewindKey; break;
+            case APPCOMMAND_MEDIA_FAST_FORWARD:     key = KeyPress::fastForwardKey; break;
+            case APPCOMMAND_MEDIA_REWIND:           key = KeyPress::rewindKey; break;
+            case APPCOMMAND_VOLUME_MUTE:            key = KeyPress::muteKey; break;
+            case APPCOMMAND_MEDIA_RECORD:           key = KeyPress::recordKey; break;
+            case APPCOMMAND_VOLUME_UP:              key = KeyPress::volumeUpKey; break;
+            case APPCOMMAND_VOLUME_DOWN:            key = KeyPress::volumeDownKey; break;
+            case APPCOMMAND_MEDIA_NEXTTRACK:        key = KeyPress::nextTrackKey; break;
+            case APPCOMMAND_MEDIA_PREVIOUSTRACK:    key = KeyPress::previousTrackKey; break;
+            case APPCOMMAND_MEDIA_CHANNEL_UP:       key = KeyPress::channelUpKey; break;
+            case APPCOMMAND_MEDIA_CHANNEL_DOWN:     key = KeyPress::channelDownKey; break;
+            case APPCOMMAND_FIND:                   key = KeyPress::findKey; break;
+            case APPCOMMAND_HELP:                   key = KeyPress::helpKey; break;
+            case APPCOMMAND_BROWSER_FORWARD:        key = KeyPress::browserForwardKey; break;
+            case APPCOMMAND_BROWSER_BACKWARD:       key = KeyPress::browserBackKey; break;
+            case APPCOMMAND_BROWSER_REFRESH:        key = KeyPress::browserRefreshKey; break;
+            case APPCOMMAND_BROWSER_STOP:           key = KeyPress::browserStopKey; break;
+            case APPCOMMAND_BROWSER_SEARCH:         key = KeyPress::browserSearchKey; break;
+            case APPCOMMAND_BROWSER_FAVORITES:      key = KeyPress::browserFavouritesKey; break;
+            case APPCOMMAND_BROWSER_HOME:           key = KeyPress::browserHomeKey; break;
             default: break;
         }
 

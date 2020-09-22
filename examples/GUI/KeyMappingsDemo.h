@@ -66,15 +66,14 @@ enum KeyPressCommandIDs
     This is a simple target for the key-presses which will live inside the demo component
     and contains a button that can be moved around with the arrow keys.
 */
-class KeyPressTarget : public Component,
-                       public ApplicationCommandTarget
+class KeyPressTarget final  : public Component,
+                              public ApplicationCommandTarget
 {
 public:
     KeyPressTarget()
     {
-        Array<Colour> coloursToUse { Colours::darkblue, Colours::darkgrey, Colours::red,
-                                     Colours::green, Colours::blue, Colours::hotpink };
-        colours.addArray (coloursToUse);
+        colours.addArray ({ Colours::darkblue, Colours::darkgrey, Colours::red,
+                            Colours::green, Colours::blue, Colours::hotpink });
 
         addAndMakeVisible (button);
     }
@@ -82,7 +81,7 @@ public:
     //==============================================================================
     void resized() override
     {
-        auto bounds = getLocalBounds();
+        const auto bounds = getLocalBounds();
 
         // keep the button on-screen
         if (buttonX < -150 || buttonX > bounds.getWidth()
@@ -106,12 +105,10 @@ public:
 
     void getAllCommands (Array<CommandID>& commands) override
     {
-        Array<CommandID> ids { KeyPressCommandIDs::buttonMoveUp, KeyPressCommandIDs::buttonMoveRight,
-                               KeyPressCommandIDs::buttonMoveDown, KeyPressCommandIDs::buttonMoveLeft,
-                               KeyPressCommandIDs::nextButtonColour, KeyPressCommandIDs::previousButtonColour,
-                               KeyPressCommandIDs::nextBackgroundColour, KeyPressCommandIDs::previousBackgroundColour };
-
-        commands.addArray (ids);
+        commands.addArray ({ KeyPressCommandIDs::buttonMoveUp, KeyPressCommandIDs::buttonMoveRight,
+                             KeyPressCommandIDs::buttonMoveDown, KeyPressCommandIDs::buttonMoveLeft,
+                             KeyPressCommandIDs::nextButtonColour, KeyPressCommandIDs::previousButtonColour,
+                             KeyPressCommandIDs::nextBackgroundColour, KeyPressCommandIDs::previousBackgroundColour });
     }
 
     void getCommandInfo (CommandID commandID, ApplicationCommandInfo& result) override
@@ -120,31 +117,31 @@ public:
         {
             case KeyPressCommandIDs::buttonMoveUp:
                 result.setInfo ("Move up", "Move the button up", "Button", 0);
-                result.addDefaultKeypress (KeyPress::upKey, 0);
+                result.addDefaultKeypress (KeyPress::volumeUpKey);
                 break;
             case KeyPressCommandIDs::buttonMoveRight:
                 result.setInfo ("Move right", "Move the button right", "Button", 0);
-                result.addDefaultKeypress (KeyPress::rightKey, 0);
+                result.addDefaultKeypress (KeyPress::stopKey);
                 break;
             case KeyPressCommandIDs::buttonMoveDown:
                 result.setInfo ("Move down", "Move the button down", "Button", 0);
-                result.addDefaultKeypress (KeyPress::downKey, 0);
+                result.addDefaultKeypress (KeyPress::volumeDownKey);
                 break;
             case KeyPressCommandIDs::buttonMoveLeft:
                 result.setInfo ("Move left", "Move the button left", "Button", 0);
-                result.addDefaultKeypress (KeyPress::leftKey, 0);
+                result.addDefaultKeypress (KeyPress::playKey);
                 break;
             case KeyPressCommandIDs::nextButtonColour:
                 result.setInfo ("Next colour", "Change the colour of the button to the next in the list", "Button", 0);
-                result.addDefaultKeypress (KeyPress::rightKey, ModifierKeys::shiftModifier);
+                result.addDefaultKeypress (KeyPress::nextTrackKey);
                 break;
             case KeyPressCommandIDs::previousButtonColour:
                 result.setInfo ("Previous colour", "Change the colour of the button to the previous in the list", "Button", 0);
-                result.addDefaultKeypress (KeyPress::leftKey, ModifierKeys::shiftModifier);
+                result.addDefaultKeypress (KeyPress::previousTrackKey);
                 break;
             case KeyPressCommandIDs::nextBackgroundColour:
                 result.setInfo ("Next colour", "Change the colour of the background to the next in the list", "Other", 0);
-                result.addDefaultKeypress (KeyPress::rightKey, ModifierKeys::commandModifier);
+                result.addDefaultKeypress (KeyPress::muteKey);
                 break;
             case KeyPressCommandIDs::previousBackgroundColour:
                 result.setInfo ("Previous colour", "Change the colour of the background to the previous in the list", "Other", 0);
@@ -207,13 +204,14 @@ private:
     int buttonX = -200, buttonY = -200;
 
     Array<Colour> colours;
+    int buttonColourIndex = 0, backgroundColourIndex = 1;
 
-    int buttonColourIndex     = 0;
-    int backgroundColourIndex = 1;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (KeyPressTarget)
 };
 
 //==============================================================================
-class KeyMappingsDemo   : public Component
+class KeyMappingsDemo final  : public Component,
+                               private Timer
 {
 public:
     KeyMappingsDemo()
@@ -221,7 +219,12 @@ public:
         // register the commands that the target component can perform
         commandManager.registerAllCommandsForTarget (&keyTarget);
 
+        currentKeys.setJustificationType (Justification::topLeft);
+        currentKeys.setColour (Label::textColourId, Colours::white);
+        timerCallback();
+
         setOpaque (true);
+        addAndMakeVisible (currentKeys);
         addAndMakeVisible (keyMappingEditor);
         addAndMakeVisible (keyTarget);
 
@@ -232,34 +235,54 @@ public:
         setSize (500, 500);
 
         Timer::callAfterDelay (300, [this] { keyTarget.grabKeyboardFocus(); }); // ensure that key presses are sent to the KeyPressTarget object
+
+        startTimerHz (1);
     }
 
     void paint (Graphics& g) override
     {
-        g.fillAll (getUIColourIfAvailable (LookAndFeel_V4::ColourScheme::UIColour::windowBackground,
-                                           Colour::greyLevel (0.93f)));
+        g.fillAll (getUIColourIfAvailable (LookAndFeel_V4::ColourScheme::windowBackground, Colour::greyLevel (0.93f)));
     }
 
     void resized() override
     {
         auto bounds = getLocalBounds();
 
-        keyTarget       .setBounds (bounds.removeFromTop (bounds.getHeight() / 2).reduced (4));
+        currentKeys.setBounds (bounds.removeFromTop (48).reduced (4));
+        keyTarget.setBounds (bounds.removeFromTop (bounds.getHeight() / 2).reduced (4));
         keyMappingEditor.setBounds (bounds.reduced (4));
     }
 
 private:
+    Label currentKeys;
+    KeyPress lastKnownKeyPress;
+
     ApplicationCommandManager commandManager;
-    KeyMappingEditorComponent keyMappingEditor  { *commandManager.getKeyMappings(), true};
+    KeyMappingEditorComponent keyMappingEditor { *commandManager.getKeyMappings(), true};
 
     KeyPressTarget keyTarget;
 
+    bool keyPressed (const KeyPress& key) override
+    {
+        lastKnownKeyPress = key;
+        return Component::keyPressed (key);
+    }
+
     void lookAndFeelChanged() override
     {
-        auto* lf = &LookAndFeel::getDefaultLookAndFeel();
+        const auto& lf = LookAndFeel::getDefaultLookAndFeel();
 
-        keyMappingEditor.setColours (lf->findColour (KeyMappingEditorComponent::backgroundColourId),
-                                     lf->findColour (KeyMappingEditorComponent::textColourId));
+        keyMappingEditor.setColours (lf.findColour (KeyMappingEditorComponent::backgroundColourId),
+                                     lf.findColour (KeyMappingEditorComponent::textColourId));
+    }
+
+    void timerCallback() override
+    {
+        auto localKeyPress = lastKnownKeyPress;
+        if (! localKeyPress.isValid() || ! localKeyPress.isCurrentlyDown())
+            localKeyPress = KeyPress (0, ModifierKeys::getCurrentModifiersRealtime(), 0);
+
+        currentKeys.setText ("Current key/modifier(s)/mouse button(s):\n" + localKeyPress.getTextDescription(), dontSendNotification);
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (KeyMappingsDemo)

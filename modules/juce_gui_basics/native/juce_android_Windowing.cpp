@@ -1096,7 +1096,7 @@ void MouseInputSource::setRawMousePosition (Point<float>)
 //==============================================================================
 bool KeyPress::isKeyCurrentlyDown (int /*keyCode*/)
 {
-    // TODO
+    jassertfalse; // xxx TODO
     return false;
 }
 
@@ -1662,9 +1662,30 @@ const int KeyPress::numberPadSeparator      = extendedKeyModifier + 41;
 const int KeyPress::numberPadDecimalPoint   = extendedKeyModifier + 42;
 const int KeyPress::numberPadEquals         = extendedKeyModifier + 43;
 const int KeyPress::numberPadDelete         = extendedKeyModifier + 44;
-const int KeyPress::playKey         = extendedKeyModifier + 45;
-const int KeyPress::stopKey         = extendedKeyModifier + 46;
-const int KeyPress::fastForwardKey  = extendedKeyModifier + 47;
-const int KeyPress::rewindKey       = extendedKeyModifier + 48;
+
+const int KeyPress::sleepKey                = ;
+const int KeyPress::screenshotKey           = ;
+const int KeyPress::browserForwardKey       = ;
+const int KeyPress::browserBackKey          = ;
+const int KeyPress::browserRefreshKey       = ;
+const int KeyPress::browserStopKey          = ;
+const int KeyPress::browserSearchKey        = ;
+const int KeyPress::browserFavouritesKey    = ;
+const int KeyPress::browserHomeKey          = ;
+const int KeyPress::playKey                 = ;
+const int KeyPress::pauseKey                = ;
+const int KeyPress::stopKey                 = ;
+const int KeyPress::fastForwardKey          = ;
+const int KeyPress::rewindKey               = ;
+const int KeyPress::muteKey                 = ;
+const int KeyPress::recordKey               = ;
+const int KeyPress::volumeUpKey             = ;
+const int KeyPress::volumeDownKey           = ;
+const int KeyPress::nextTrackKey            = ;
+const int KeyPress::previousTrackKey        = ;
+const int KeyPress::channelUpKey            = ;
+const int KeyPress::channelDownKey          = ;
+const int KeyPress::findKey                 = ;
+const int KeyPress::helpKey                 = ;
 
 } // namespace juce

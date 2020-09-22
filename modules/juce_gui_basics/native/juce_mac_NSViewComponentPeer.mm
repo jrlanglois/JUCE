@@ -2319,4 +2319,30 @@ const int KeyPress::stopKey         = 0x30001;
 const int KeyPress::fastForwardKey  = 0x30002;
 const int KeyPress::rewindKey       = 0x30003;
 
+const int KeyPress::sleepKey                = ;
+const int KeyPress::screenshotKey           = NSPrintScreenFunctionKey;
+const int KeyPress::browserForwardKey       = ;
+const int KeyPress::browserBackKey          = ;
+const int KeyPress::browserRefreshKey       = ;
+const int KeyPress::browserStopKey          = ;
+const int KeyPress::browserSearchKey        = ;
+const int KeyPress::browserFavouritesKey    = ;
+const int KeyPress::browserHomeKey          = ;
+
+const int KeyPress::playKey                 = ;
+const int KeyPress::pauseKey                = NSPauseFunctionKey;
+const int KeyPress::stopKey                 = NSStopFunctionKey;
+const int KeyPress::fastForwardKey          = ;
+const int KeyPress::rewindKey               = ;
+const int KeyPress::muteKey                 = ;
+const int KeyPress::recordKey               = ;
+const int KeyPress::volumeUpKey             = ;
+const int KeyPress::volumeDownKey           = ;
+const int KeyPress::nextTrackKey            = ;
+const int KeyPress::previousTrackKey        = ;
+const int KeyPress::channelUpKey            = ;
+const int KeyPress::channelDownKey          = ;
+const int KeyPress::findKey                 = NSFindFunctionKey;
+const int KeyPress::helpKey                 = NSHelpFunctionKey;
+
 } // namespace juce

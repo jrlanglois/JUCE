@@ -31,7 +31,7 @@ KeyPress::KeyPress (int code, ModifierKeys m, juce_wchar textChar) noexcept
 {
 }
 
-KeyPress::KeyPress (const int code) noexcept  : keyCode (code)
+KeyPress::KeyPress (int code) noexcept  : keyCode (code)
 {
 }
 
@@ -74,25 +74,45 @@ namespace KeyPressHelpers
 
     const KeyNameAndCode translations[] =
     {
-        { "spacebar",       KeyPress::spaceKey },
-        { "return",         KeyPress::returnKey },
-        { "escape",         KeyPress::escapeKey },
-        { "backspace",      KeyPress::backspaceKey },
-        { "cursor left",    KeyPress::leftKey },
-        { "cursor right",   KeyPress::rightKey },
-        { "cursor up",      KeyPress::upKey },
-        { "cursor down",    KeyPress::downKey },
-        { "page up",        KeyPress::pageUpKey },
-        { "page down",      KeyPress::pageDownKey },
-        { "home",           KeyPress::homeKey },
-        { "end",            KeyPress::endKey },
-        { "delete",         KeyPress::deleteKey },
-        { "insert",         KeyPress::insertKey },
-        { "tab",            KeyPress::tabKey },
-        { "play",           KeyPress::playKey },
-        { "stop",           KeyPress::stopKey },
-        { "fast forward",   KeyPress::fastForwardKey },
-        { "rewind",         KeyPress::rewindKey }
+        { "spacebar",           KeyPress::spaceKey },
+        { "return",             KeyPress::returnKey },
+        { "escape",             KeyPress::escapeKey },
+        { "backspace",          KeyPress::backspaceKey },
+        { "cursor left",        KeyPress::leftKey },
+        { "cursor right",       KeyPress::rightKey },
+        { "cursor up",          KeyPress::upKey },
+        { "cursor down",        KeyPress::downKey },
+        { "page up",            KeyPress::pageUpKey },
+        { "page down",          KeyPress::pageDownKey },
+        { "home",               KeyPress::homeKey },
+        { "end",                KeyPress::endKey },
+        { "delete",             KeyPress::deleteKey },
+        { "insert",             KeyPress::insertKey },
+        { "tab",                KeyPress::tabKey },
+        { "play",               KeyPress::playKey },
+        { "sleep",              KeyPress::sleepKey },
+        { "screenshot",         KeyPress::screenshotKey },
+        { "browser forward",    KeyPress::browserForwardKey },
+        { "browser back",       KeyPress::browserBackKey },
+        { "browser refresh",    KeyPress::browserRefreshKey },
+        { "browser stop",       KeyPress::browserStopKey },
+        { "browser search",     KeyPress::browserSearchKey },
+        { "browser favourites", KeyPress::browserFavouritesKey },
+        { "browser home",       KeyPress::browserHomeKey },
+        { "pause",              KeyPress::pauseKey },
+        { "stop",               KeyPress::stopKey },
+        { "fast forward",       KeyPress::fastForwardKey },
+        { "rewind",             KeyPress::rewindKey },
+        { "mute",               KeyPress::muteKey },
+        { "record",             KeyPress::recordKey },
+        { "volume up",          KeyPress::volumeUpKey },
+        { "volume down",        KeyPress::volumeDownKey },
+        { "previous track",     KeyPress::previousTrackKey },
+        { "next track",         KeyPress::nextTrackKey },
+        { "channel up",         KeyPress::channelUpKey },
+        { "channel down",       KeyPress::channelDownKey },
+        { "find",               KeyPress::findKey },
+        { "help",               KeyPress::helpKey }
     };
 
     struct ModifierDescription
@@ -101,7 +121,7 @@ namespace KeyPressHelpers
         int flag;
     };
 
-    static const ModifierDescription modifierNames[] =
+    const ModifierDescription modifierNames[] =
     {
         { "ctrl",      ModifierKeys::ctrlModifier },
         { "control",   ModifierKeys::ctrlModifier },
@@ -120,13 +140,13 @@ namespace KeyPressHelpers
     {
         if (desc.containsIgnoreCase (numberPadPrefix()))
         {
-            auto lastChar = desc.trimEnd().getLastCharacter();
+            const auto lastChar = desc.trimEnd().getLastCharacter();
 
             switch (lastChar)
             {
                 case '0': case '1': case '2': case '3': case '4':
                 case '5': case '6': case '7': case '8': case '9':
-                    return (int) (KeyPress::numberPad0 + (int) lastChar - '0');
+                    return static_cast<int> (KeyPress::numberPad0 + static_cast<int> (lastChar) - '0');
 
                 case '+':   return KeyPress::numberPadAdd;
                 case '-':   return KeyPress::numberPadSubtract;
@@ -175,17 +195,17 @@ KeyPress KeyPress::createFromDescription (const String& desc)
 {
     int modifiers = 0;
 
-    for (int i = 0; i < numElementsInArray (KeyPressHelpers::modifierNames); ++i)
-        if (desc.containsWholeWordIgnoreCase (KeyPressHelpers::modifierNames[i].name))
-            modifiers |= KeyPressHelpers::modifierNames[i].flag;
+    for (const auto& m : KeyPressHelpers::modifierNames)
+        if (desc.containsWholeWordIgnoreCase (m.name))
+            modifiers |= m.flag;
 
     int key = 0;
 
-    for (int i = 0; i < numElementsInArray (KeyPressHelpers::translations); ++i)
+    for (const auto& t : KeyPressHelpers::translations)
     {
-        if (desc.containsWholeWordIgnoreCase (String (KeyPressHelpers::translations[i].name)))
+        if (desc.containsWholeWordIgnoreCase (t.name))
         {
-            key = KeyPressHelpers::translations[i].code;
+            key = t.code;
             break;
         }
     }
@@ -219,54 +239,54 @@ KeyPress KeyPress::createFromDescription (const String& desc)
             if (hexCode > 0)
                 key = hexCode;
             else
-                key = (int) CharacterFunctions::toUpperCase (desc.getLastCharacter());
+                key = static_cast<int> (CharacterFunctions::toUpperCase (desc.getLastCharacter()));
         }
     }
 
-    return KeyPress (key, ModifierKeys (modifiers), 0);
+    return { key, { modifiers }, 0 };
 }
 
 String KeyPress::getTextDescription() const
 {
+    if (keyCode <= 0)
+        return {};
+
+    // some keyboard layouts use a shift-key to get the slash, but in those cases,
+    // we want to store it as being a slash, not shift+whatever.
+    if (textCharacter == '/' && keyCode != numberPadDivide)
+        return "/";
+
     String desc;
 
-    if (keyCode > 0)
-    {
-        // some keyboard layouts use a shift-key to get the slash, but in those cases, we
-        // want to store it as being a slash, not shift+whatever.
-        if (textCharacter == '/' && keyCode != numberPadDivide)
-            return "/";
+    if (mods.isCtrlDown())      desc << "ctrl + ";
+    if (mods.isShiftDown())     desc << "shift + ";
 
-        if (mods.isCtrlDown())      desc << "ctrl + ";
-        if (mods.isShiftDown())     desc << "shift + ";
+   #if JUCE_MAC || JUCE_IOS
+    if (mods.isAltDown())       desc << "option + ";
+    if (mods.isCommandDown())   desc << "command + ";
+   #else
+    if (mods.isAltDown())       desc << "alt + ";
+   #endif
 
-       #if JUCE_MAC || JUCE_IOS
-        if (mods.isAltDown())       desc << "option + ";
-        if (mods.isCommandDown())   desc << "command + ";
-       #else
-        if (mods.isAltDown())       desc << "alt + ";
-       #endif
+    for (const auto& t : KeyPressHelpers::translations)
+        if (keyCode == t.code)
+            return desc + t.name;
 
-        for (int i = 0; i < numElementsInArray (KeyPressHelpers::translations); ++i)
-            if (keyCode == KeyPressHelpers::translations[i].code)
-                return desc + KeyPressHelpers::translations[i].name;
-
-        // not all F keys have consecutive key codes on all platforms
-        if      (keyCode >= F1Key  && keyCode <= F16Key)                  desc << 'F' << (1 + keyCode - F1Key);
-        else if (keyCode >= F17Key && keyCode <= F24Key)                  desc << 'F' << (17 + keyCode - F17Key);
-        else if (keyCode >= F25Key && keyCode <= F35Key)                  desc << 'F' << (25 + keyCode - F25Key);
-        else if (keyCode >= numberPad0 && keyCode <= numberPad9)    desc << KeyPressHelpers::numberPadPrefix() << (keyCode - numberPad0);
-        else if (keyCode >= 33 && keyCode < 176)        desc += CharacterFunctions::toUpperCase ((juce_wchar) keyCode);
-        else if (keyCode == numberPadAdd)               desc << KeyPressHelpers::numberPadPrefix() << '+';
-        else if (keyCode == numberPadSubtract)          desc << KeyPressHelpers::numberPadPrefix() << '-';
-        else if (keyCode == numberPadMultiply)          desc << KeyPressHelpers::numberPadPrefix() << '*';
-        else if (keyCode == numberPadDivide)            desc << KeyPressHelpers::numberPadPrefix() << '/';
-        else if (keyCode == numberPadSeparator)         desc << KeyPressHelpers::numberPadPrefix() << "separator";
-        else if (keyCode == numberPadDecimalPoint)      desc << KeyPressHelpers::numberPadPrefix() << '.';
-        else if (keyCode == numberPadEquals)            desc << KeyPressHelpers::numberPadPrefix() << '=';
-        else if (keyCode == numberPadDelete)            desc << KeyPressHelpers::numberPadPrefix() << "delete";
-        else                                            desc << '#' << String::toHexString (keyCode);
-    }
+    //NB: not all F keys have consecutive key codes on all platforms
+    if      (keyCode >= F1Key  && keyCode <= F16Key)            desc << 'F' << (1 + keyCode - F1Key);
+    else if (keyCode >= F17Key && keyCode <= F24Key)            desc << 'F' << (17 + keyCode - F17Key);
+    else if (keyCode >= F25Key && keyCode <= F35Key)            desc << 'F' << (25 + keyCode - F25Key);
+    else if (keyCode >= numberPad0 && keyCode <= numberPad9)    desc << KeyPressHelpers::numberPadPrefix() << (keyCode - numberPad0);
+    else if (keyCode >= 33 && keyCode < 176)                    desc += CharacterFunctions::toUpperCase (static_cast<juce_wchar> (keyCode));
+    else if (keyCode == numberPadAdd)                           desc << KeyPressHelpers::numberPadPrefix() << '+';
+    else if (keyCode == numberPadSubtract)                      desc << KeyPressHelpers::numberPadPrefix() << '-';
+    else if (keyCode == numberPadMultiply)                      desc << KeyPressHelpers::numberPadPrefix() << '*';
+    else if (keyCode == numberPadDivide)                        desc << KeyPressHelpers::numberPadPrefix() << '/';
+    else if (keyCode == numberPadSeparator)                     desc << KeyPressHelpers::numberPadPrefix() << "separator";
+    else if (keyCode == numberPadDecimalPoint)                  desc << KeyPressHelpers::numberPadPrefix() << '.';
+    else if (keyCode == numberPadEquals)                        desc << KeyPressHelpers::numberPadPrefix() << '=';
+    else if (keyCode == numberPadDelete)                        desc << KeyPressHelpers::numberPadPrefix() << "delete";
+    else                                                        desc << '#' << String::toHexString (keyCode);
 
     return desc;
 }
@@ -276,9 +296,8 @@ String KeyPress::getTextDescriptionWithIcons() const
    #if JUCE_MAC || JUCE_IOS
     auto s = getTextDescription();
 
-    for (int i = 0; i < numElementsInArray (KeyPressHelpers::osxSymbols); ++i)
-        s = s.replace (KeyPressHelpers::osxSymbols[i].text,
-                       String::charToString (KeyPressHelpers::osxSymbols[i].symbol));
+    for (const auto& s : KeyPressHelpers::osxSymbols)
+        s = s.replace (s.text, String::charToString (s.symbol));
 
     return s;
    #else

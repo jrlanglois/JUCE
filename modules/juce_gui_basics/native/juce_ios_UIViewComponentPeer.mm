@@ -522,6 +522,7 @@ namespace juce
 
 bool KeyPress::isKeyCurrentlyDown (int)
 {
+    jassertfalse; // xxx TODO
     return false;
 }
 
@@ -1105,9 +1106,29 @@ const int KeyPress::numberPadSeparator    = 0x3002e;
 const int KeyPress::numberPadDecimalPoint = 0x3002f;
 const int KeyPress::numberPadEquals       = 0x30030;
 const int KeyPress::numberPadDelete       = 0x30031;
-const int KeyPress::playKey               = 0x30000;
-const int KeyPress::stopKey               = 0x30001;
-const int KeyPress::fastForwardKey        = 0x30002;
-const int KeyPress::rewindKey             = 0x30003;
+const int KeyPress::sleepKey                = 0x30000;
+const int KeyPress::screenshotKey           = NSPrintScreenFunctionKey;
+const int KeyPress::browserForwardKey       = 0x30001;
+const int KeyPress::browserBackKey          = 0x30002;
+const int KeyPress::browserRefreshKey       = 0x30003;
+const int KeyPress::browserStopKey          = 0x30004;
+const int KeyPress::browserSearchKey        = 0x30005;
+const int KeyPress::browserFavouritesKey    = 0x30006;
+const int KeyPress::browserHomeKey          = 0x30007;
+const int KeyPress::playKey                 = 0x30008;
+const int KeyPress::pauseKey                = NSPauseFunctionKey;
+const int KeyPress::stopKey                 = NSStopFunctionKey;
+const int KeyPress::fastForwardKey          = 0x30009;
+const int KeyPress::rewindKey               = 0x30010;
+const int KeyPress::muteKey                 = 0x3000A;
+const int KeyPress::recordKey               = 0x3000B;
+const int KeyPress::volumeUpKey             = 0x3000C;
+const int KeyPress::volumeDownKey           = 0x3000D;
+const int KeyPress::nextTrackKey            = 0x3000E;
+const int KeyPress::previousTrackKey        = 0x3000F;
+const int KeyPress::channelUpKey            = 0x30010;
+const int KeyPress::channelDownKey          = 0x30011;
+const int KeyPress::findKey                 = NSFindFunctionKey;
+const int KeyPress::helpKey                 = NSHelpFunctionKey;
 
 } // namespace juce

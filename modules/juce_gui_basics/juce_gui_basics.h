@@ -296,6 +296,9 @@ namespace juce
 
 #if JUCE_LINUX
  #if JUCE_GUI_BASICS_INCLUDE_XHEADERS
+  #undef XK_3270
+  #define XK_3270 1
+
   // If you're missing these headers, you need to install the libx11-dev package
   #include <X11/Xlib.h>
   #include <X11/Xatom.h>
@@ -303,6 +306,7 @@ namespace juce
   #include <X11/Xutil.h>
   #include <X11/Xmd.h>
   #include <X11/keysym.h>
+  #include <X11/XF86keysym.h>
   #include <X11/XKBlib.h>
   #include <X11/cursorfont.h>
   #include <unistd.h>
