@@ -48,8 +48,7 @@ class JUCE_API  JavascriptEngine  final
 {
 public:
     /** Creates an instance of the engine.
-        This creates a root namespace and defines some basic Object, String, Array
-        and Math library methods.
+        This creates a root namespace and defines most standard classes and methods.
     */
     JavascriptEngine();
 

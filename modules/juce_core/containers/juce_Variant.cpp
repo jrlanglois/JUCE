@@ -45,7 +45,7 @@ public:
 
     virtual int toInt (const ValueUnion&) const noexcept                        { return 0; }
     virtual int64 toInt64 (const ValueUnion&) const noexcept                    { return 0; }
-    virtual double toDouble (const ValueUnion&) const noexcept                  { return 0; }
+    virtual double toDouble (const ValueUnion&) const noexcept                  { return std::numeric_limits<double>::quiet_NaN(); }
     virtual String toString (const ValueUnion&) const                           { return {}; }
     virtual bool toBool (const ValueUnion&) const noexcept                      { return false; }
     virtual ReferenceCountedObject* toObject (const ValueUnion&) const noexcept { return nullptr; }

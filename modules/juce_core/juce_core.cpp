@@ -39,6 +39,7 @@
 #include <locale>
 #include <cctype>
 #include <cstdarg>
+#include <regex>
 
 #if ! JUCE_ANDROID
  #include <sys/timeb.h>
