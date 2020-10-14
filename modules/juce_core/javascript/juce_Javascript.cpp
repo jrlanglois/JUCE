@@ -83,15 +83,20 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
         setMethod ("encodeURIComponent",    encodeURIComponent);
         setMethod ("decodeURI",             decodeURI);
         setMethod ("decodeURIComponent",    decodeURIComponent);
+        setMethod ("escape",                encodeURIComponent);
+        setMethod ("unescape",              decodeURIComponent);
+        setMethod ("setTimeout",            [](Args) { return var::undefined(); });
 
         setProperty ("Infinity",            std::numeric_limits<double>::infinity());
         setProperty ("NaN",                 std::numeric_limits<double>::quiet_NaN());
         setProperty ("undefined",           var::undefined());
-        setProperty ("globalThis",          var::undefined()); //TODO: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects
+        setProperty ("globalThis",          this);                      //TODO: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/globalThis
 
         registerNativeObject<ArrayBufferClass>();
         registerNativeObject<ArrayClass>();
+        registerNativeObject<AtomicsClass>();
         registerNativeObject<BooleanClass>();
+        registerNativeObject<BigIntClass>();
         registerNativeObject<ConsoleClass>();                           //NB: Non-standard.
         registerNativeObject<DataViewClass>();
         registerNativeObject<DateClass>();
@@ -100,6 +105,8 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
         registerNativeObject<MathClass>();
         registerNativeObject<NumberClass>();
         registerNativeObject<ObjectClass>();
+        registerNativeObject<ProxyClass>();
+        registerNativeObject<ReflectClass>();
         registerNativeObject<RegExpClass>();
         registerNativeObject<SetClass>();
         registerNativeObject<StringClass>();
@@ -122,6 +129,8 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
     }
 
     Time timeout;
+
+    
 
     using Args = const var::NativeFunctionArgs&;
     using TokenType = const char*;
@@ -254,7 +263,7 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
             {
                 if (auto* m = getPropertyPointer (*scope, function))
                 {
-                    if (auto fo = dynamic_cast<FunctionObject*> (m->getObject()))
+                    if (auto* fo = dynamic_cast<FunctionObject*> (m->getObject()))
                     {
                         result = fo->invoke (*this, args);
                         return true;
@@ -280,7 +289,7 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
 
                 if (target == nullptr || target == scope.get())
                 {
-                    if (auto fo = dynamic_cast<FunctionObject*> (m.getObject()))
+                    if (auto* fo = dynamic_cast<FunctionObject*> (m.getObject()))
                     {
                         result = fo->invoke (*this, args);
                         return true;
@@ -890,8 +899,22 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
         {
             DynamicObject::Ptr functionRoot (new DynamicObject());
 
-            static const Identifier thisIdent ("this");
-            functionRoot->setProperty (thisIdent, args.thisObject);
+            functionRoot->setProperty ("this", args.thisObject);
+
+            //TODO https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/arguments
+            // "arguments" still needs to be a custom type so as to provide .length, .callee, and an iterator,
+            // although it cannot be an Array (as per the specifications).
+            if (args.arguments != nullptr)
+            {
+                Array<var> copies;
+                copies.ensureStorageAllocated (args.numArguments);
+
+                for (int i = 0; i < args.numArguments; ++i)
+                    copies.add (args.arguments[i]);
+
+                copies.minimiseStorageOverheads();
+                functionRoot->setProperty ("arguments", copies);
+            }
 
             for (int i = 0; i < parameters.size(); ++i)
                 functionRoot->setProperty (parameters.getReference(i),
@@ -1704,6 +1727,23 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
 
         return var::undefined();
     }
+
+   #if JUCE_EVENTS_H_INCLUDED
+    OwnedArray<Timer> timers;
+
+    void setTimeout (const String& a)
+    {
+        timeout = a;
+    }
+
+    static var setTimeout (Args a)
+    {
+        if (auto* root = dynamic_cast<RootObject*> (a.thisObject.getObject()))
+            root->setTimeout (getString (a, 0));
+
+        return var::undefined();
+    }
+   #endif
 
     #define JUCE_JS_CREATE_METHOD(methodName) \
         setMethod (JUCE_STRINGIFY (methodName), methodName);
@@ -2683,6 +2723,62 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
         }
 
         JUCE_JS_IDENTIFY_CLASS ("Boolean")
+    };
+
+    //==============================================================================
+    /**
+
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt
+    */
+    struct BigIntClass final  : public DynamicObject
+    {
+        BigIntClass()
+        {
+        }
+
+        JUCE_JS_IDENTIFY_CLASS ("BigInt")
+    };
+
+    //==============================================================================
+    /**
+
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Reflect
+    */
+    struct ReflectClass final  : public DynamicObject
+    {
+        ReflectClass()
+        {
+        }
+
+        JUCE_JS_IDENTIFY_CLASS ("Reflect")
+    };
+
+    //==============================================================================
+    /**
+
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy
+    */
+    struct ProxyClass final  : public DynamicObject
+    {
+        ProxyClass()
+        {
+        }
+
+        JUCE_JS_IDENTIFY_CLASS ("Proxy")
+    };
+
+    //==============================================================================
+    /**
+
+        https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics
+    */
+    struct AtomicsClass final  : public DynamicObject
+    {
+        AtomicsClass()
+        {
+        }
+
+        JUCE_JS_IDENTIFY_CLASS ("Atomics")
     };
 
     //==============================================================================

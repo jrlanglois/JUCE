@@ -116,6 +116,10 @@
  #define   JUCE_STANDALONE_APPLICATION 0
 #endif
 
+#if JUCE_EVENTS_H_INCLUDED
+    #include <juce_events/juce_events.h>
+#endif
+
 //==============================================================================
 #include "containers/juce_AbstractFifo.cpp"
 #include "containers/juce_ArrayBase.cpp"
