@@ -85,7 +85,7 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
         setMethod ("decodeURIComponent",    decodeURIComponent);
         setMethod ("escape",                encodeURIComponent);
         setMethod ("unescape",              decodeURIComponent);
-        setMethod ("setTimeout",            [](Args) { return var::undefined(); });
+        setMethod ("setTimeout",            setTimeout);
 
         setProperty ("Infinity",            std::numeric_limits<double>::infinity());
         setProperty ("NaN",                 std::numeric_limits<double>::quiet_NaN());
@@ -101,6 +101,7 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
         registerNativeObject<DataViewClass>();
         registerNativeObject<DateClass>();
         registerNativeObject<JSONClass>();
+        registerNativeObject<JUCEClass>();                              //NB: Non-standard.
         registerNativeObject<MapClass>();
         registerNativeObject<MathClass>();
         registerNativeObject<NumberClass>();
@@ -113,9 +114,15 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
         registerNativeObject<SymbolClass>();
         registerNativeObject<WeakMapClass>();
         registerNativeObject<WeakSetClass>();
+        registerNativeObject<XMLHttpRequestClass>();
     }
 
     //==============================================================================
+    Time timeout;
+
+    using Args = const var::NativeFunctionArgs&;
+    using TokenType = const char*;
+
     #define JUCE_JS_CREATE_METHOD(methodName) \
         setMethod (JUCE_STRINGIFY (methodName), methodName);
 
@@ -127,13 +134,6 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
     {
         setProperty (RootClass::getClassName(), new RootClass());
     }
-
-    Time timeout;
-
-    
-
-    using Args = const var::NativeFunctionArgs&;
-    using TokenType = const char*;
 
     void execute (const String& code)
     {
@@ -1728,19 +1728,28 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
         return var::undefined();
     }
 
-   #if JUCE_EVENTS_H_INCLUDED
+   #if JUCE_MODULE_AVAILABLE_juce_events
+    //TODO timers and stuff
+    // https://www.w3schools.com/jsref/met_win_settimeout.asp
+    // https://www.w3schools.com/jsref/met_win_cleartimeout.asp
+    // https://www.w3schools.com/jsref/met_win_clearinterval.asp
     OwnedArray<Timer> timers;
 
-    void setTimeout (const String& a)
+    void setTimeoutInternal (const String&)
     {
-        timeout = a;
+        //timeout = a;
     }
 
     static var setTimeout (Args a)
     {
         if (auto* root = dynamic_cast<RootObject*> (a.thisObject.getObject()))
-            root->setTimeout (getString (a, 0));
+            root->setTimeoutInternal (getString (a, 0));
 
+        return var::undefined();
+    }
+   #else
+    static var setTimeout (Args)
+    {
         return var::undefined();
     }
    #endif
@@ -1762,8 +1771,6 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
 
         static var logMethod (Args a)
         {
-            ignoreUnused (a);
-
             MemoryOutputStream mo (1024);
 
             for (int i = 0; i < a.numArguments; ++i)
@@ -1773,6 +1780,35 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
 
             return var::undefined();
         }
+    };
+
+    //==============================================================================
+    struct JUCEClass final  : public DynamicObject
+    {
+        JUCEClass()
+        {
+            setMethod ("getOperatingSystemType",    [](Args) { return static_cast<int> (SystemStats::getOperatingSystemType()); });
+            setMethod ("getJUCEVersionMajor",       [](Args) { return JUCE_MAJOR_VERSION; });
+            setMethod ("getJUCEVersionMinor",       [](Args) { return JUCE_MINOR_VERSION; });
+            setMethod ("getJUCEVersionBuildNumber", [](Args) { return JUCE_BUILDNUMBER; });
+            setMethod ("getCompilationDate",        [](Args) { return __DATE__ __TIME__; });
+
+            #define JUCE_CLASS_METHODS(X) \
+                X (getJUCEVersion)              X (getOperatingSystemName)  X (isOperatingSystem64Bit)  X (getLogonName) \
+                X (getFullUserName)             X (getComputerName)         X (getUserLanguage)         X (getUserRegion) \
+                X (getDisplayLanguage)          X (getDeviceDescription)    X (getDeviceManufacturer)   X (getNumCpus) \
+                X (getNumPhysicalCpus)          X (getCpuSpeedInMegahertz)  X (getCpuVendor)            X (getCpuModel) \
+                X (getMemorySizeInMegabytes)    X (getPageSize)             X (getStackBacktrace)       X (isRunningInAppExtensionSandbox)
+
+            #define CREATE_JUCE_CLASS_METHOD(methodName) \
+                    setMethod (JUCE_STRINGIFY (methodName), [](Args) { return SystemStats:: ## methodName ## (); });
+
+            JUCE_CLASS_METHODS (CREATE_JUCE_CLASS_METHOD)
+
+            #undef OBJECT_CLASS_METHODS
+        }
+
+        JUCE_JS_IDENTIFY_CLASS ("JUCE")
     };
 
     //==============================================================================
@@ -2417,14 +2453,20 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
     {
         DateClass()
         {
+            #define DATE_CLASS_METHODS(X) \
+                X (UTC) X (now) X (parse)
+
+            DATE_CLASS_METHODS (JUCE_JS_CREATE_METHOD)
+
+            #undef DATE_CLASS_METHODS
         }
 
         JUCE_JS_IDENTIFY_CLASS ("Date")
 
         //statics...
-        static var UTC (Args a)                 { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var UTC (Args)                   { return Time::getCurrentTime().toMilliseconds(); }
         static var now (Args a)                 { ignoreUnused (a); jassertfalse; return var(); } //TODO
-        static var parse (Args a)               { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var parse (Args a)               { return Time::fromISO8601 (getString (a, 0)).toMilliseconds(); }
 
         //methods...
         static var getDate (Args a)             { ignoreUnused (a); jassertfalse; return var(); } //TODO
@@ -2617,7 +2659,7 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
 
         JUCE_JS_IDENTIFY_CLASS ("JSON")
 
-        static var parse (Args a)       { ignoreUnused (a); jassertfalse; return var(); } //TODO
+        static var parse (Args a)       { return JSON::parse (get (a, 0)); }
         static var stringify (Args a)   { return JSON::toString (get (a, 0)); }
     };
 
@@ -2636,7 +2678,7 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
         static var Symbol_for (Args a)          { ignoreUnused (a); jassertfalse; return var(); } //TODO
         static var Symbol_keyFor (Args a)       { ignoreUnused (a); jassertfalse; return var(); } //TODO
 
-        //TODO Hm... should be properties and not methods.
+        //TODO + should be methods for the instance of the class.
         static var asyncIterator (Args a)       { ignoreUnused (a); jassertfalse; return var(); } //TODO
         static var hasInstance (Args a)         { ignoreUnused (a); jassertfalse; return var(); } //TODO
         static var isConcatSpreadable (Args a)  { ignoreUnused (a); jassertfalse; return var(); } //TODO
@@ -2674,6 +2716,15 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
     /**
 
         https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Numbers_and_dates
+
+        Demo.print (Number.EPSILON);
+        Demo.print (Number.NaN);
+        Demo.print (Number.NEGATIVE_INFINITY);
+        Demo.print (Number.POSITIVE_INFINITY);
+        Demo.print (Number.MIN_SAFE_INTEGER);
+        Demo.print (Number.MAX_SAFE_INTEGER);
+        Demo.print (Number.MIN_VALUE);
+        Demo.print (Number.MAX_VALUE);
     */
     struct NumberClass final  : public DynamicObject
     {
@@ -2985,6 +3036,31 @@ struct JavascriptEngine::RootObject final  : public DynamicObject
         static var setUint16 (Args a)   { ignoreUnused (a); jassertfalse; return var(); } //TODO
         static var setUint32 (Args a)   { ignoreUnused (a); jassertfalse; return var(); } //TODO
     };
+
+    //==============================================================================
+    /**
+        https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/Using_XMLHttpRequest
+    */
+    struct XMLHttpRequestClass final  : public DynamicObject
+    {
+        XMLHttpRequestClass()
+        {
+            #define XMLHTTPREQUEST_CLASS_METHODS(X)
+
+            #define CREATE_XMLHTTPREQUEST_METHOD(methodName) \
+                    setMethod (JUCE_STRINGIFY (methodName), methodName);
+
+            XMLHTTPREQUEST_CLASS_METHODS (CREATE_XMLHTTPREQUEST_METHOD)
+
+            #undef XMLHTTPREQUEST_CLASS_METHODS
+            #undef CREATE_XMLHTTPREQUEST_METHOD
+        }
+
+        JUCE_JS_IDENTIFY_CLASS ("XMLHttpRequest")
+    };
+
+    //==============================================================================
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RootObject)
 };
 
 //==============================================================================

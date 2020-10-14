@@ -116,7 +116,7 @@
  #define   JUCE_STANDALONE_APPLICATION 0
 #endif
 
-#if JUCE_EVENTS_H_INCLUDED
+#if JUCE_MODULE_AVAILABLE_juce_events
     #include <juce_events/juce_events.h>
 #endif
 
