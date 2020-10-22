@@ -1145,4 +1145,216 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Pimpl)
 };
 
+//==============================================================================
+NSString* kReachabilityChangedNotification = @"kNetworkReachabilityChangedNotification";
+
+@interface Reachability : NSObject
+
+/** Use to check the reachability of a given host name. */
++ (instancetype)reachabilityWithHostName:(NSString *)hostName;
+
+/** Use to check the reachability of a given IP address. */
++ (instancetype)reachabilityWithAddress:(const struct sockaddr *)hostAddress;
+
+/** Checks whether the default route is available.
+    Should be used by applications that do not connect to a particular host.
+*/
++ (instancetype)reachabilityForInternetConnection;
+
+/** Start listening for reachability notifications on the current run loop. */
+- (BOOL)startNotifier;
+- (void)stopNotifier;
+
+- (NetworkConnectivityChecker::NetworkType)currentReachabilityStatus;
+
+/** WWAN may be available, but not active until a connection has been established.
+    WiFi may require a connection for VPN on Demand.
+ */
+- (BOOL)connectionRequired;
+
+@end
+
+static void ReachabilityCallback(SCNetworkReachabilityRef, SCNetworkReachabilityFlags, void* info)
+{
+    NSCAssert (info != nullptr, @"info was NULL in ReachabilityCallback");
+    NSCAssert ([(__bridge NSObject*) info isKindOfClass: [Reachability class]], @"info was wrong class in ReachabilityCallback");
+
+    Reachability* noteObject = (__bridge Reachability *)info;
+    // Post a notification to notify the client that the network reachability changed.
+    [[NSNotificationCenter defaultCenter] postNotificationName: kReachabilityChangedNotification object: noteObject];
+}
+
+@implementation Reachability
+{
+    SCNetworkReachabilityRef _reachabilityRef;
+}
+
++ (instancetype)reachabilityWithHostName:(NSString *)hostName
+{
+    auto reachability = SCNetworkReachabilityCreateWithName(NULL, [hostName UTF8String]);
+    if (reachability != nullptr)
+    {
+        Reachability* returnValue = [[self alloc] init];
+        if (returnValue != nullptr)
+            returnValue->_reachabilityRef = reachability;
+
+        CFRelease(reachability);
+        return returnValue;
+    }
+
+    return nullptr;
+}
+
++ (instancetype)reachabilityWithAddress:(const struct sockaddr *)hostAddress
+{
+    SCNetworkReachabilityRef reachability = SCNetworkReachabilityCreateWithAddress(kCFAllocatorDefault, hostAddress);
+    if (reachability != nullptr)
+    {
+        Reachability* returnValue = [[self alloc] init];
+        if (returnValue != nullptr)
+            returnValue->_reachabilityRef = reachability;
+        else
+            CFRelease(reachability);
+
+        return returnValue;
+    }
+
+    return nullptr;
+}
+
++ (instancetype)reachabilityForInternetConnection
+{
+    struct sockaddr_in zeroAddress;
+    bzero(&zeroAddress, sizeof (zeroAddress));
+    zeroAddress.sin_len = sizeof (zeroAddress);
+    zeroAddress.sin_family = AF_INET;
+
+    return [self reachabilityWithAddress: (const struct sockaddr *) &zeroAddress];
+}
+
+- (BOOL)startNotifier
+{
+    SCNetworkReachabilityContext context = { 0, (__bridge void *)(self), nullptr, nullptr, nullptr };
+
+    if (SCNetworkReachabilitySetCallback(_reachabilityRef, ReachabilityCallback, &context))
+        if (SCNetworkReachabilityScheduleWithRunLoop(_reachabilityRef, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode))
+            return YES;
+
+    return NO;
+}
+
+- (void)stopNotifier
+{
+    if (_reachabilityRef != nullptr)
+        SCNetworkReachabilityUnscheduleFromRunLoop(_reachabilityRef, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
+}
+
+- (void)dealloc
+{
+    [self stopNotifier];
+    if (_reachabilityRef != nullptr)
+        CFRelease(_reachabilityRef);
+}
+
+- (NetworkConnectivityChecker::NetworkType)networkStatusForFlags:(SCNetworkReachabilityFlags)flags
+{
+    if ((flags & kSCNetworkReachabilityFlagsReachable) == 0)
+        return NetworkConnectivityChecker::NetworkType::none;
+
+    if ((flags & kSCNetworkReachabilityFlagsConnectionRequired) == 0)
+        return NetworkConnectivityChecker::NetworkType::wifi;
+
+    if ((flags & kSCNetworkReachabilityFlagsConnectionOnDemand) != 0
+        || (flags & kSCNetworkReachabilityFlagsConnectionOnTraffic) != 0)
+    {
+        if ((flags & kSCNetworkReachabilityFlagsInterventionRequired) != 0)
+            return NetworkConnectivityChecker::NetworkType::wifi;
+    }
+
+   #if JUCE_IOS
+    if ((flags & kSCNetworkReachabilityFlagsIsWWAN) != 0)
+        return NetworkConnectivityChecker::NetworkType::mobile;
+   #endif
+
+    return NetworkConnectivityChecker::NetworkType::wired;
+}
+
+- (BOOL)connectionRequired
+{
+    NSAssert(_reachabilityRef != nullptr, @"connectionRequired called with NULL reachabilityRef");
+    SCNetworkReachabilityFlags flags;
+
+    if (SCNetworkReachabilityGetFlags(_reachabilityRef, &flags))
+        return (flags & kSCNetworkReachabilityFlagsConnectionRequired) != 0;
+
+    return NO;
+}
+
+- (NetworkConnectivityChecker::NetworkType)currentReachabilityStatus
+{
+    NSAssert(_reachabilityRef != nullptr, @"currentNetworkStatus called with NULL SCNetworkReachabilityRef");
+    SCNetworkReachabilityFlags flags;
+
+    if (SCNetworkReachabilityGetFlags(_reachabilityRef, &flags))
+        return [self networkStatusForFlags:flags];
+
+    return NetworkConnectivityChecker::NetworkType::none;
+}
+
+@end
+
+NetworkConnectivityChecker::NetworkType getCurrentSystemNetworkType()
+{
+    Reachability* reachability = [Reachability reachabilityForInternetConnection];
+    auto status = [reachability currentReachabilityStatus];
+
+    return [reachability currentReachabilityStatus];
+}
+
+#import <CoreWLAN/CoreWLAN.h>
+
+struct AccessPoint
+{
+    String ssid, bssid;
+    int rssi;
+};
+
+Array<AccessPoint> scanAir(const string& interfaceName)
+{
+    NSString* ifName = [NSString stringWithUTF8String:interfaceName.c_str()];
+    CWInterface* interface = [CWInterface interfaceWithName:ifName];
+
+    NSError* error = nil;
+    NSArray* scanResult = [[interface scanForNetworksWithSSID:nil error:&error] allObjects];
+    if (error)
+        NSLog(@"%@ (%ld)", [error localizedDescription], [error code]);
+
+    Array<AccessPoint> result;
+    for (CWNetwork* network in scanResult)
+    {
+        AccessPoint ap;
+        ap.ssid = String ([[network ssid] UTF8String]);
+        ap.bssi = String ([[network bssid] UTF8String]);
+        ap.rssi = [network rssiValue];
+        result.add (ap);
+    }
+
+    return result;
+}
+
+double NetworkConnectivityChecker::getCurrentSystemRSSI()
+{
+    // According to https://forums.developer.apple.com/thread/67932 ,
+    // Apple has has no interest in making RSSI data available.
+    return 1.0;
+}
+
+String NetworkConnectivityChecker::getCurrentNetworkName() const
+{
+}
+
+StringArray NetworkConnectivityChecker::getNetworkNames() const
+{
+}
+
 } // namespace juce

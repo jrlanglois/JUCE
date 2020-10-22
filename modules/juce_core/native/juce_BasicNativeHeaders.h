@@ -36,6 +36,9 @@
   #import <UIKit/UIKit.h>
   #import <CoreData/CoreData.h>
   #import <MobileCoreServices/MobileCoreServices.h>
+  #import <CoreFoundation/CoreFoundation.h>
+  #import <SystemConfiguration/SystemConfiguration.h>
+
   #include <sys/fcntl.h>
  #else
   #if JUCE_MODULE_AVAILABLE_juce_opengl && defined (MAC_OS_X_VERSION_10_14) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
@@ -126,7 +129,8 @@
   #pragma warning (push, 0) // disable all warnings whilst including system headers
  #endif
 
- #define NOMINMAX
+ #undef NOMINMAX
+ #define NOMINMAX 1
 
  #define _WINSOCK_DEPRECATED_NO_WARNINGS 1
  #define STRICT 1
@@ -159,6 +163,8 @@
  #include <shlwapi.h>
  #include <mmsystem.h>
  #include <winioctl.h>
+ #include <netlistmgr.h>
+ #include <Wlanapi.h>
 
  #if JUCE_MINGW
   #include <basetyps.h>
@@ -191,6 +197,8 @@
   #pragma comment (lib, "version.lib")
   #pragma comment (lib, "shlwapi.lib")
   #pragma comment (lib, "winmm.lib")
+  #pragma comment (lib, "iphlpapi.lib")
+  #pragma comment (lib, "wlanapi.lib")
 
   #ifdef _NATIVE_WCHAR_T_DEFINED
    #ifdef _DEBUG
@@ -249,6 +257,8 @@
  #include <sys/wait.h>
  #include <utime.h>
  #include <poll.h>
+ #include <linux/wireless.h>
+ #include <ifaddrs.h>
 
 //==============================================================================
 #elif JUCE_BSD

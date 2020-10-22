@@ -582,4 +582,98 @@ std::unique_ptr<URL::DownloadTask> URL::downloadToFile (const File& targetLocati
 }
 #endif
 
+bool isProbablyWifiConnection (const char* ifname)
+{
+    auto openedSocket = socket (AF_INET, SOCK_STREAM, 0);
+    if (openedSocket == -1)
+        return false;
+
+    struct iwreq iwrq;
+    zerostruct (iwrq);
+    std::strncpy (iwrq.ifr_name, ifname, sizeof (iwrq.ifr_name) - 1);
+    const bool isValid = ioctl (openedSocket, SIOCGIWNAME, &iwrq) != -1;
+    close (openedSocket);
+    return isValid;
+}
+
+double getSSID (const char* ifname)
+{
+    auto openedSocket = socket (AF_INET, SOCK_STREAM, 0);
+    if (openedSocket == -1)
+        return 0.0;
+
+    struct iwreq iwrq;
+    zerostruct (iwrq);
+    std::strncpy (iwrq.ifr_name, ifname, sizeof (iwrq.ifr_name) - 1);
+    const bool isValid = ioctl (openedSocket, SIOCGIWESSID, &iwrq) != -1;
+    close (openedSocket);
+    return isValid
+        ? (double) wreq.u.qual.qual
+        : 0.0;
+}
+
+struct IfAddrsRAII
+{
+    IfAddrsRAII() noexcept
+    {
+        if (getifaddrs (&interfaces) == -1)
+            interfaces = nullptr;
+
+        jassert (interfaces != nullptr); //Error getting current Linux network state...
+    }
+
+    ~IfAddrsRAII() noexcept
+    {
+        if (interfaces != nullptr)
+            freeifaddrs (interfaces);
+    }
+
+    struct ifaddrs* interfaces = nullptr;
+};
+
+NetworkConnectivityChecker::NetworkType getCurrentSystemNetworkType()
+{
+    IfAddrsRAII instance;
+
+    for (auto* iter = instance.interfaces; iter != nullptr; iter = iter->ifa_next)
+    {
+        if ((iter->ifa_flags & IFF_LOOPBACK) == 0
+            && (iter->ifa_flags & IFF_RUNNING) != 0
+            && iter->ifa_addr != nullptr
+            && iter->ifa_addr->sa_family == AF_PACKET)
+        {
+           return isProbablyWifiConnection (iter->ifa_name)
+                ? NetworkConnectivityChecker::NetworkType::wifi
+                : NetworkConnectivityChecker::NetworkType::wired;
+        }
+    }
+
+    return NetworkConnectivityChecker::NetworkType::none;
+}
+
+double NetworkConnectivityChecker::getCurrentSystemRSSI()
+{
+    IfAddrsRAII instance;
+
+    for (auto* iter = instance.interfaces; iter != nullptr; iter = iter->ifa_next)
+    {
+        if ((iter->ifa_flags & IFF_LOOPBACK) == 0
+            && (iter->ifa_flags & IFF_RUNNING) != 0
+            && isProbablyWifiConnection (iter->ifa_name))
+        {
+           return getSSID (iter->ifa_name);
+        }
+    }
+
+    return 0.0;
+}
+
+String NetworkConnectivityChecker::getCurrentNetworkName() const
+{
+}
+
+StringArray NetworkConnectivityChecker::getNetworkNames() const
+{
+}
+
 } // namespace juce
