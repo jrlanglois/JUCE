@@ -685,7 +685,7 @@ Array<MIB_IF_ROW2> getAllEnabledNetworkDevices()
     return devices;
 }
 
-NetworkConnectivityChecker::NetworkType getCurrentSystemNetworkType()
+NetworkDetails::NetworkType NetworkDetails::getCurrentNetworkType()
 {
     for (const auto& possibleNetworkDevice : getAllEnabledNetworkDevices())
     {
@@ -695,34 +695,35 @@ NetworkConnectivityChecker::NetworkType getCurrentSystemNetworkType()
             {
                 case IF_TYPE_IEEE80211:
                 case 281 /* IF_TYPE_XBOX_WIRELESS */:
-                    return NetworkConnectivityChecker::NetworkType::wifi;
+                    return NetworkDetails::NetworkType::wifi;
 
                 case IF_TYPE_ETHERNET_CSMACD:
                 case IF_TYPE_ETHERNET_3MBIT:
                 case IF_TYPE_FASTETHER:
                 case IF_TYPE_FASTETHER_FX:
                 case IF_TYPE_GIGABITETHERNET:
-                    return NetworkConnectivityChecker::NetworkType::wired;
+                case IF_TYPE_FIBRECHANNEL:
+                    return NetworkDetails::NetworkType::wired;
 
                 case IF_TYPE_WWANPP:
                 case IF_TYPE_WWANPP2:
-                    return NetworkConnectivityChecker::NetworkType::mobile;
+                    return NetworkDetails::NetworkType::mobile;
 
                 case IF_TYPE_SIP:
                 case IF_TYPE_COFFEE:
                     Logger::writeToLog ("You succeeded in efficiently combining coffee with your work inside of the digital realm.");
-                    return NetworkConnectivityChecker::NetworkType::other;
+                    return NetworkDetails::NetworkType::other;
 
                 default:
-                    return NetworkConnectivityChecker::NetworkType::other;
+                    return NetworkDetails::NetworkType::other;
             };
         }
     }
 
-    return NetworkConnectivityChecker::NetworkType::none;
+    return NetworkDetails::NetworkType::none;
 }
 
-double NetworkConnectivityChecker::getCurrentSystemRSSI()
+double NetworkDetails::getCurrentSystemRSSI()
 {
     DWORD maxClient = 2;
     DWORD currentVersion = 0;
@@ -777,7 +778,7 @@ double NetworkConnectivityChecker::getCurrentSystemRSSI()
     return static_cast<double> (wlanBssList->wlanBssEntries[0].uLinkQuality) / 100.0;
 }
 
-String NetworkConnectivityChecker::getCurrentNetworkName() const
+String NetworkDetails::getCurrentNetworkName()
 {
     DWORD maxClient = 2;
     DWORD currentVersion = 0;
@@ -786,19 +787,19 @@ String NetworkConnectivityChecker::getCurrentNetworkName() const
 
     if (WlanOpenHandle (maxClient, nullptr, &currentVersion, &clientHandle) != ERROR_SUCCESS
         || WlanEnumInterfaces (clientHandle, nullptr, &interfaceInfoList) != ERROR_SUCCESS)
-        return 0.0;
+        return {};
 
     for (size_t i = 0; i < (size_t) interfaceInfoList->dwNumberOfItems; ++i)
     {
         auto& info = interfaceInfoList->InterfaceInfo[i];
         if (info.isState == wlan_interface_state_connected)
-            return String (info.strInterfaceDescription, WLAN_MAX_NAME_LENGTH);
+            return { info.strInterfaceDescription, WLAN_MAX_NAME_LENGTH };
     }
 
     return {};
 }
 
-StringArray NetworkConnectivityChecker::getNetworkNames() const
+StringArray NetworkDetails::getNetworkNames()
 {
     DWORD maxClient = 2;
     DWORD currentVersion = 0;
@@ -807,10 +808,10 @@ StringArray NetworkConnectivityChecker::getNetworkNames() const
 
     if (WlanOpenHandle (maxClient, nullptr, &currentVersion, &clientHandle) != ERROR_SUCCESS
         || WlanEnumInterfaces (clientHandle, nullptr, &interfaceInfoList) != ERROR_SUCCESS)
-        return 0.0;
+        return {};
 
     StringArray names;
-    names.ensureStorageAllocated ((int) interfaceInfoList->dwNumberOfItems)
+    names.ensureStorageAllocated ((int) interfaceInfoList->dwNumberOfItems);
 
     for (size_t i = 0; i < (size_t) interfaceInfoList->dwNumberOfItems; ++i)
     {

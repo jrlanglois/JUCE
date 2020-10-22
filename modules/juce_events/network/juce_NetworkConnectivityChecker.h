@@ -26,7 +26,7 @@ namespace juce
 /** Use an instance of this class to find out details about internet connectivity,
     and register a NetworkListener to find out when connectivity changes.
 */
-class NetworkConnectivityChecker final : private Timer
+class JUCE_API  NetworkConnectivityChecker  final : private Timer
 {
 public:
     /** Default constructor. */
@@ -44,37 +44,8 @@ public:
     /** Stops checking for connectivity changes. */
     void stop();
 
-    //==============================================================================
-    /** */
-    enum class NetworkType
-    {
-        none,   /*!< There is no network connection. */
-        wifi,   /*!< The current network connection is wifi. */
-        wired,  /*!< The current network connection is wired, such as an ethernet connection. */
-        mobile  /*!< The current network connection is mobile, such as a 3G or 4G network. */
-    };
-
     /** @returns the last known network type. */
-    NetworkType getLastKnownNetworkType() const { return networkType; }
-
-    /** @returns a native call to the most current network type. */
-    NetworkType getCurrentNetworkType() const;
-
-    /** @returns true if an internet connection is present, regardless of how it's present. */
-    bool isConnectedToInternet() const;
-
-    //==============================================================================
-    /** @returns */
-    String getCurrentNetworkName() const;
-
-    /** @returns */
-    StringArray getNetworkNames() const;
-
-    /** @returns a normalised (0.0 to 1.0) Received Signal Strength Indicator.
-
-        @note This is only applicable to wifi and mobile data connectivity.
-    */
-    double getRSSI();
+    NetworkDetails::NetworkType getLastKnownNetworkType() const { return networkType; }
 
     //==============================================================================
     /** */
@@ -84,7 +55,7 @@ public:
         virtual ~NetworkListener() {}
 
         /** */
-        virtual void networkStatusChanged() = 0;
+        virtual void networkStatusChanged (NetworkDetails::NetworkType newNetworkType) = 0;
     };
 
     /** */
@@ -93,15 +64,16 @@ public:
     /** */
     void removeListener (NetworkListener* listener);
 
+    /** You can assign a lambda to this callback object to have it called when the NetworkType is changed. */
+    std::function<void (NetworkDetails::NetworkType)> onChange;
+
 private:
     //==============================================================================
-    NetworkType networkType = NetworkType::none;
+    NetworkDetails::NetworkType networkType = NetworkDetails::NetworkType::none;
     ListenerList<NetworkListener> listeners;
 
     void notifyListeners();
     void timerCallback() override;
-
-    double getCurrentSystemRSSI();
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NetworkConnectivityChecker)

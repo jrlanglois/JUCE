@@ -23,48 +23,33 @@
 namespace juce
 {
 
-NetworkConnectivityChecker::NetworkConnectivityChecker()                { networkType = getCurrentNetworkType(); start(); }
+NetworkConnectivityChecker::NetworkConnectivityChecker()  : networkType (NetworkDetails::getCurrentNetworkType()) {}
 void NetworkConnectivityChecker::start (int intervalMs)                 { startTimer (intervalMs); }
 void NetworkConnectivityChecker::stop()                                 { stopTimer(); }
-bool NetworkConnectivityChecker::isConnectedToInternet() const          { return getCurrentNetworkType() != NetworkType::none; }
 void NetworkConnectivityChecker::addListener (NetworkListener* l)       { listeners.add (l); }
 void NetworkConnectivityChecker::removeListener (NetworkListener* l)    { listeners.remove (l); }
 
-NetworkConnectivityChecker::NetworkType NetworkConnectivityChecker::getCurrentNetworkType() const
-{
-    return getCurrentSystemNetworkType();
-}
-
 void NetworkConnectivityChecker::notifyListeners()
 {
-    listeners.call ([&] (NetworkConnectivityChecker::NetworkListener& l) { l.networkStatusChanged(); });
+    listeners.call ([&] (NetworkConnectivityChecker::NetworkListener& l) { l.networkStatusChanged (networkType); });
+
+    if (onChange != nullptr)
+        onChange (networkType);
 }
 
 void NetworkConnectivityChecker::timerCallback()
 {
-    const auto currentNetworkType = getCurrentNetworkType();
+    const auto currentNetworkType = NetworkDetails::getCurrentNetworkType();
 
     //NB: This weird looking condition is just checking if the last known state
     //    was connected and now it's disconnected, or vice-versa.
-    //    We don't care about the type of network in this case, just that it has changed.
-    //    ie: "connected" was 1 now 0, or was 0 now 1
-    if ((networkType != NetworkType::none) != (currentNetworkType != NetworkType::none))
+    //    We don't care about the type of network in this case; just that it has changed.
+    //    ie: "connected" was 1 now 0, or was 0 now 1.
+    if ((networkType != NetworkDetails::NetworkType::none) != (currentNetworkType != NetworkDetails::NetworkType::none))
     {
         networkType = currentNetworkType;
         notifyListeners();
     }
 }
 
-double NetworkConnectivityChecker::getRSSI()
-{
-    const auto currentNetworkType = getCurrentNetworkType();
-    if (currentNetworkType == NetworkType::none)
-        return 0.0;
-
-    if (currentNetworkType != NetworkType::wifi && currentNetworkType != NetworkType::mobile)
-        return 1.0;
-
-    return getCurrentSystemRSSI();
-}
-
-} //juce
+} // namespace juce

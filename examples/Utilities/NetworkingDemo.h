@@ -50,13 +50,19 @@
 
 //==============================================================================
 class NetworkingDemo   : public Component,
-                         private Thread
+                         private Thread,
+                         private NetworkConnectivityChecker::NetworkListener
 {
 public:
     NetworkingDemo()
         : Thread ("Network Demo")
     {
         setOpaque (true);
+
+        connectionText.setMinimumHorizontalScale (1.0f);
+        connectionText.setColour (Label::textColourId, Colours::white);
+        addAndMakeVisible (connectionText);
+        addAndMakeVisible (connectionType);
 
         addAndMakeVisible (urlBox);
         urlBox.setText ("https://www.google.com");
@@ -68,6 +74,17 @@ public:
         addAndMakeVisible (resultsBox);
 
         setSize (500, 500);
+
+        //NB: just to force an initial set up for the label.
+        networkStatusChanged (NetworkDetails::getCurrentNetworkType());
+
+        checker.addListener (this);
+        checker.start();
+    }
+
+    ~NetworkingDemo()
+    {
+        checker.removeListener (this);
     }
 
     void paint (Graphics& g) override
@@ -81,6 +98,11 @@ public:
 
         {
             auto topArea = area.removeFromTop (40);
+
+            connectionText.setBounds (topArea.removeFromLeft (120).reduced (8));
+            connectionType.setBounds (topArea);
+
+            topArea = area.removeFromTop (40);
             fetchButton.setBounds (topArea.removeFromRight (180).reduced (8));
             urlBox     .setBounds (topArea.reduced (8));
         }
@@ -120,7 +142,33 @@ public:
         return "Failed to connect!";
     }
 
+    void networkStatusChanged (NetworkDetails::NetworkType type) override
+    {
+        String s;
+        auto c = Colours::green;
+
+        switch (type)
+        {
+            case NetworkDetails::NetworkType::wifi:     s << "wifi";  break;
+            case NetworkDetails::NetworkType::wired:    s << "wired";  break;
+            case NetworkDetails::NetworkType::mobile:   s << "mobile";  break;
+            case NetworkDetails::NetworkType::other:    s << "other";  break;
+
+            case NetworkDetails::NetworkType::none:
+            default:
+                s << "not connected";
+                c = Colours::red;
+            break;
+        };
+
+        connectionType.setText (s, dontSendNotification);
+        connectionType.setColour (Label::textColourId, c);
+    }
+
 private:
+    NetworkConnectivityChecker checker;
+    Label connectionText { {}, "Network type: " }, connectionType;
+
     TextEditor urlBox;
     TextButton fetchButton { "Download URL Contents" };
 

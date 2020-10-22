@@ -608,7 +608,7 @@ double getSSID (const char* ifname)
     const bool isValid = ioctl (openedSocket, SIOCGIWESSID, &iwrq) != -1;
     close (openedSocket);
     return isValid
-        ? (double) wreq.u.qual.qual
+        ? (double) iwrq.u.qual.qual
         : 0.0;
 }
 
@@ -631,7 +631,7 @@ struct IfAddrsRAII
     struct ifaddrs* interfaces = nullptr;
 };
 
-NetworkConnectivityChecker::NetworkType getCurrentSystemNetworkType()
+NetworkDetails::NetworkType NetworkDetails::getCurrentNetworkType()
 {
     IfAddrsRAII instance;
 
@@ -643,15 +643,15 @@ NetworkConnectivityChecker::NetworkType getCurrentSystemNetworkType()
             && iter->ifa_addr->sa_family == AF_PACKET)
         {
            return isProbablyWifiConnection (iter->ifa_name)
-                ? NetworkConnectivityChecker::NetworkType::wifi
-                : NetworkConnectivityChecker::NetworkType::wired;
+                ? NetworkDetails::NetworkType::wifi
+                : NetworkDetails::NetworkType::wired;
         }
     }
 
-    return NetworkConnectivityChecker::NetworkType::none;
+    return NetworkDetails::NetworkType::none;
 }
 
-double NetworkConnectivityChecker::getCurrentSystemRSSI()
+double NetworkDetails::getCurrentSystemRSSI()
 {
     IfAddrsRAII instance;
 
@@ -668,12 +668,34 @@ double NetworkConnectivityChecker::getCurrentSystemRSSI()
     return 0.0;
 }
 
-String NetworkConnectivityChecker::getCurrentNetworkName() const
+String NetworkDetails::getCurrentNetworkName()
 {
+    IfAddrsRAII instance;
+
+    for (auto* iter = instance.interfaces; iter != nullptr; iter = iter->ifa_next)
+        if ((iter->ifa_flags & IFF_LOOPBACK) == 0 && (iter->ifa_flags & IFF_RUNNING) != 0)
+           return iter->ifa_name;
+
+    return {};
 }
 
-StringArray NetworkConnectivityChecker::getNetworkNames() const
+StringArray NetworkDetails::getNetworkNames (bool showWifiOnly)
 {
+    StringArray names;
+    IfAddrsRAII instance;
+
+    for (auto* iter = instance.interfaces; iter != nullptr; iter = iter->ifa_next)
+    {
+        if ((iter->ifa_flags & IFF_LOOPBACK) == 0)
+        {
+            if (showWifiOnly && ! isProbablyWifiConnection (iter->ifa_name))
+                continue;
+
+            names.add (iter->ifa_name);
+        }
+    }
+
+    return names;
 }
 
 } // namespace juce
