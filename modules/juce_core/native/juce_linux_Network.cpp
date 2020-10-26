@@ -582,6 +582,11 @@ std::unique_ptr<URL::DownloadTask> URL::downloadToFile (const File& targetLocati
 }
 #endif
 
+//==============================================================================
+/** Determining which type of connection is a tough one to figure out on Linux.
+    The provided name to look at might be wifi-like as specified by SIOCGIWNAME,
+    but it might be some other network device as well!
+*/
 bool isProbablyWifiConnection (const char* ifname)
 {
     auto openedSocket = socket (AF_INET, SOCK_STREAM, 0);
@@ -594,22 +599,6 @@ bool isProbablyWifiConnection (const char* ifname)
     const bool isValid = ioctl (openedSocket, SIOCGIWNAME, &iwrq) != -1;
     close (openedSocket);
     return isValid;
-}
-
-double getSSID (const char* ifname)
-{
-    auto openedSocket = socket (AF_INET, SOCK_STREAM, 0);
-    if (openedSocket == -1)
-        return 0.0;
-
-    struct iwreq iwrq;
-    zerostruct (iwrq);
-    std::strncpy (iwrq.ifr_name, ifname, sizeof (iwrq.ifr_name) - 1);
-    const bool isValid = ioctl (openedSocket, SIOCGIWESSID, &iwrq) != -1;
-    close (openedSocket);
-    return isValid
-        ? (double) iwrq.u.qual.qual
-        : 0.0;
 }
 
 struct IfAddrsRAII
@@ -649,6 +638,22 @@ NetworkDetails::NetworkType NetworkDetails::getCurrentNetworkType()
     }
 
     return NetworkDetails::NetworkType::none;
+}
+
+double getSSID (const char* ifname)
+{
+    auto openedSocket = socket (AF_INET, SOCK_STREAM, 0);
+    if (openedSocket == -1)
+        return 0.0;
+
+    struct iwreq iwrq;
+    zerostruct (iwrq);
+    std::strncpy (iwrq.ifr_name, ifname, sizeof (iwrq.ifr_name) - 1);
+    const bool isValid = ioctl (openedSocket, SIOCGIWESSID, &iwrq) != -1;
+    close (openedSocket);
+    return isValid
+            ? (double) iwrq.u.qual.qual
+            : 0.0;
 }
 
 double NetworkDetails::getCurrentSystemRSSI()

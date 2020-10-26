@@ -45,8 +45,13 @@ public:
 
     /** @returns true if a network connection is present, regardless of how it's present.
 
-        @note This does NOT guarantee internet connectivity (eg: able to reach http://google.com).
-              The purpose is to simply guarantee that that a network connection is made.
+        @note This does NOT guarantee internet connectivity (eg: able to reach http://google.com),
+              although for most circumstances this should be sufficient.
+              Generally speaking, the purpose is to simply guarantee that a network connection is made.
+
+              For example: if your device is connected to a wifi router, this will return true.
+              The issue is that the router itself might not have upstream internet access,
+              or external access outside of its network (eg: the upstream router might be blocking internet access).
     */
     static bool isConnectedToNetwork();
 
