@@ -642,6 +642,10 @@ std::unique_ptr<URL::DownloadTask> URL::downloadToFile (const File& targetLocati
 }
 
 //==============================================================================
+#ifndef IF_TYPE_XBOX_WIRELESS
+ #define IF_TYPE_XBOX_WIRELESS 281
+#endif
+
 /**
     @see https://msdn.microsoft.com/en-us/library/windows/desktop/aa814491(v=vs.85).aspx
          "PhysicalMediumType" for a full list
@@ -663,6 +667,7 @@ Array<MIB_IF_ROW2> getEnabledNetworkDevices (NDIS_PHYSICAL_MEDIUM type)
             if (GetIfEntry2 (&row) == NOERROR
                 && row.PhysicalMediumType == type
                 && row.TunnelType == TUNNEL_TYPE_NONE
+                && row.OperStatus == IfOperStatusUp
                 && row.AccessType != NET_IF_ACCESS_LOOPBACK
                 && row.InterfaceAndOperStatusFlags.HardwareInterface == TRUE)
             {
@@ -687,37 +692,38 @@ Array<MIB_IF_ROW2> getAllEnabledNetworkDevices()
 
 NetworkDetails::NetworkType NetworkDetails::getCurrentNetworkType()
 {
-    for (const auto& possibleNetworkDevice : getAllEnabledNetworkDevices())
+    for (const auto& device : getAllEnabledNetworkDevices())
     {
-        if (possibleNetworkDevice.MediaConnectState == MediaConnectStateConnected)
+        if (device.MediaConnectState != MediaConnectStateConnected)
+            continue;
+
+        switch (device.Type)
         {
-            switch (possibleNetworkDevice.Type)
-            {
-                case IF_TYPE_IEEE80211:
-                case 281 /* IF_TYPE_XBOX_WIRELESS */:
-                    return NetworkDetails::NetworkType::wifi;
+            case IF_TYPE_IEEE80211:
+            case IF_TYPE_XBOX_WIRELESS:
+                return NetworkDetails::NetworkType::wifi;
 
-                case IF_TYPE_ETHERNET_CSMACD:
-                case IF_TYPE_ETHERNET_3MBIT:
-                case IF_TYPE_FASTETHER:
-                case IF_TYPE_FASTETHER_FX:
-                case IF_TYPE_GIGABITETHERNET:
-                case IF_TYPE_FIBRECHANNEL:
-                    return NetworkDetails::NetworkType::wired;
+            case IF_TYPE_ETHERNET_CSMACD:
+            case IF_TYPE_ETHERNET_3MBIT:
+            case IF_TYPE_FASTETHER:
+            case IF_TYPE_FASTETHER_FX:
+            case IF_TYPE_GIGABITETHERNET:
+            case IF_TYPE_FIBRECHANNEL:
+                return NetworkDetails::NetworkType::wired;
 
-                case IF_TYPE_WWANPP:
-                case IF_TYPE_WWANPP2:
-                    return NetworkDetails::NetworkType::mobile;
+            case IF_TYPE_WWANPP:
+            case IF_TYPE_WWANPP2:
+            case IF_TYPE_IEEE80216_WMAN:
+                return NetworkDetails::NetworkType::mobile;
 
-                case IF_TYPE_SIP:
-                case IF_TYPE_COFFEE:
-                    Logger::writeToLog ("You succeeded in efficiently combining coffee with your work inside of the digital realm.");
-                    return NetworkDetails::NetworkType::other;
+            case IF_TYPE_SIP:
+            case IF_TYPE_COFFEE:
+                Logger::writeToLog ("You succeeded in efficiently combining coffee with your work inside of the digital realm.");
+                return NetworkDetails::NetworkType::other;
 
-                default:
-                    return NetworkDetails::NetworkType::other;
-            };
-        }
+            default:
+                return NetworkDetails::NetworkType::other;
+        };
     }
 
     return NetworkDetails::NetworkType::none;
@@ -799,25 +805,37 @@ String NetworkDetails::getCurrentNetworkName()
     return {};
 }
 
-StringArray NetworkDetails::getNetworkNames()
+StringArray NetworkDetails::getNetworkNames (bool showWifiOnly)
 {
-    DWORD maxClient = 2;
-    DWORD currentVersion = 0;
-    HANDLE clientHandle = INVALID_HANDLE_VALUE;
-    PWLAN_INTERFACE_INFO_LIST interfaceInfoList = nullptr;
-
-    if (WlanOpenHandle (maxClient, nullptr, &currentVersion, &clientHandle) != ERROR_SUCCESS
-        || WlanEnumInterfaces (clientHandle, nullptr, &interfaceInfoList) != ERROR_SUCCESS)
-        return {};
-
     StringArray names;
-    names.ensureStorageAllocated ((int) interfaceInfoList->dwNumberOfItems);
 
-    for (size_t i = 0; i < (size_t) interfaceInfoList->dwNumberOfItems; ++i)
+    for (const auto& device : getAllEnabledNetworkDevices())
     {
-        auto& info = interfaceInfoList->InterfaceInfo[i];
-        if (info.isState == wlan_interface_state_connected)
-            names.add (String (info.strInterfaceDescription, WLAN_MAX_NAME_LENGTH));
+        auto addName = [&]()
+        {
+            names.add (device.Alias);
+        };
+
+        if (device.MediaConnectState != MediaConnectStateConnected)
+            continue;
+
+        if (showWifiOnly)
+        {
+            switch (device.Type)
+            {
+                case IF_TYPE_IEEE80211:
+                case IF_TYPE_XBOX_WIRELESS:
+                    addName();
+                break;
+
+                default:
+                break;
+            };
+        }
+        else
+        {
+            addName();
+        }
     }
 
     names.minimiseStorageOverheads();
