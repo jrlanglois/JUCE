@@ -1158,6 +1158,7 @@ add_library( ${BINARY_NAME}
     "../../../../../modules/juce_graphics/image_formats/pnglib/pngwrite.c"
     "../../../../../modules/juce_graphics/image_formats/pnglib/pngwtran.c"
     "../../../../../modules/juce_graphics/image_formats/pnglib/pngwutil.c"
+    "../../../../../modules/juce_graphics/image_formats/juce_BMPLoader.cpp"
     "../../../../../modules/juce_graphics/image_formats/juce_GIFLoader.cpp"
     "../../../../../modules/juce_graphics/image_formats/juce_JPEGLoader.cpp"
     "../../../../../modules/juce_graphics/image_formats/juce_PNGLoader.cpp"
@@ -2762,6 +2763,7 @@ set_source_files_properties("../../../../../modules/juce_graphics/image_formats/
 set_source_files_properties("../../../../../modules/juce_graphics/image_formats/pnglib/pngwrite.c" PROPERTIES HEADER_FILE_ONLY TRUE)
 set_source_files_properties("../../../../../modules/juce_graphics/image_formats/pnglib/pngwtran.c" PROPERTIES HEADER_FILE_ONLY TRUE)
 set_source_files_properties("../../../../../modules/juce_graphics/image_formats/pnglib/pngwutil.c" PROPERTIES HEADER_FILE_ONLY TRUE)
+set_source_files_properties("../../../../../modules/juce_graphics/image_formats/juce_BMPLoader.cpp" PROPERTIES HEADER_FILE_ONLY TRUE)
 set_source_files_properties("../../../../../modules/juce_graphics/image_formats/juce_GIFLoader.cpp" PROPERTIES HEADER_FILE_ONLY TRUE)
 set_source_files_properties("../../../../../modules/juce_graphics/image_formats/juce_JPEGLoader.cpp" PROPERTIES HEADER_FILE_ONLY TRUE)
 set_source_files_properties("../../../../../modules/juce_graphics/image_formats/juce_PNGLoader.cpp" PROPERTIES HEADER_FILE_ONLY TRUE)

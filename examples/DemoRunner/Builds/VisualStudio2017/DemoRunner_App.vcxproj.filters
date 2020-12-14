@@ -2056,6 +2056,9 @@
     <ClCompile Include="..\..\..\..\modules\juce_graphics\image_formats\pnglib\pngwutil.c">
       <Filter>JUCE Modules\juce_graphics\image_formats\pnglib</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\modules\juce_graphics\image_formats\juce_BMPLoader.cpp">
+      <Filter>JUCE Modules\juce_graphics\image_formats</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\modules\juce_graphics\image_formats\juce_GIFLoader.cpp">
       <Filter>JUCE Modules\juce_graphics\image_formats</Filter>
     </ClCompile>

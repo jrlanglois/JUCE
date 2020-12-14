@@ -240,8 +240,8 @@ class JUCE_API  BMPImageFormat  : public ImageFileFormat
 {
 public:
     //==============================================================================
-    BMPImageFormat();
-    ~BMPImageFormat() override;
+    BMPImageFormat() = default;
+    ~BMPImageFormat() override = default;
 
     //==============================================================================
     String getFormatName() override;
