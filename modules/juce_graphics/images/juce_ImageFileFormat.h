@@ -29,7 +29,7 @@ namespace juce
 //==============================================================================
 /**
     Base-class for codecs that can read and write image file formats such
-    as PNG, JPEG, etc.
+    as PNG, JPEG, GIF, and WebP.
 
     This class also contains static methods to make it easy to load images
     from files, streams or from memory.
@@ -52,7 +52,7 @@ public:
     //==============================================================================
     /** Returns a description of this file format.
 
-        E.g. "JPEG", "PNG"
+        E.g. "JPEG", "PNG", "GIF, "WebP"
     */
     virtual String getFormatName() = 0;
 
@@ -83,6 +83,16 @@ public:
         @see loadFrom
     */
     virtual Image decodeImage (InputStream& input) = 0;
+
+    /** @returns true if this particular image file format supports parsing frames. */
+    virtual bool supportsFrames() const { return false; }
+
+    /** @returns an array of frames if the format supports loading it,
+        and the file contained multiple frames.
+        The array will contain a single image if the stream is comprised of just that.
+        The array will otherwise be empty if something failed.
+    */
+    virtual Array<Image> decodeFrames (InputStream& input);
 
     //==============================================================================
     /** Attempts to write an image to a stream.
@@ -143,16 +153,15 @@ public:
 /**
     A subclass of ImageFileFormat for reading and writing PNG files.
 
-    @see ImageFileFormat, JPEGImageFormat
+    @see ImageFileFormat, JPEGImageFormat, WebPImageFormat
 
     @tags{Graphics}
 */
-class JUCE_API  PNGImageFormat  : public ImageFileFormat
+class JUCE_API  PNGImageFormat  final  : public ImageFileFormat
 {
 public:
     //==============================================================================
-    PNGImageFormat();
-    ~PNGImageFormat() override;
+    PNGImageFormat() = default;
 
     //==============================================================================
     String getFormatName() override;
@@ -162,27 +171,25 @@ public:
     bool writeImageToStream (const Image&, OutputStream&) override;
 };
 
-
 //==============================================================================
 /**
     A subclass of ImageFileFormat for reading and writing JPEG files.
 
-    @see ImageFileFormat, PNGImageFormat
+    @see ImageFileFormat, PNGImageFormat, WebPImageFormat
 
     @tags{Graphics}
 */
-class JUCE_API  JPEGImageFormat  : public ImageFileFormat
+class JUCE_API  JPEGImageFormat  final  : public ImageFileFormat
 {
 public:
     //==============================================================================
-    JPEGImageFormat();
-    ~JPEGImageFormat() override;
+    JPEGImageFormat() = default;
 
     //==============================================================================
     /** Specifies the quality to be used when writing a JPEG file.
 
         @param newQuality  a value 0 to 1.0, where 0 is low quality, 1.0 is best, or
-                           any negative value is "default" quality
+                           any negative value is "default" quality.
     */
     void setQuality (float newQuality);
 
@@ -194,29 +201,54 @@ public:
     bool writeImageToStream (const Image&, OutputStream&) override;
 
 private:
-    float quality;
+    float quality = -1.0f;
 };
 
 //==============================================================================
 /**
     A subclass of ImageFileFormat for reading GIF files.
 
-    @see ImageFileFormat, PNGImageFormat, JPEGImageFormat
+    @see ImageFileFormat, PNGImageFormat, JPEGImageFormat, WebPImageFormat
 
     @tags{Graphics}
 */
-class JUCE_API  GIFImageFormat  : public ImageFileFormat
+class JUCE_API  GIFImageFormat  final  : public ImageFileFormat
 {
 public:
     //==============================================================================
-    GIFImageFormat();
-    ~GIFImageFormat() override;
+    GIFImageFormat() = default;
 
     //==============================================================================
     String getFormatName() override;
     bool usesFileExtension (const File&) override;
     bool canUnderstand (InputStream&) override;
     Image decodeImage (InputStream&) override;
+    bool supportsFrames() const override { return true; }
+    Array<Image> decodeFrames (InputStream&) override;
+    bool writeImageToStream (const Image&, OutputStream&) override;
+};
+
+//==============================================================================
+/**
+    A subclass of ImageFileFormat for reading WebP files.
+
+    @see ImageFileFormat, PNGImageFormat, JPEGImageFormat, GIFImageFormat
+
+    @tags{Graphics}
+*/
+class JUCE_API  WebPImageFormat  final  : public ImageFileFormat
+{
+public:
+    //==============================================================================
+    WebPImageFormat() = default;
+
+    //==============================================================================
+    String getFormatName() override;
+    bool usesFileExtension (const File&) override;
+    bool canUnderstand (InputStream&) override;
+    Image decodeImage (InputStream&) override;
+    bool supportsFrames() const override { return true; }
+    Array<Image> decodeFrames (InputStream&) override;
     bool writeImageToStream (const Image&, OutputStream&) override;
 };
 

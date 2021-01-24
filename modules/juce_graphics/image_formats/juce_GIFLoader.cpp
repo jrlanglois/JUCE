@@ -415,9 +415,6 @@ private:
 #endif
 
 //==============================================================================
-GIFImageFormat::GIFImageFormat() {}
-GIFImageFormat::~GIFImageFormat() {}
-
 String GIFImageFormat::getFormatName()                  { return "GIF"; }
 bool GIFImageFormat::usesFileExtension (const File& f)  { return f.hasFileExtension ("gif"); }
 
@@ -436,9 +433,20 @@ Image GIFImageFormat::decodeImage (InputStream& in)
    #if (JUCE_MAC || JUCE_IOS) && USE_COREGRAPHICS_RENDERING && JUCE_USE_COREIMAGE_LOADER
     return juce_loadWithCoreImage (in);
    #else
-    const std::unique_ptr<GIFLoader> loader (new GIFLoader (in));
-    return loader->image;
+    const GIFLoader loader (in);
+    return loader.image;
    #endif
+}
+
+Array<Image> GIFImageFormat::decodeFrames (InputStream& input)
+{
+    Array<Image> frames;
+
+    auto image = decodeImage (input);
+    if (image.isValid())
+        frames.add (std::move (image));
+
+    return frames;
 }
 
 bool GIFImageFormat::writeImageToStream (const Image& /*sourceImage*/, OutputStream& /*destStream*/)

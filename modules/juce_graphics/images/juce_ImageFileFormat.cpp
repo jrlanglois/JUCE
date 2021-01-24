@@ -26,7 +26,7 @@
 namespace juce
 {
 
-struct DefaultImageFormats
+struct DefaultImageFormats final
 {
     static ImageFileFormat** get()
     {
@@ -40,21 +40,34 @@ private:
         formats[0] = &png;
         formats[1] = &jpg;
         formats[2] = &gif;
-        formats[3] = nullptr;
+        formats[3] = &webp;
+        formats[4] = nullptr;
     }
 
     PNGImageFormat  png;
     JPEGImageFormat jpg;
     GIFImageFormat  gif;
+    WebPImageFormat webp;
 
-    ImageFileFormat* formats[4];
+    ImageFileFormat* formats[5];
 };
+
+Array<Image> ImageFileFormat::decodeFrames (InputStream& input)
+{
+    Array<Image> frames;
+
+    auto image = decodeImage (input);
+    if (image.isValid())
+        frames.add (std::move (image));
+
+    return frames;
+}
 
 ImageFileFormat* ImageFileFormat::findImageFormatForStream (InputStream& input)
 {
-    const int64 streamPos = input.getPosition();
+    const auto streamPos = input.getPosition();
 
-    for (ImageFileFormat** i = DefaultImageFormats::get(); *i != nullptr; ++i)
+    for (auto** i = DefaultImageFormats::get(); *i != nullptr; ++i)
     {
         const bool found = (*i)->canUnderstand (input);
         input.setPosition (streamPos);
@@ -68,7 +81,7 @@ ImageFileFormat* ImageFileFormat::findImageFormatForStream (InputStream& input)
 
 ImageFileFormat* ImageFileFormat::findImageFormatForFileExtension (const File& file)
 {
-    for (ImageFileFormat** i = DefaultImageFormats::get(); *i != nullptr; ++i)
+    for (auto** i = DefaultImageFormats::get(); *i != nullptr; ++i)
         if ((*i)->usesFileExtension (file))
             return *i;
 
@@ -78,10 +91,10 @@ ImageFileFormat* ImageFileFormat::findImageFormatForFileExtension (const File& f
 //==============================================================================
 Image ImageFileFormat::loadFrom (InputStream& input)
 {
-    if (ImageFileFormat* format = findImageFormatForStream (input))
+    if (auto* format = findImageFormatForStream (input))
         return format->decodeImage (input);
 
-    return Image();
+    return {};
 }
 
 Image ImageFileFormat::loadFrom (const File& file)
@@ -94,7 +107,7 @@ Image ImageFileFormat::loadFrom (const File& file)
         return loadFrom (b);
     }
 
-    return Image();
+    return {};
 }
 
 Image ImageFileFormat::loadFrom (const void* rawData, const size_t numBytes)
@@ -105,7 +118,7 @@ Image ImageFileFormat::loadFrom (const void* rawData, const size_t numBytes)
         return loadFrom (stream);
     }
 
-    return Image();
+    return {};
 }
 
 } // namespace juce

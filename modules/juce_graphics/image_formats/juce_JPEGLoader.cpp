@@ -189,17 +189,17 @@ namespace JPEGHelpers
 
     static void jpegWriteTerminate (j_compress_ptr cinfo)
     {
-        JuceJpegDest* const dest = static_cast<JuceJpegDest*> (cinfo->dest);
+        auto* const dest = static_cast<JuceJpegDest*> (cinfo->dest);
 
-        const size_t numToWrite = jpegBufferSize - dest->free_in_buffer;
+        const auto numToWrite = jpegBufferSize - dest->free_in_buffer;
         dest->output->write (dest->buffer, numToWrite);
     }
 
     static boolean jpegWriteFlush (j_compress_ptr cinfo)
     {
-        JuceJpegDest* const dest = static_cast<JuceJpegDest*> (cinfo->dest);
+        auto* const dest = static_cast<JuceJpegDest*> (cinfo->dest);
 
-        const int numToWrite = jpegBufferSize;
+        const auto numToWrite = jpegBufferSize;
 
         dest->next_output_byte = reinterpret_cast<JOCTET*> (dest->buffer);
         dest->free_in_buffer = jpegBufferSize;
@@ -209,13 +209,6 @@ namespace JPEGHelpers
 }
 
 //==============================================================================
-JPEGImageFormat::JPEGImageFormat()
-    : quality (-1.0f)
-{
-}
-
-JPEGImageFormat::~JPEGImageFormat() {}
-
 void JPEGImageFormat::setQuality (const float newQuality)
 {
     quality = newQuality;
@@ -295,12 +288,12 @@ Image JPEGImageFormat::decodeImage (InputStream& in)
 
             if (! hasFailed)
             {
-                const int width  = (int) jpegDecompStruct.output_width;
-                const int height = (int) jpegDecompStruct.output_height;
+                const auto width  = (int) jpegDecompStruct.output_width;
+                const auto height = (int) jpegDecompStruct.output_height;
 
                 jpegDecompStruct.out_color_space = JCS_RGB;
 
-                JSAMPARRAY buffer
+                auto buffer
                     = (*jpegDecompStruct.mem->alloc_sarray) ((j_common_ptr) &jpegDecompStruct,
                                                              JPOOL_IMAGE,
                                                              (JDIMENSION) width * 3, 1);
@@ -320,8 +313,8 @@ Image JPEGImageFormat::decodeImage (InputStream& in)
                         if (hasFailed)
                             break;
 
-                        const uint8* src = *buffer;
-                        uint8* dest = destData.getLinePointer (y);
+                        const auto* src = *buffer;
+                        auto* dest = destData.getLinePointer (y);
 
                         if (hasAlphaChan)
                         {
@@ -405,20 +398,19 @@ bool JPEGImageFormat::writeImageToStream (const Image& image, OutputStream& out)
 
     jpeg_start_compress (&jpegCompStruct, TRUE);
 
-    const int strideBytes = (int) (jpegCompStruct.image_width * (unsigned int) jpegCompStruct.input_components);
+    const auto strideBytes = (int) (jpegCompStruct.image_width * (unsigned int) jpegCompStruct.input_components);
 
-    JSAMPARRAY buffer = (*jpegCompStruct.mem->alloc_sarray) ((j_common_ptr) &jpegCompStruct,
-                                                             JPOOL_IMAGE, (JDIMENSION) strideBytes, 1);
+    auto buffer = (*jpegCompStruct.mem->alloc_sarray) ((j_common_ptr) &jpegCompStruct, JPOOL_IMAGE, (JDIMENSION) strideBytes, 1);
 
     const Image::BitmapData srcData (image, Image::BitmapData::readOnly);
 
     while (jpegCompStruct.next_scanline < jpegCompStruct.image_height)
     {
-        uint8* dst = *buffer;
+        auto* dst = *buffer;
 
         if (srcData.pixelFormat == Image::RGB)
         {
-            const uint8* src = srcData.getLinePointer ((int) jpegCompStruct.next_scanline);
+            const auto* src = srcData.getLinePointer ((int) jpegCompStruct.next_scanline);
 
             for (int i = srcData.width; --i >= 0;)
             {
@@ -432,7 +424,7 @@ bool JPEGImageFormat::writeImageToStream (const Image& image, OutputStream& out)
         {
             for (int x = 0; x < srcData.width; ++x)
             {
-                const Colour pixel (srcData.getPixelColour (x, (int) jpegCompStruct.next_scanline));
+                const auto pixel = srcData.getPixelColour (x, (int) jpegCompStruct.next_scanline);
                 *dst++ = pixel.getRed();
                 *dst++ = pixel.getGreen();
                 *dst++ = pixel.getBlue();

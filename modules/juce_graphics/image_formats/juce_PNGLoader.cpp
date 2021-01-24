@@ -422,8 +422,8 @@ namespace PNGHelpers
 
         for (int y = 0; y < (int) height; ++y)
         {
-            const uint8* src = rows[y];
-            uint8* dest = destData.getLinePointer (y);
+            const auto* src = rows[y];
+            auto* dest = destData.getLinePointer (y);
 
             if (hasAlphaChan)
             {
@@ -478,16 +478,16 @@ namespace PNGHelpers
                                             (int) width, (int) height, rows);
         }
 
-        return Image();
+        return {};
     }
 
     static Image readImage (InputStream& in)
     {
-        if (png_structp pngReadStruct = png_create_read_struct (PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr))
+        if (auto pngReadStruct = png_create_read_struct (PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr))
         {
-            if (png_infop pngInfoStruct = png_create_info_struct (pngReadStruct))
+            if (auto pngInfoStruct = png_create_info_struct (pngReadStruct))
             {
-                Image image (readImage (in, pngReadStruct, pngInfoStruct));
+                auto image = readImage (in, pngReadStruct, pngInfoStruct);
                 png_destroy_read_struct (&pngReadStruct, &pngInfoStruct, nullptr);
                 return image;
             }
@@ -495,15 +495,12 @@ namespace PNGHelpers
             png_destroy_read_struct (&pngReadStruct, nullptr, nullptr);
         }
 
-        return Image();
+        return {};
     }
    #endif
 }
 
 //==============================================================================
-PNGImageFormat::PNGImageFormat()    {}
-PNGImageFormat::~PNGImageFormat()   {}
-
 String PNGImageFormat::getFormatName()                   { return "PNG"; }
 bool PNGImageFormat::usesFileExtension (const File& f)   { return f.hasFileExtension ("png"); }
 
@@ -534,8 +531,6 @@ Image PNGImageFormat::decodeImage (InputStream& in)
 bool PNGImageFormat::writeImageToStream (const Image& image, OutputStream& out)
 {
     using namespace pnglibNamespace;
-    auto width = image.getWidth();
-    auto height = image.getHeight();
 
     auto pngWriteStruct = png_create_write_struct (PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
 
@@ -551,6 +546,9 @@ bool PNGImageFormat::writeImageToStream (const Image& image, OutputStream& out)
     }
 
     png_set_write_fn (pngWriteStruct, &out, PNGHelpers::writeDataCallback, nullptr);
+
+    const auto width = image.getWidth();
+    const auto height = image.getHeight();
 
     png_set_IHDR (pngWriteStruct, pngInfoStruct, (png_uint_32) width, (png_uint_32) height, 8,
                   image.hasAlphaChannel() ? PNG_COLOR_TYPE_RGB_ALPHA
@@ -578,8 +576,8 @@ bool PNGImageFormat::writeImageToStream (const Image& image, OutputStream& out)
 
     for (int y = 0; y < height; ++y)
     {
-        uint8* dst = rowData;
-        const uint8* src = srcData.getLinePointer (y);
+        auto* dst = rowData.getData();
+        const auto* src = srcData.getLinePointer (y);
 
         if (image.hasAlphaChannel())
         {
