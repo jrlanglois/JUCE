@@ -281,7 +281,7 @@ namespace tiff
     {
         UncompressedDecoder() = default;
 
-        Image decode (int64 startPos, int64 endPos, InputStream& in) override
+        Image decode (int64 startPos, int64, InputStream& in) override
         {
             if (! in.setPosition (startPos))
                 return {};
