@@ -252,4 +252,62 @@ public:
     bool writeImageToStream (const Image&, OutputStream&) override;
 };
 
+//==============================================================================
+/**
+    A subclass of ImageFileFormat for reading Bitmap files.
+
+    @see ImageFileFormat, PNGImageFormat, JPEGImageFormat, GIFImageFormat
+
+    @tags{Graphics}
+*/
+class JUCE_API  BMPImageFormat  final  : public ImageFileFormat
+{
+public:
+    //==============================================================================
+    BMPImageFormat() = default;
+
+    //==============================================================================
+    String getFormatName() override;
+    bool usesFileExtension (const File&) override;
+    bool canUnderstand (InputStream&) override;
+    Image decodeImage (InputStream&) override;
+    bool writeImageToStream (const Image&, OutputStream&) override;
+};
+
+//==============================================================================
+/**
+    A subclass of ImageFileFormat for reading TIFF files.
+
+    @see ImageFileFormat, PNGImageFormat, JPEGImageFormat, GIFImageFormat
+
+    @tags{Graphics}
+*/
+class JUCE_API  TIFFImageFormat  final  : public ImageFileFormat
+{
+public:
+    //==============================================================================
+    TIFFImageFormat() = default;
+
+    //==============================================================================
+    static const Identifier artistId;
+    static const Identifier copyrightId;
+    static const Identifier dateTimeId;
+    static const Identifier documentNameId;
+    static const Identifier hostComputerId;
+    static const Identifier imageDescriptionId;
+    static const Identifier inkNamesId;
+    static const Identifier makeId;
+    static const Identifier modelId;
+    static const Identifier pageNameId;
+    static const Identifier softwareId;
+    static const Identifier targetPrinterId;
+
+    //==============================================================================
+    String getFormatName() override;
+    bool usesFileExtension (const File&) override;
+    bool canUnderstand (InputStream&) override;
+    Image decodeImage (InputStream&) override;
+    bool writeImageToStream (const Image&, OutputStream&) override;
+};
+
 } // namespace juce

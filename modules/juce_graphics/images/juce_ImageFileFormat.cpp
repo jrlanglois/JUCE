@@ -28,7 +28,9 @@ namespace juce
 
 struct DefaultImageFormats final
 {
-    static ImageFileFormat** get()
+    using ArrayType = std::array<ImageFileFormat*, 6>;
+
+    static ArrayType& get() noexcept
     {
         static DefaultImageFormats formats;
         return formats.formats;
@@ -37,21 +39,28 @@ struct DefaultImageFormats final
 private:
     DefaultImageFormats() noexcept
     {
-        formats[0] = &png;
-        formats[1] = &jpg;
-        formats[2] = &gif;
-        formats[3] = &webp;
-        formats[4] = nullptr;
+        formats =
+        {
+            &png,
+            &jpg,
+            &gif,
+            &webp,
+            &bmp,
+            &tiff
+        };
     }
 
-    PNGImageFormat  png;
+    PNGImageFormat png;
     JPEGImageFormat jpg;
-    GIFImageFormat  gif;
+    GIFImageFormat gif;
     WebPImageFormat webp;
+    BMPImageFormat bmp;
+    TIFFImageFormat tiff;
 
-    ImageFileFormat* formats[5];
+    ArrayType formats;
 };
 
+//==============================================================================
 Array<Image> ImageFileFormat::decodeFrames (InputStream& input)
 {
     Array<Image> frames;
@@ -67,13 +76,13 @@ ImageFileFormat* ImageFileFormat::findImageFormatForStream (InputStream& input)
 {
     const auto streamPos = input.getPosition();
 
-    for (auto** i = DefaultImageFormats::get(); *i != nullptr; ++i)
+    for (auto* i : DefaultImageFormats::get())
     {
-        const bool found = (*i)->canUnderstand (input);
+        const bool found = i->canUnderstand (input);
         input.setPosition (streamPos);
 
         if (found)
-            return *i;
+            return i;
     }
 
     return nullptr;
@@ -81,9 +90,9 @@ ImageFileFormat* ImageFileFormat::findImageFormatForStream (InputStream& input)
 
 ImageFileFormat* ImageFileFormat::findImageFormatForFileExtension (const File& file)
 {
-    for (auto** i = DefaultImageFormats::get(); *i != nullptr; ++i)
-        if ((*i)->usesFileExtension (file))
-            return *i;
+    for (auto* i : DefaultImageFormats::get())
+        if (i->usesFileExtension (file))
+            return i;
 
     return nullptr;
 }
