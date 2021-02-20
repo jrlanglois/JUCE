@@ -4758,66 +4758,70 @@ enum
     hiddenMouseCursorHandle = 32500 // (arbitrary non-zero value to mark this type of cursor)
 };
 
-void* MouseCursor::createStandardMouseCursor (const MouseCursor::StandardCursorType type)
+void* MouseCursor::createStandardMouseCursor (MouseCursor::StandardCursorType type)
 {
     LPCTSTR cursorName = IDC_ARROW;
 
     switch (type)
     {
-        case NormalCursor:
-        case ParentCursor:                  break;
-        case NoCursor:                      return (void*) hiddenMouseCursorHandle;
-        case WaitCursor:                    cursorName = IDC_WAIT; break;
-        case IBeamCursor:                   cursorName = IDC_IBEAM; break;
-        case PointingHandCursor:            cursorName = MAKEINTRESOURCE(32649); break;
-        case CrosshairCursor:               cursorName = IDC_CROSS; break;
+        case StandardCursorType::NormalCursor:
+        case StandardCursorType::ParentCursor:                  break;
+        case StandardCursorType::NoCursor:                      return (void*) hiddenMouseCursorHandle;
+        case StandardCursorType::Help:                          cursorName = IDC_HELP; break;
+        case StandardCursorType::Disallowed:                    cursorName = IDC_NO; break;
+        case StandardCursorType::WaitCursor:                    cursorName = IDC_WAIT; break;
+        case StandardCursorType::IBeamCursor:                   cursorName = IDC_IBEAM; break;
+        case StandardCursorType::PointingHandCursor:            cursorName = IDC_HAND; break;
+        case StandardCursorType::CrosshairCursor:               cursorName = IDC_CROSS; break;
 
-        case LeftRightResizeCursor:
-        case LeftEdgeResizeCursor:
-        case RightEdgeResizeCursor:         cursorName = IDC_SIZEWE; break;
+        case StandardCursorType::LeftRightResizeCursor:
+        case StandardCursorType::LeftEdgeResizeCursor:
+        case StandardCursorType::RightEdgeResizeCursor:         cursorName = IDC_SIZEWE; break;
 
-        case UpDownResizeCursor:
-        case TopEdgeResizeCursor:
-        case BottomEdgeResizeCursor:        cursorName = IDC_SIZENS; break;
+        case StandardCursorType::UpDownResizeCursor:
+        case StandardCursorType::TopEdgeResizeCursor:
+        case StandardCursorType::BottomEdgeResizeCursor:        cursorName = IDC_SIZENS; break;
 
-        case TopLeftCornerResizeCursor:
-        case BottomRightCornerResizeCursor: cursorName = IDC_SIZENWSE; break;
+        case StandardCursorType::TopLeftCornerResizeCursor:
+        case StandardCursorType::BottomRightCornerResizeCursor: cursorName = IDC_SIZENWSE; break;
 
-        case TopRightCornerResizeCursor:
-        case BottomLeftCornerResizeCursor:  cursorName = IDC_SIZENESW; break;
+        case StandardCursorType::TopRightCornerResizeCursor:
+        case StandardCursorType::BottomLeftCornerResizeCursor:  cursorName = IDC_SIZENESW; break;
 
-        case UpDownLeftRightResizeCursor:   cursorName = IDC_SIZEALL; break;
+        case StandardCursorType::UpDownLeftRightResizeCursor:   cursorName = IDC_SIZEALL; break;
 
-        case DraggingHandCursor:
+        case StandardCursorType::DraggingHandCursor:
         {
             static void* dragHandCursor = nullptr;
 
             if (dragHandCursor == nullptr)
             {
-                static const unsigned char dragHandData[] =
-                    { 71,73,70,56,57,97,16,0,16,0,145,2,0,0,0,0,255,255,255,0,0,0,0,0,0,33,249,4,1,0,0,2,0,44,0,0,0,0,16,0,
-                      16,0,0,2,52,148,47,0,200,185,16,130,90,12,74,139,107,84,123,39,132,117,151,116,132,146,248,60,209,138,
-                      98,22,203,114,34,236,37,52,77,217,247,154,191,119,110,240,193,128,193,95,163,56,60,234,98,135,2,0,59 };
+                constexpr uint8 dragHandData[] = {
+                    71,73,70,56,57,97,16,0,16,0,145,2,0,0,0,0,255,255,255,0,0,0,0,0,0,33,249,4,1,0,0,2,0,44,0,0,0,0,16,0,
+                    16,0,0,2,52,148,47,0,200,185,16,130,90,12,74,139,107,84,123,39,132,117,151,116,132,146,248,60,209,138,
+                    98,22,203,114,34,236,37,52,77,217,247,154,191,119,110,240,193,128,193,95,163,56,60,234,98,135,2,0,59
+                };
+                constexpr auto dragHandSize = (size_t) numElementsInArray (dragHandData);
 
-                dragHandCursor = CustomMouseCursorInfo (ImageFileFormat::loadFrom (dragHandData, sizeof (dragHandData)), { 8, 7 }).create();
+                dragHandCursor = CustomMouseCursorInfo (ImageFileFormat::loadFrom (dragHandData, dragHandSize), { 8, 7 }).create();
             }
 
             return dragHandCursor;
         }
 
-        case CopyingCursor:
+        case StandardCursorType::CopyingCursor:
         {
             static void* copyCursor = nullptr;
 
             if (copyCursor == nullptr)
             {
-                static unsigned char copyCursorData[] = {
+                constexpr uint8 copyCursorData[] = {
                     71,73,70,56,57,97,21,0,21,0,145,0,0,0,0,0,255,255,255,0,128,128,255,255,255,33,249,4,1,0,0,3,0,44,0,0,0,0,21,0,
                     21,0,0,2,72,4,134,169,171,16,199,98,11,79,90,71,161,93,56,111,78,133,218,215,137,31,82,154,100,200,86,91,202,142,
                     12,108,212,87,235,174, 15,54,214,126,237,226,37,96,59,141,16,37,18,201,142,157,230,204,51,112,252,114,147,74,83,
-                    5,50,68,147,208,217,16,71,149,252,124,5,0,59,0,0
+                    5,50,68,147,208,217,16,71,149,252,124,5,0,59
                 };
-                const int copyCursorSize = 119;
+                constexpr auto copyCursorSize = (size_t) numElementsInArray (copyCursorData);
 
                 copyCursor = CustomMouseCursorInfo (ImageFileFormat::loadFrom (copyCursorData, copyCursorSize), { 1, 3 }).create();
             }
@@ -4825,7 +4829,7 @@ void* MouseCursor::createStandardMouseCursor (const MouseCursor::StandardCursorT
             return copyCursor;
         }
 
-        case NumStandardCursorTypes: JUCE_FALLTHROUGH
+        case StandardCursorType::NumStandardCursorTypes: JUCE_FALLTHROUGH
         default:
             jassertfalse; break;
     }

@@ -2215,7 +2215,7 @@ void XWindowSystem::deleteMouseCursor (void* cursorHandle) const
 
 void* createDraggingHandCursor()
 {
-    constexpr unsigned char dragHandData[] = {
+    constexpr uint8 dragHandData[] = {
         71,73,70,56,57,97,16,0,16,0,145,2,0,0,0,0,255,255,255,0,0,0,0,0,0,33,249,4,1,0,0,2,0,44,0,0,0,0,16,0,16,0,
         0,2,52,148,47,0,200,185,16,130,90,12,74,139,107,84,123,39,132,117,151,116,132,146,248,60,209,138,98,22,203,
         114,34,236,37,52,77,217, 247,154,191,119,110,240,193,128,193,95,163,56,60,234,98,135,2,0,59
@@ -2233,30 +2233,32 @@ void* XWindowSystem::createStandardMouseCursor (MouseCursor::StandardCursorType 
 
     switch (type)
     {
-        case MouseCursor::NormalCursor:
-        case MouseCursor::ParentCursor:                  return None; // Use parent cursor
-        case MouseCursor::NoCursor:                      return CustomMouseCursorInfo (Image (Image::ARGB, 16, 16, true), {}).create();
+        case MouseCursor::StandardCursorType::NormalCursor:
+        case MouseCursor::StandardCursorType::ParentCursor:                     return None; // Use parent cursor
+        case MouseCursor::StandardCursorType::NoCursor:                         return CustomMouseCursorInfo (Image (Image::ARGB, 16, 16, true), {}).create();
 
-        case MouseCursor::WaitCursor:                    shape = XC_watch; break;
-        case MouseCursor::IBeamCursor:                   shape = XC_xterm; break;
-        case MouseCursor::PointingHandCursor:            shape = XC_hand2; break;
-        case MouseCursor::LeftRightResizeCursor:         shape = XC_sb_h_double_arrow; break;
-        case MouseCursor::UpDownResizeCursor:            shape = XC_sb_v_double_arrow; break;
-        case MouseCursor::UpDownLeftRightResizeCursor:   shape = XC_fleur; break;
-        case MouseCursor::TopEdgeResizeCursor:           shape = XC_top_side; break;
-        case MouseCursor::BottomEdgeResizeCursor:        shape = XC_bottom_side; break;
-        case MouseCursor::LeftEdgeResizeCursor:          shape = XC_left_side; break;
-        case MouseCursor::RightEdgeResizeCursor:         shape = XC_right_side; break;
-        case MouseCursor::TopLeftCornerResizeCursor:     shape = XC_top_left_corner; break;
-        case MouseCursor::TopRightCornerResizeCursor:    shape = XC_top_right_corner; break;
-        case MouseCursor::BottomLeftCornerResizeCursor:  shape = XC_bottom_left_corner; break;
-        case MouseCursor::BottomRightCornerResizeCursor: shape = XC_bottom_right_corner; break;
-        case MouseCursor::CrosshairCursor:               shape = XC_crosshair; break;
-        case MouseCursor::DraggingHandCursor:            return createDraggingHandCursor();
+        case MouseCursor::StandardCursorType::Help:                             shape = XC_question_arrow; break;
+        case MouseCursor::StandardCursorType::Disallowed:                       shape = XC_X_cursor; break;
+        case MouseCursor::StandardCursorType::WaitCursor:                       shape = XC_watch; break;
+        case MouseCursor::StandardCursorType::IBeamCursor:                      shape = XC_xterm; break;
+        case MouseCursor::StandardCursorType::PointingHandCursor:               shape = XC_hand2; break;
+        case MouseCursor::StandardCursorType::LeftRightResizeCursor:            shape = XC_sb_h_double_arrow; break;
+        case MouseCursor::StandardCursorType::UpDownResizeCursor:               shape = XC_sb_v_double_arrow; break;
+        case MouseCursor::StandardCursorType::UpDownLeftRightResizeCursor:      shape = XC_fleur; break;
+        case MouseCursor::StandardCursorType::TopEdgeResizeCursor:              shape = XC_top_side; break;
+        case MouseCursor::StandardCursorType::BottomEdgeResizeCursor:           shape = XC_bottom_side; break;
+        case MouseCursor::StandardCursorType::LeftEdgeResizeCursor:             shape = XC_left_side; break;
+        case MouseCursor::StandardCursorType::RightEdgeResizeCursor:            shape = XC_right_side; break;
+        case MouseCursor::StandardCursorType::TopLeftCornerResizeCursor:        shape = XC_top_left_corner; break;
+        case MouseCursor::StandardCursorType::TopRightCornerResizeCursor:       shape = XC_top_right_corner; break;
+        case MouseCursor::StandardCursorType::BottomLeftCornerResizeCursor:     shape = XC_bottom_left_corner; break;
+        case MouseCursor::StandardCursorType::BottomRightCornerResizeCursor:    shape = XC_bottom_right_corner; break;
+        case MouseCursor::StandardCursorType::CrosshairCursor:                  shape = XC_crosshair; break;
+        case MouseCursor::StandardCursorType::DraggingHandCursor:               return createDraggingHandCursor();
 
-        case MouseCursor::CopyingCursor:
+        case MouseCursor::StandardCursorType::CopyingCursor:
         {
-            constexpr unsigned char copyCursorData[] = {
+            constexpr uint8 copyCursorData[] = {
                 71,73,70,56,57,97,21,0,21,0,145,0,0,0,0,0,255,255,255,0,128,128,255,255,255,33,249,4,1,0,0,3,0,44,0,0,0,0,
                 21,0,21,0,0,2,72,4,134,169,171,16,199,98,11,79,90,71,161,93,56,111,78,133,218,215,137,31,82,154,100,200,
                 86,91,202,142,12,108,212,87,235,174,15,54,214,126,237,226,37,96,59,141,16,37,18,201,142,157,230,204,51,112,
@@ -2266,7 +2268,7 @@ void* XWindowSystem::createStandardMouseCursor (MouseCursor::StandardCursorType 
             return CustomMouseCursorInfo (ImageFileFormat::loadFrom (copyCursorData, (size_t) numElementsInArray (copyCursorData)), { 1, 3 }).create();
         }
 
-        case MouseCursor::NumStandardCursorTypes:
+        case MouseCursor::StandardCursorType::NumStandardCursorTypes:
         default:
         {
             jassertfalse;

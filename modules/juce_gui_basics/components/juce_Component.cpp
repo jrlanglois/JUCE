@@ -2321,7 +2321,7 @@ void Component::internalMouseEnter (MouseInputSource source, Point<float> relati
     if (isCurrentlyBlockedByAnotherModalComponent())
     {
         // if something else is modal, always just show a normal mouse cursor
-        source.showMouseCursor (MouseCursor::NormalCursor);
+        source.showMouseCursor (MouseCursor::StandardCursorType::NormalCursor);
         return;
     }
 
@@ -2349,7 +2349,7 @@ void Component::internalMouseExit (MouseInputSource source, Point<float> relativ
     if (isCurrentlyBlockedByAnotherModalComponent())
     {
         // if something else is modal, always just show a normal mouse cursor
-        source.showMouseCursor (MouseCursor::NormalCursor);
+        source.showMouseCursor (MouseCursor::StandardCursorType::NormalCursor);
         return;
     }
 

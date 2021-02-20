@@ -34,8 +34,8 @@ ResizableEdgeComponent::ResizableEdgeComponent (Component* componentToResize,
      edge (e)
 {
     setRepaintsOnMouseActivity (true);
-    setMouseCursor (isVertical() ? MouseCursor::LeftRightResizeCursor
-                                 : MouseCursor::UpDownResizeCursor);
+    setMouseCursor (isVertical() ? MouseCursor::StandardCursorType::LeftRightResizeCursor
+                                 : MouseCursor::StandardCursorType::UpDownResizeCursor);
 }
 
 ResizableEdgeComponent::~ResizableEdgeComponent() = default;

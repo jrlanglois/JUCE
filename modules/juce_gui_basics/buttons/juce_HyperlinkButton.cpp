@@ -34,7 +34,7 @@ HyperlinkButton::HyperlinkButton (const String& linkText,
      resizeFont (true),
      justification (Justification::centred)
 {
-    setMouseCursor (MouseCursor::PointingHandCursor);
+    setMouseCursor (MouseCursor::StandardCursorType::PointingHandCursor);
     setTooltip (linkURL.toString (false));
 }
 
@@ -44,7 +44,7 @@ HyperlinkButton::HyperlinkButton()
      resizeFont (true),
      justification (Justification::centred)
 {
-    setMouseCursor (MouseCursor::PointingHandCursor);
+    setMouseCursor (MouseCursor::StandardCursorType::PointingHandCursor);
 }
 
 HyperlinkButton::~HyperlinkButton()

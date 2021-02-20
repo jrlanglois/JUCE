@@ -32,7 +32,7 @@ ResizableCornerComponent::ResizableCornerComponent (Component* componentToResize
      constrainer (boundsConstrainer)
 {
     setRepaintsOnMouseActivity (true);
-    setMouseCursor (MouseCursor::BottomRightCornerResizeCursor);
+    setMouseCursor (MouseCursor::StandardCursorType::BottomRightCornerResizeCursor);
 }
 
 ResizableCornerComponent::~ResizableCornerComponent() = default;

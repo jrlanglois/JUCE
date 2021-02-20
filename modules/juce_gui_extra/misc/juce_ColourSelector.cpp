@@ -52,7 +52,7 @@ public:
         : owner (cs), h (hue), s (sat), v (val), edge (edgeSize)
     {
         addAndMakeVisible (marker);
-        setMouseCursor (MouseCursor::CrosshairCursor);
+        setMouseCursor (MouseCursor::StandardCursorType::CrosshairCursor);
     }
 
     void paint (Graphics& g) override

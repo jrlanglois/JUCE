@@ -68,18 +68,18 @@ ResizableBorderComponent::Zone ResizableBorderComponent::Zone::fromPositionOnBor
 
 MouseCursor ResizableBorderComponent::Zone::getMouseCursor() const noexcept
 {
-    auto mc = MouseCursor::NormalCursor;
+    auto mc = MouseCursor::StandardCursorType::NormalCursor;
 
     switch (zone)
     {
-        case (left | top):      mc = MouseCursor::TopLeftCornerResizeCursor; break;
-        case top:               mc = MouseCursor::TopEdgeResizeCursor; break;
-        case (right | top):     mc = MouseCursor::TopRightCornerResizeCursor; break;
-        case left:              mc = MouseCursor::LeftEdgeResizeCursor; break;
-        case right:             mc = MouseCursor::RightEdgeResizeCursor; break;
-        case (left | bottom):   mc = MouseCursor::BottomLeftCornerResizeCursor; break;
-        case bottom:            mc = MouseCursor::BottomEdgeResizeCursor; break;
-        case (right | bottom):  mc = MouseCursor::BottomRightCornerResizeCursor; break;
+        case (left | top):      mc = MouseCursor::StandardCursorType::TopLeftCornerResizeCursor; break;
+        case top:               mc = MouseCursor::StandardCursorType::TopEdgeResizeCursor; break;
+        case (right | top):     mc = MouseCursor::StandardCursorType::TopRightCornerResizeCursor; break;
+        case left:              mc = MouseCursor::StandardCursorType::LeftEdgeResizeCursor; break;
+        case right:             mc = MouseCursor::StandardCursorType::RightEdgeResizeCursor; break;
+        case (left | bottom):   mc = MouseCursor::StandardCursorType::BottomLeftCornerResizeCursor; break;
+        case bottom:            mc = MouseCursor::StandardCursorType::BottomEdgeResizeCursor; break;
+        case (right | bottom):  mc = MouseCursor::StandardCursorType::BottomRightCornerResizeCursor; break;
         default:                break;
     }
 

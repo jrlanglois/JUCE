@@ -40,13 +40,15 @@ class JUCE_API  MouseCursor  final
 public:
     //==============================================================================
     /** The set of available standard mouse cursors. */
-    enum StandardCursorType
+    enum class StandardCursorType
     {
         ParentCursor = 0,               /**< Indicates that the component's parent's cursor should be used. */
 
         NoCursor,                       /**< An invisible cursor. */
         NormalCursor,                   /**< The standard arrow cursor. */
 
+        Help,                           /**< The 'help' cursor. */
+        Disallowed,                     /**< The 'disallowed' or 'invalid' operation cursor. */
         WaitCursor,                     /**< The normal hourglass or spinning-beachball 'busy' cursor. */
         IBeamCursor,                    /**< A vertical I-beam for positioning within text. */
         CrosshairCursor,                /**< A pair of crosshairs. */

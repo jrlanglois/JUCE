@@ -38,7 +38,7 @@ public:
     {
         setAlwaysOnTop (true);
         setRepaintsOnMouseActivity (true);
-        setMouseCursor (MouseCursor::DraggingHandCursor);
+        setMouseCursor (MouseCursor::StandardCursorType::DraggingHandCursor);
     }
 
     void paint (Graphics& g) override

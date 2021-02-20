@@ -345,7 +345,7 @@ CodeEditorComponent::CodeEditorComponent (CodeDocument& doc, CodeTokeniser* cons
     selectionEnd.setPositionMaintained (true);
 
     setOpaque (true);
-    setMouseCursor (MouseCursor::IBeamCursor);
+    setMouseCursor (MouseCursor::StandardCursorType::IBeamCursor);
     setWantsKeyboardFocus (true);
 
     addAndMakeVisible (verticalScrollBar);
@@ -1374,7 +1374,7 @@ void CodeEditorComponent::mouseDown (const MouseEvent& e)
 
     if (e.mods.isPopupMenu())
     {
-        setMouseCursor (MouseCursor::NormalCursor);
+        setMouseCursor (MouseCursor::StandardCursorType::NormalCursor);
 
         if (getHighlightedRegion().isEmpty())
         {
@@ -1410,7 +1410,7 @@ void CodeEditorComponent::mouseUp (const MouseEvent&)
     newTransaction();
     beginDragAutoRepeat (0);
     dragType = notDragging;
-    setMouseCursor (MouseCursor::IBeamCursor);
+    setMouseCursor (MouseCursor::StandardCursorType::IBeamCursor);
 }
 
 void CodeEditorComponent::mouseDoubleClick (const MouseEvent& e)

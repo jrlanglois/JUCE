@@ -158,7 +158,7 @@ MouseCursor LookAndFeel::getMouseCursorFor (Component& component)
     auto cursor = component.getMouseCursor();
 
     for (auto* parent = component.getParentComponent();
-         parent != nullptr && cursor == MouseCursor::ParentCursor;
+         parent != nullptr && cursor == MouseCursor::StandardCursorType::ParentCursor;
          parent = parent->getParentComponent())
     {
         cursor = parent->getMouseCursor();

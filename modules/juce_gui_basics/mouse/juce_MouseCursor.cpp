@@ -44,7 +44,7 @@ struct CustomMouseCursorInfo
 class MouseCursor::SharedCursorHandle
 {
 public:
-    explicit SharedCursorHandle (const MouseCursor::StandardCursorType type)
+    explicit SharedCursorHandle (MouseCursor::StandardCursorType type)
         : handle (createStandardMouseCursor (type)),
           standardType (type),
           isStandard (true)
@@ -54,7 +54,7 @@ public:
     SharedCursorHandle (const Image& image, Point<int> hotSpot, float scaleFactor)
         : info (new CustomMouseCursorInfo (image, hotSpot, scaleFactor)),
           handle (info->create()),
-          standardType (MouseCursor::NormalCursor),
+          standardType (MouseCursor::StandardCursorType::NormalCursor),
           isStandard (false)
     {
         // your hotspot needs to be within the bounds of the image!
@@ -68,7 +68,7 @@ public:
 
     static SharedCursorHandle* createStandard (const MouseCursor::StandardCursorType type)
     {
-        jassert (isPositiveAndBelow (type, MouseCursor::NumStandardCursorTypes));
+        jassert (isPositiveAndBelow (type, MouseCursor::StandardCursorType::NumStandardCursorTypes));
 
         const SpinLock::ScopedLockType sl (lock);
         auto& c = getSharedCursor (type);
@@ -122,8 +122,8 @@ private:
 
     static SharedCursorHandle*& getSharedCursor (const MouseCursor::StandardCursorType type)
     {
-        static SharedCursorHandle* cursors[MouseCursor::NumStandardCursorTypes] = {};
-        return cursors[type];
+        static SharedCursorHandle* cursors[(int) MouseCursor::StandardCursorType::NumStandardCursorTypes] = {};
+        return cursors[(int) type];
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SharedCursorHandle)
@@ -137,7 +137,7 @@ MouseCursor::MouseCursor() noexcept
 }
 
 MouseCursor::MouseCursor (const StandardCursorType type)
-    : cursorHandle (type != MouseCursor::NormalCursor ? SharedCursorHandle::createStandard (type) : nullptr)
+    : cursorHandle (type != MouseCursor::StandardCursorType::NormalCursor ? SharedCursorHandle::createStandard (type) : nullptr)
 {
 }
 
@@ -194,7 +194,7 @@ bool MouseCursor::operator== (const MouseCursor& other) const noexcept
 bool MouseCursor::operator== (StandardCursorType type) const noexcept
 {
     return cursorHandle != nullptr ? cursorHandle->isStandardType (type)
-                                   : (type == NormalCursor);
+                                   : (type == StandardCursorType::NormalCursor);
 }
 
 bool MouseCursor::operator!= (const MouseCursor& other) const noexcept  { return ! operator== (other); }
@@ -207,7 +207,7 @@ void* MouseCursor::getHandle() const noexcept
 
 void MouseCursor::showWaitCursor()
 {
-    Desktop::getInstance().getMainMouseSource().showMouseCursor (MouseCursor::WaitCursor);
+    Desktop::getInstance().getMainMouseSource().showMouseCursor (MouseCursor::StandardCursorType::WaitCursor);
 }
 
 void MouseCursor::hideWaitCursor()

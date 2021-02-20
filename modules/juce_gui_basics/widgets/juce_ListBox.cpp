@@ -955,6 +955,6 @@ void ListBoxModel::returnKeyPressed (int) {}
 void ListBoxModel::listWasScrolled() {}
 var ListBoxModel::getDragSourceDescription (const SparseSet<int>&)      { return {}; }
 String ListBoxModel::getTooltipForRow (int)                             { return {}; }
-MouseCursor ListBoxModel::getMouseCursorForRow (int)                    { return MouseCursor::NormalCursor; }
+MouseCursor ListBoxModel::getMouseCursorForRow (int)                    { return MouseCursor::StandardCursorType::NormalCursor; }
 
 } // namespace juce

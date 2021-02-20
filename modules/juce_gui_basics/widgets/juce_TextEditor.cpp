@@ -807,7 +807,7 @@ struct TextEditor::TextHolderComponent  : public Component,
     {
         setWantsKeyboardFocus (false);
         setInterceptsMouseClicks (false, true);
-        setMouseCursor (MouseCursor::ParentCursor);
+        setMouseCursor (MouseCursor::StandardCursorType::ParentCursor);
 
         owner.getTextValue().addListener (this);
     }
@@ -894,7 +894,7 @@ TextEditor::TextEditor (const String& name, juce_wchar passwordChar)
     : Component (name),
       passwordCharacter (passwordChar)
 {
-    setMouseCursor (MouseCursor::IBeamCursor);
+    setMouseCursor (MouseCursor::StandardCursorType::IBeamCursor);
 
     viewport.reset (new TextEditorViewport (*this));
     addAndMakeVisible (viewport.get());

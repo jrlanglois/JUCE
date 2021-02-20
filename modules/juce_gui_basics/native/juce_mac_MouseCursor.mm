@@ -99,51 +99,53 @@ void* MouseCursor::createStandardMouseCursor (MouseCursor::StandardCursorType ty
 
         switch (type)
         {
-            case NormalCursor:
-            case ParentCursor:          c = [NSCursor arrowCursor]; break;
-            case NoCursor:              return CustomMouseCursorInfo (Image (Image::ARGB, 8, 8, true), {}).create();
-            case DraggingHandCursor:    c = [NSCursor openHandCursor]; break;
-            case WaitCursor:            c = [NSCursor arrowCursor]; break; // avoid this on the mac, let the OS provide the beachball
-            case IBeamCursor:           c = [NSCursor IBeamCursor]; break;
-            case PointingHandCursor:    c = [NSCursor pointingHandCursor]; break;
-            case LeftEdgeResizeCursor:  c = [NSCursor resizeLeftCursor]; break;
-            case RightEdgeResizeCursor: c = [NSCursor resizeRightCursor]; break;
-            case CrosshairCursor:       c = [NSCursor crosshairCursor]; break;
+            case StandardCursorType::NormalCursor:
+            case StandardCursorType::Help:
+            case StandardCursorType::ParentCursor:          c = [NSCursor arrowCursor]; break;
+            case StandardCursorType::NoCursor:              return CustomMouseCursorInfo (Image (Image::ARGB, 8, 8, true), {}).create();
+            case StandardCursorType::DraggingHandCursor:    c = [NSCursor openHandCursor]; break;
+            case StandardCursorType::WaitCursor:            c = [NSCursor arrowCursor]; break; // avoid this on the mac, let the OS provide the beachball
+            case StandardCursorType::IBeamCursor:           c = [NSCursor IBeamCursor]; break;
+            case StandardCursorType::PointingHandCursor:    c = [NSCursor pointingHandCursor]; break;
+            case StandardCursorType::LeftEdgeResizeCursor:  c = [NSCursor resizeLeftCursor]; break;
+            case StandardCursorType::RightEdgeResizeCursor: c = [NSCursor resizeRightCursor]; break;
+            case StandardCursorType::CrosshairCursor:       c = [NSCursor crosshairCursor]; break;
+            case StandardCursorType::Disallowed:            c = [NSCursor operationNotAllowed]; break;
 
-            case CopyingCursor:
+            case StandardCursorType::CopyingCursor:
             {
                 c = [NSCursor dragCopyCursor];
                 break;
             }
 
-            case UpDownResizeCursor:
-            case TopEdgeResizeCursor:
-            case BottomEdgeResizeCursor:
+            case StandardCursorType::UpDownResizeCursor:
+            case StandardCursorType::TopEdgeResizeCursor:
+            case StandardCursorType::BottomEdgeResizeCursor:
                 if (void* m = MouseCursorHelpers::fromHIServices ("resizenorthsouth"))
                     return m;
 
                 c = [NSCursor resizeUpDownCursor];
                 break;
 
-            case LeftRightResizeCursor:
+            case StandardCursorType::LeftRightResizeCursor:
                 if (void* m = MouseCursorHelpers::fromHIServices ("resizeeastwest"))
                     return m;
 
                 c = [NSCursor resizeLeftRightCursor];
                 break;
 
-            case TopLeftCornerResizeCursor:
-            case BottomRightCornerResizeCursor:
+            case StandardCursorType::TopLeftCornerResizeCursor:
+            case StandardCursorType::BottomRightCornerResizeCursor:
                 return MouseCursorHelpers::fromHIServices ("resizenorthwestsoutheast");
 
-            case TopRightCornerResizeCursor:
-            case BottomLeftCornerResizeCursor:
+            case StandardCursorType::TopRightCornerResizeCursor:
+            case StandardCursorType::BottomLeftCornerResizeCursor:
                 return MouseCursorHelpers::fromHIServices ("resizenortheastsouthwest");
 
-            case UpDownLeftRightResizeCursor:
+            case StandardCursorType::UpDownLeftRightResizeCursor:
                 return MouseCursorHelpers::fromHIServices ("move");
 
-            case NumStandardCursorTypes:
+            case StandardCursorType::NumStandardCursorTypes:
             default:
                 jassertfalse;
                 break;

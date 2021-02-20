@@ -479,7 +479,7 @@ public:
     {
         if (isUnboundedMouseModeOn && ((! unboundedMouseOffset.isOrigin()) || ! isCursorVisibleUntilOffscreen))
         {
-            cursor = MouseCursor::NoCursor;
+            cursor = MouseCursor::StandardCursorType::NoCursor;
             forcedUpdate = true;
         }
 
@@ -492,12 +492,12 @@ public:
 
     void hideCursor()
     {
-        showMouseCursor (MouseCursor::NoCursor, true);
+        showMouseCursor (MouseCursor::StandardCursorType::NoCursor, true);
     }
 
     void revealCursor (bool forcedUpdate)
     {
-        MouseCursor mc (MouseCursor::NormalCursor);
+        MouseCursor mc (MouseCursor::StandardCursorType::NormalCursor);
 
         if (auto* current = getComponentUnderMouse())
             mc = current->getLookAndFeel().getMouseCursorFor (*current);

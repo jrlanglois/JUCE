@@ -34,8 +34,8 @@ StretchableLayoutResizerBar::StretchableLayoutResizerBar (StretchableLayoutManag
       isVertical (vertical)
 {
     setRepaintsOnMouseActivity (true);
-    setMouseCursor (vertical ? MouseCursor::LeftRightResizeCursor
-                             : MouseCursor::UpDownResizeCursor);
+    setMouseCursor (vertical ? MouseCursor::StandardCursorType::LeftRightResizeCursor
+                             : MouseCursor::StandardCursorType::UpDownResizeCursor);
 }
 
 StretchableLayoutResizerBar::~StretchableLayoutResizerBar()

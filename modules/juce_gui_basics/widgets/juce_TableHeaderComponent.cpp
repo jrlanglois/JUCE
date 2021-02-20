@@ -749,7 +749,7 @@ void TableHeaderComponent::mouseUp (const MouseEvent& e)
 MouseCursor TableHeaderComponent::getMouseCursor()
 {
     if (columnIdBeingResized != 0 || (getResizeDraggerAt (getMouseXYRelative().getX()) != 0 && ! isMouseButtonDown()))
-        return MouseCursor (MouseCursor::LeftRightResizeCursor);
+        return MouseCursor (MouseCursor::StandardCursorType::LeftRightResizeCursor);
 
     return Component::getMouseCursor();
 }
