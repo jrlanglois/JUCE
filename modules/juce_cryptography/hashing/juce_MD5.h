@@ -38,7 +38,7 @@ namespace juce
 
     @tags{Cryptography}
 */
-class JUCE_API  MD5
+class JUCE_API  MD5  final
 {
 public:
     //==============================================================================

@@ -904,10 +904,14 @@ private:
 //==============================================================================
 namespace TextEditorDefs
 {
-    const int textChangeMessageId = 0x10003001;
-    const int returnKeyMessageId  = 0x10003002;
-    const int escapeKeyMessageId  = 0x10003003;
-    const int focusLossMessageId  = 0x10003004;
+    enum
+    {
+        textChangeMessageId = 0x10003001,
+        returnKeyMessageId,
+        escapeKeyMessageId,
+        focusGainedMessageId,
+        focusLossMessageId
+    };
 
     const int maxActionsPerTransaction = 100;
 
@@ -2194,6 +2198,7 @@ void TextEditor::focusGained (FocusChangeType cause)
     if (cause == FocusChangeType::focusChangedByMouseClick && selectAllTextWhenFocused)
         wasFocused = false;
 
+    postCommandMessage (TextEditorDefs::focusGainedMessageId);
     repaint();
     updateCaretPosition();
 }
@@ -2257,6 +2262,14 @@ void TextEditor::handleCommandMessage (const int commandId)
 
         if (! checker.shouldBailOut() && onEscapeKey != nullptr)
             onEscapeKey();
+
+        break;
+
+    case TextEditorDefs::focusGainedMessageId:
+        listeners.callChecked (checker, [this] (Listener& l) { l.textEditorFocusGained (*this); });
+
+        if (! checker.shouldBailOut() && onFocusGained != nullptr)
+            onFocusGained();
 
         break;
 

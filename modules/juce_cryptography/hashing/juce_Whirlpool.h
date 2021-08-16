@@ -44,7 +44,7 @@ namespace juce
 
     @tags{Cryptography}
 */
-class JUCE_API  Whirlpool
+class JUCE_API  Whirlpool  final
 {
 public:
     //==============================================================================

@@ -40,6 +40,7 @@
 #include <cstdarg>
 #include <locale>
 #include <thread>
+#include <regex>
 
 #if ! JUCE_ANDROID
  #include <sys/timeb.h>

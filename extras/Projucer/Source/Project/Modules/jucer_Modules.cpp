@@ -137,6 +137,9 @@ void LibraryModule::addLibsToExporter (ProjectExporter& exporter) const
                 xcodeExporter.xcodeFrameworks.add ("AudioUnit");
         }
 
+        // TODO make optional based on the module that needs it!
+        xcodeExporter.xcodeFrameworks.add ("GameController");
+
         auto frameworks = moduleInfo.getModuleInfo() [xcodeExporter.isOSX() ? "OSXFrameworks" : "iOSFrameworks"].toString();
         xcodeExporter.xcodeFrameworks.addTokens (frameworks, ", ", {});
 

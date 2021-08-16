@@ -38,7 +38,7 @@ namespace juce
 
     @tags{Cryptography}
 */
-class JUCE_API  SHA256
+class JUCE_API  SHA256  final
 {
 public:
     //==============================================================================

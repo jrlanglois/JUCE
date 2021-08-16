@@ -29,7 +29,7 @@ namespace juce
 
     @tags{Core}
 */
-struct JUCE_API Base64
+struct JUCE_API Base64 final
 {
     /** Converts a binary block of data into a base-64 string.
         This will write the resulting string data to the given stream.

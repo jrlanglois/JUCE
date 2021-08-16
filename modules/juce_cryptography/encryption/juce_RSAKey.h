@@ -91,7 +91,7 @@ namespace juce
 
     @tags{Cryptography}
 */
-class JUCE_API  RSAKey
+class JUCE_API  RSAKey  final
 {
 public:
     //==============================================================================

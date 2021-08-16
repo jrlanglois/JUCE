@@ -359,6 +359,12 @@ void AudioProcessorValueTreeState::removeParameterListener (StringRef paramID, L
         p->removeListener (listener);
 }
 
+void AudioProcessorValueTreeState::removeParameterListener (Listener* listener)
+{
+    for (auto& iter : adapterTable)
+        iter.second->removeListener (listener);
+}
+
 Value AudioProcessorValueTreeState::getParameterAsValue (StringRef paramID) const
 {
     if (auto* adapter = getParameterAdapter (paramID))

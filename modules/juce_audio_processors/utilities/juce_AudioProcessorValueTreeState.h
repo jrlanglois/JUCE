@@ -308,6 +308,9 @@ public:
     /** Attaches a callback to one of the parameters, which will be called when the parameter changes. */
     void addParameterListener (StringRef parameterID, Listener* listener);
 
+    /** Removes all parameter callbacks registered with the listener. */
+    void removeParameterListener (Listener* listener);
+
     /** Removes a callback that was previously added with addParameterCallback(). */
     void removeParameterListener (StringRef parameterID, Listener* listener);
 

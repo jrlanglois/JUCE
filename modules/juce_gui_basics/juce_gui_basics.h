@@ -43,8 +43,8 @@
   minimumCppStandard: 14
 
   dependencies:       juce_graphics juce_data_structures
-  OSXFrameworks:      Cocoa Carbon QuartzCore
-  iOSFrameworks:      UIKit CoreServices
+  OSXFrameworks:      Cocoa Carbon QuartzCore GameController
+  iOSFrameworks:      UIKit CoreServices GameController
 
  END_JUCE_MODULE_DECLARATION
 
@@ -116,6 +116,13 @@
 */
 #ifndef JUCE_WIN_PER_MONITOR_DPI_AWARE
  #define JUCE_WIN_PER_MONITOR_DPI_AWARE 1
+#endif
+
+/** Config: JUCE_USE_GAMEPADS
+    Enables gamepad support for most systems.
+*/
+#ifndef JUCE_USE_GAMEPADS
+ #define JUCE_USE_GAMEPADS 0
 #endif
 
 //==============================================================================
@@ -312,6 +319,10 @@ namespace juce
 #include "accessibility/enums/juce_AccessibilityRole.h"
 #include "accessibility/juce_AccessibilityState.h"
 #include "accessibility/juce_AccessibilityHandler.h"
+
+#if JUCE_USE_GAMEPADS
+#include "gamepad/juce_Gamepad.h"
+#endif
 
 #if JUCE_LINUX || JUCE_BSD
  #if JUCE_GUI_BASICS_INCLUDE_XHEADERS

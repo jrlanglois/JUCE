@@ -36,7 +36,7 @@ namespace juce
 
     @tags{Cryptography}
 */
-class JUCE_API  Primes
+class JUCE_API  Primes  final
 {
 public:
     //==============================================================================

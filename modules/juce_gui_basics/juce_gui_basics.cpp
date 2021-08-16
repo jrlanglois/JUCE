@@ -63,6 +63,10 @@
 
 //==============================================================================
 #elif JUCE_WINDOWS
+ #if JUCE_USE_GAMEPADS && JUCE_MINGW
+  #error "JUCE: MinGW is not compatible with DirectX. Please use MSVC."
+ #endif
+
  #include <windowsx.h>
  #include <vfw.h>
  #include <commdlg.h>
@@ -71,6 +75,10 @@
  #if ! JUCE_MINGW
   #include <UIAutomation.h>
   #include <sapi.h>
+
+  #if JUCE_USE_GAMEPADS
+   #include <Xinput.h>
+  #endif
  #endif
 
  #if JUCE_WEB_BROWSER
@@ -81,13 +89,17 @@
  #if JUCE_MINGW
   #include <imm.h>
  #elif ! JUCE_DONT_AUTOLINK_TO_WIN32_LIBRARIES
-  #pragma comment(lib, "vfw32.lib")
-  #pragma comment(lib, "imm32.lib")
-  #pragma comment(lib, "comctl32.lib")
+  #pragma comment (lib, "vfw32.lib")
+  #pragma comment (lib, "imm32.lib")
+  #pragma comment (lib, "comctl32.lib")
 
   #if JUCE_OPENGL
-   #pragma comment(lib, "OpenGL32.Lib")
-   #pragma comment(lib, "GlU32.Lib")
+   #pragma comment (lib, "OpenGL32.Lib")
+   #pragma comment (lib, "GlU32.Lib")
+  #endif
+
+  #if JUCE_USE_GAMEPADS
+   #pragma comment (lib, "xinput.lib")
   #endif
 
   #if JUCE_DIRECT2D
@@ -282,6 +294,12 @@ JUCE_END_IGNORE_WARNINGS_GCC_LIKE
 #if JUCE_MAC || JUCE_IOS
  #include "native/accessibility/juce_mac_AccessibilitySharedCode.mm"
 
+  #if JUCE_USE_GAMEPADS
+   #import <GameController/GameController.h>
+   #import <GameController/GCController.h>
+   #include "native/juce_mac_Gamepad.mm"
+  #endif
+
  #if JUCE_IOS
   #include "native/accessibility/juce_ios_Accessibility.mm"
   #include "native/juce_ios_UIViewComponentPeer.mm"
@@ -323,6 +341,9 @@ JUCE_END_IGNORE_WARNINGS_GCC_LIKE
   }
  #endif
 
+ #if JUCE_USE_GAMEPADS
+  #include "native/juce_win32_Gamepad.cpp"
+ #endif
  #include "native/juce_win32_Windowing.cpp"
  #include "native/juce_win32_DragAndDrop.cpp"
  #include "native/juce_win32_FileChooser.cpp"
@@ -352,6 +373,12 @@ JUCE_END_IGNORE_WARNINGS_GCC_LIKE
 
 #endif
 
+//==============================================================================
+#if JUCE_USE_GAMEPADS
+ #include "gamepad/juce_Gamepad.cpp"
+#endif
+
+//==============================================================================
 namespace juce
 {
    #if ! JUCE_NATIVE_ACCESSIBILITY_INCLUDED

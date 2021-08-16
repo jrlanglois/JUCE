@@ -68,6 +68,16 @@ public:
     DrawableButton (const String& buttonName,
                     ButtonStyle buttonStyle);
 
+    /** Creates a DrawableButton.
+
+        After creating one of these, use setImages() to specify the drawables to use.
+
+        @param buttonStyle    the layout to use
+
+        @see ButtonStyle, setButtonStyle, setImages
+    */
+    DrawableButton (ButtonStyle buttonStyle);
+
     /** Destructor. */
     ~DrawableButton() override;
 

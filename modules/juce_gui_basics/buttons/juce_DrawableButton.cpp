@@ -26,8 +26,13 @@
 namespace juce
 {
 
-DrawableButton::DrawableButton (const String& name, const DrawableButton::ButtonStyle buttonStyle)
+DrawableButton::DrawableButton (const String& name, DrawableButton::ButtonStyle buttonStyle)
     : Button (name), style (buttonStyle)
+{
+}
+
+DrawableButton::DrawableButton (DrawableButton::ButtonStyle buttonStyle)
+    : DrawableButton ({}, buttonStyle)
 {
 }
 

@@ -23,9 +23,15 @@
 namespace juce
 {
 
+namespace base64Helpers
+{
+    constexpr const char lookup[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+}
+
 bool Base64::convertToBase64 (OutputStream& base64Result, const void* sourceData, size_t sourceDataSize)
 {
-    static const char lookup[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    using namespace base64Helpers;
+
     auto* source = static_cast<const uint8*> (sourceData);
 
     while (sourceDataSize > 0)
@@ -154,6 +160,7 @@ public:
             expect (Base64::convertFromBase64 (out, asBase64));
             auto result = out.getMemoryBlock();
             expect (result == original);
+            expect (Base64::isPossiblyBase64 (result));
         }
     }
 };

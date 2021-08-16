@@ -94,7 +94,7 @@ public:
                                 sendNotificationAsync is not supported
         @see getToggleState, setRadioGroupId
     */
-    void setToggleState (bool shouldBeOn, NotificationType notification);
+    void setToggleState (bool shouldBeOn, NotificationType notification = sendNotification);
 
     /** Returns true if the button is 'on'.
 

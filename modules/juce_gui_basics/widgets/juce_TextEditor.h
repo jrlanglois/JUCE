@@ -326,6 +326,9 @@ public:
         /** Called when the user presses the escape key. */
         virtual void textEditorEscapeKeyPressed (TextEditor&) {}
 
+        /** Called when the text editor gains focus. */
+        virtual void textEditorFocusGained (TextEditor&) {}
+
         /** Called when the text editor loses focus. */
         virtual void textEditorFocusLost (TextEditor&) {}
     };
@@ -349,6 +352,9 @@ public:
 
     /** You can assign a lambda to this callback object to have it called when the escape key is pressed. */
     std::function<void()> onEscapeKey;
+
+    /** You can assign a lambda to this callback object to have it called when the editor gains key focus. */
+    std::function<void()> onFocusGained;
 
     /** You can assign a lambda to this callback object to have it called when the editor loses key focus. */
     std::function<void()> onFocusLost;

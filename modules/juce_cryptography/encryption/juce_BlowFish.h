@@ -33,7 +33,7 @@ namespace juce
 
     @tags{Cryptography}
 */
-class JUCE_API  BlowFish
+class JUCE_API  BlowFish  final
 {
 public:
     //==============================================================================
