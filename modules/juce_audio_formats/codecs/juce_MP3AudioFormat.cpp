@@ -222,6 +222,367 @@ constexpr double decodeWindow[] =
     1.144989014
 };
 
+constexpr const char* const genres[] =
+{ 
+    "Blues", "Classic Rock", "Country", "Dance", "Disco", "Funk", "Grunge",
+    "Hip-Hop", "Jazz", "Metal", "New Age", "Oldies", "Other", "Pop", "R&B",
+    "Rap", "Reggae", "Rock", "Techno", "Industrial", "Alternative", "Ska",
+    "Death Metal", "Pranks", "Soundtrack", "Euro-Techno", "Ambient",
+    "Trip-Hop", "Vocal", "Jazz+Funk", "Fusion", "Trance", "Classical",
+    "Instrumental", "Acid", "House", "Game", "Sound Clip", "Gospel",
+    "Noise", "AlternRock", "Bass", "Soul", "Punk", "Space", "Meditative",
+    "Instrumental Pop", "Instrumental Rock", "Ethnic", "Gothic",
+    "Darkwave", "Techno-Industrial", "Electronic", "Pop-Folk",
+    "Eurodance", "Dream", "Southern Rock", "Comedy", "Cult", "Gangsta",
+    "Top 40", "Christian Rap", "Pop/Funk", "Jungle", "Native American",
+    "Cabaret", "New Wave", "Psychadelic", "Rave", "Showtunes", "Trailer",
+    "Lo-Fi", "Tribal", "Acid Punk", "Acid Jazz", "Polka", "Retro",
+    "Musical", "Rock & Roll", "Hard Rock", "Folk", "Folk-Rock",
+    "National Folk", "Swing", "Fast Fusion", "Bebob", "Latin", "Revival",
+    "Celtic", "Bluegrass", "Avantgarde", "Gothic Rock", "Progressive Rock",
+    "Psychedelic Rock", "Symphonic Rock", "Slow Rock", "Big Band",
+    "Chorus", "Easy Listening", "Acoustic", "Humour", "Speech", "Chanson",
+    "Opera", "Chamber Music", "Sonata", "Symphony", "Booty Bass", "Primus",
+    "Porn Groove", "Satire", "Slow Jam", "Club", "Tango", "Samba",
+    "Folklore", "Ballad", "Power Ballad", "Rhythmic Soul", "Freestyle",
+    "Duet", "Punk Rock", "Drum Solo", "Acapella", "Euro-House", "Dance Hall"
+};
+
+template<typename ArrayType>
+static constexpr int decodeSynchSafeInt32 (const ArrayType& bytes) noexcept
+{
+    return bytes[0] << 21
+         | bytes[1] << 14
+         | bytes[2] << 7
+         | bytes[3];
+}
+
+static constexpr uint32 unsynchsafe (uint32 bigEndianInt) noexcept
+{
+    uint32 out = 0, mask = 0x7f000000;
+
+    /* be_in is now big endian */
+    /* convert to little endian */
+    uint32 in = ((bigEndianInt >> 24)
+              | ((bigEndianInt >> 8) & 0xff00)
+              | ((bigEndianInt << 8) & 0xff0000)
+              | (bigEndianInt << 24));
+
+    while (mask != 0)
+    {
+        out >>= 1;
+        out |= (in & mask);
+        mask >>= 8;
+    }
+
+    return out;
+}
+
+/** TODO: could probably be moved into the CharacterFunctions. */
+static String fromISO88591 (MemoryBlock& data)
+{
+    String s;
+    s.preallocateBytes (data.getSize());
+    auto utf8 = s.toUTF8();
+
+    for (juce_wchar c : data)
+    {
+        if (c < 0x20)
+            continue;
+
+        if (c < 0x80)
+        {
+            utf8.write (c);
+        }
+        else
+        {
+            utf8.write (0xc0 | c >> 6);
+            utf8.write (0x80 | (c & 0x3f));
+        }
+    }
+
+    utf8.write (0);
+
+    return s;
+}
+
+static String parseString (MemoryBlock& data, int textFormat)
+{
+    switch (textFormat)
+    {
+        case 1:
+        case 2:
+        {
+            String r;
+            r.preallocateBytes (data.getSize());
+
+            {
+                auto utf16 = r.toUTF16();
+
+                for (auto d : data)
+                    utf16.write ((juce_wchar) d);
+            }
+
+            r.trim();
+        }
+        break;
+
+        case 3:
+            return String::fromUTF8 ((const char*) data.getData(), (int) data.getSize());
+
+        default:
+        break;
+    };
+
+    return fromISO88591 (data);
+}
+
+static String parseGEOBContents (InputStream& s)
+{
+    const auto textFormat = (int) s.readByte();
+    MemoryBlock data;
+    s.readIntoMemoryBlock (data);
+
+    String contents;
+    contents
+        << parseString (data, textFormat)
+        << newLine
+        << parseString (data, textFormat)
+        << newLine
+        << parseString (data, textFormat);
+
+    return contents;
+}
+
+static String parseTextFrameContents (InputStream& s)
+{
+    const auto textFormat = (int) s.readByte();
+    MemoryBlock data;
+    s.readIntoMemoryBlock (data);
+    return parseString (data, textFormat);
+}
+
+static String parseURLContents (InputStream& s)
+{
+    return s.readEntireStreamAsString();
+}
+
+static String parseComments (InputStream& s)
+{
+    const auto textEncoding = (int) s.readByte();
+    s.skipNextBytes (4); // Bytes for ISO-639-2 Alpha-3 language code + NUL (eg: "eng0")
+    MemoryBlock data;
+    s.readIntoMemoryBlock (data);
+    return parseString (data, textEncoding).trim();
+}
+
+/**
+    @see https://docs.microsoft.com/en-us/windows/win32/wmformat/attributes-for-music-files
+*/
+static String parsePRIVData (MemoryInputStream& mis, const String& id)
+{
+    if (! id.startsWithIgnoreCase ("WM/"))
+        return {}; // �\_(-.-)_/�
+
+    const auto key = id.substring (3);
+    if (key.isEmpty())
+        return {};
+
+    constexpr const char* const stringTypes[] =
+    {
+        "AlbumCoverURL",
+        "AlbumArtist",
+        "AlbumTitle",
+        "AudioFileURL",
+        "AudioSourceURL",
+        "AuthorURL",
+        "BeatsPerMinute",
+        "Category",
+        "Codec",
+        "Composer",
+        "Conductor",
+        "ContentDistributor",
+        "ContentGroupDescription",
+        "Director",
+        "DRM",
+        "DVDID",
+        "EncodedBy",
+        "EncodingSettings",
+        "Genre",
+        "GenreID",
+        "InitialKey",
+        "ISRC",
+        "Language",
+        "Lyrics",
+        "ModifiedBy",
+        "Mood",
+        "Provider",
+        "Publisher",
+        "ToolName",
+        "ToolVersion"
+    };
+
+    const auto endIter = std::end (stringTypes);
+    const auto iter = std::find_if (std::begin (stringTypes), endIter,
+                                    [&] (const char* const s)
+                                    {
+                                       return key.equalsIgnoreCase (s);
+                                    });
+
+    if (iter != endIter)
+    {
+        const auto textFormat = (int) mis.readByte();
+        MemoryBlock data;
+        mis.readIntoMemoryBlock (data);
+        return parseString (data, textFormat);
+    }
+
+    return {};
+}
+
+/**
+    @see https://id3.org/id3v2-00
+    @see https://id3.org/id3v2.3.0
+    @see https://id3.org/id3v2.4.0-structure
+*/
+struct ID3v2Tag final
+{
+    void fromStream (InputStream& s)
+    {
+        version     = (int) s.readByte();
+        flags       = (int) s.readShort();
+
+        sizeBytes = unsynchsafe (s.readInt());
+        // sizeBytes *= 4;
+    }
+
+    constexpr bool usesUnsynchronisation() const noexcept     { return (flags & (1 << 7)) != 0; }
+    constexpr bool hasExtendedHeader() const noexcept         { return (flags & (1 << 6)) != 0; }
+    constexpr bool usesExperimentalIndicator() const noexcept { return (flags & (1 << 5)) != 0; }
+    constexpr bool hasFooter() const noexcept                 { return (flags & (1 << 4)) != 0; }
+
+    /** TODO: we can certainly parse data with these configurations but it
+              would take a little while to get it all ironed out correctly...
+    */
+    constexpr bool isSpecial() const noexcept
+    {
+        return usesUnsynchronisation()
+            || hasExtendedHeader()
+            || usesExperimentalIndicator()
+            || hasFooter();
+    }
+
+    int version = 0,
+        flags = 0,
+        sizeBytes = 0;
+};
+
+/**
+    @see https://id3.org/id3v2.4.0-frames
+*/
+struct ID3v2Frame final
+{
+    bool fromStreamv2dot3 (InputStream& s)
+    {
+        {
+            // The header is supposed to be exactly 10 bytes.
+            MemoryBlock header;
+            s.readIntoMemoryBlock (header, 10);
+
+            MemoryInputStream mis (header, false);
+            char buffer[5] = { 0 };
+            mis.read (buffer, 4);
+            id << buffer;
+
+            zerostruct (buffer);
+            mis.read (buffer, 4);
+            sizeBytes   = decodeSynchSafeInt32 (buffer);
+            statusFlag  = (int) mis.readByte();
+        }
+
+        MemoryBlock data;
+        s.readIntoMemoryBlock (data, (size_t) sizeBytes);
+        if (data.isEmpty())
+            return false;
+
+        MemoryInputStream dataStream (data, false);
+
+        if (id == "PRIV")
+        {
+            id = dataStream.readString();
+            contents = parsePRIVData (dataStream, id);
+        }
+        else if (id == "GEOB")
+        {
+            contents = parseGEOBContents (dataStream);
+        }
+        else if (id == "COMM")
+        {
+            contents = parseComments (dataStream);
+        }
+        else if (id == "WCOM"
+              || id == "WCOP"
+              || id == "WOAF"
+              || id == "WOAR"
+              || id == "WOAS"
+              || id == "WORS"
+              || id == "WPAY"
+              || id == "WPUB"
+              || id == "WXXX")
+        {
+            contents = parseURLContents (dataStream);
+        }
+        else if (id == "TALB"
+              || id == "TBPM"
+              || id == "TCOM"
+              || id == "TCON"
+              || id == "TCOP"
+              || id == "TDAT"
+              || id == "TDLY"
+              || id == "TENC"
+              || id == "TEXT"
+              || id == "TFLT"
+              || id == "TIME"
+              || id == "TIT1"
+              || id == "TIT2"
+              || id == "TIT3"
+              || id == "TKEY"
+              || id == "TLAN"
+              || id == "TLEN"
+              || id == "TMED"
+              || id == "TOAL"
+              || id == "TOFN"
+              || id == "TOPE"
+              || id == "TORY"
+              || id == "TOWN"
+              || id == "TPE1"
+              || id == "TPE2"
+              || id == "TPE3"
+              || id == "TPE4"
+              || id == "TPOS"
+              || id == "TPUB"
+              || id == "TRCK"
+              || id == "TRDA"
+              || id == "TRSN"
+              || id == "TRSO"
+              || id == "TSIZ"
+              || id == "TSRC"
+              || id == "TSSE"
+              || id == "TXXX"
+              || id == "TYER")
+        {
+            contents = parseTextFrameContents (dataStream);
+        }
+
+        return contents.isNotEmpty();
+    }
+
+    String id, contents;
+    int sizeBytes = 0,
+        statusFlag = 0,
+        encodingFlag = 0;
+};
+
 constexpr int16 huffmanTab0[] = { 0 };
 constexpr int16 huffmanTab1[] = { -5,-3,-1,17,1,16,0 };
 constexpr int16 huffmanTab2[] = { -15,-11,-9,-5,-3,-1,34,2,18,-1,33,32,17,-1,1,16,0 };
@@ -2962,7 +3323,7 @@ public:
           stream (*in), currentPosition (0),
           decodedStart (0), decodedEnd (0)
     {
-        skipID3();
+        readID3();
         const int64 streamPos = stream.stream.getPosition();
 
         if (readNextBlock())
@@ -3087,30 +3448,101 @@ private:
         return false;
     }
 
-    void skipID3()
+    /**
+        @see https://id3.org/ID3v1
+    */
+    bool readID3v1()
     {
-        const int64 originalPosition = stream.stream.getPosition();
-        const uint32 firstWord = (uint32) stream.stream.readInt();
-
-        if ((firstWord & 0xffffff) == 0x334449)
+        if (stream.stream.readByte() == 'T'
+            && stream.stream.readByte() == 'A'
+            && stream.stream.readByte() == 'G')
         {
-            uint8 buffer[6];
+            constexpr auto maxBytes = 30;
+            uint8 buffer[maxBytes] = {};
 
-            if (stream.stream.read (buffer, 6) == 6
-                 && buffer[0] != 0xff
-                 && ((buffer[2] | buffer[3] | buffer[4] | buffer[5]) & 0x80) == 0)
+            auto readTag = [&] (int numBytes = -1)
             {
-                const uint32 length = (((uint32) buffer[2]) << 21)
-                                    | (((uint32) buffer[3]) << 14)
-                                    | (((uint32) buffer[4]) << 7)
-                                    |  ((uint32) buffer[5]);
+                stream.stream.read (buffer, numBytes);
+                return String::fromUTF8 ((const char*) buffer,
+                                         numBytes < 0 ? maxBytes : numBytes);
+            };
 
-                stream.stream.skipNextBytes (length);
-                return;
-            }
+            metadataValues.set ("title",    readTag());
+            metadataValues.set ("artist",   readTag());
+            metadataValues.set ("album",    readTag());
+            metadataValues.set ("year",     readTag (4));
+            metadataValues.set ("comment",  readTag());
+
+            const auto genreIndex = (int) stream.stream.readByte();
+            if (isPositiveAndBelow (genreIndex, numElementsInArray (genres)))
+                metadataValues.set ("genre", genres[genreIndex]);
+
+            return true;
         }
 
-        stream.stream.setPosition (originalPosition);
+        return false;
+    }
+
+    bool readID3v220 (const ID3v2Tag&, int64)
+    {
+        return false;
+    }
+
+    bool readID3v230 (const ID3v2Tag& tag, int64)
+    {
+        MemoryBlock data;
+        stream.stream.readIntoMemoryBlock (data, (size_t) tag.sizeBytes);
+
+        MemoryInputStream frameStream (data, false);
+
+        while (! frameStream.isExhausted())
+        {
+            ID3v2Frame frame;
+            if (frame.fromStreamv2dot3 (frameStream))
+                metadataValues.set (frame.id, frame.contents);
+        }
+
+        return true;
+    }
+
+    bool readID3v240 (const ID3v2Tag&, int64)
+    {
+        return false;
+    }
+
+    void readID3()
+    {
+        const auto startPos = stream.stream.getPosition();
+
+        // ID3v2.x:
+        if (stream.stream.readByte() == 'I'
+            && stream.stream.readByte() == 'D'
+            && stream.stream.readByte() == '3')
+        {
+            ID3v2Tag id3v2Tag;
+            id3v2Tag.fromStream (stream.stream); // expecting 128 - 3 bytes for tag/header size
+
+            if (! id3v2Tag.isSpecial())
+            {
+                switch (id3v2Tag.version)
+                {
+                    case 2: readID3v220 (id3v2Tag, startPos); break;
+                    case 3: readID3v230 (id3v2Tag, startPos); break;
+                    case 4: readID3v240 (id3v2Tag, startPos); break;
+
+                    default:
+                    break;
+                };
+            }
+        }
+        else
+        {
+            // ID3v1 and ID3v1.1:
+            stream.stream.setPosition (stream.stream.getTotalLength() - 128);
+            readID3v1();
+        }
+
+        stream.stream.setPosition (startPos);
     }
 
     int64 findLength (int64 streamStartPos)
