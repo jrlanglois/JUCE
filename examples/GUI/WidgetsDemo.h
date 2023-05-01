@@ -1465,6 +1465,42 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DragAndDropDemo)
 };
 
+
+//==============================================================================
+class ListBoxDemo  : public Component
+{
+public:
+    ListBoxDemo()
+    {
+        setName ("ListBox");
+        sourceListBox.setModel (&sourceModel);
+        addAndMakeVisible (sourceListBox);
+    }
+
+    void resized() override
+    {
+        auto r = getLocalBounds().reduced (8);
+        sourceListBox.setBounds (r.withSize (250, 180));
+    }
+
+private:
+    //==============================================================================
+    struct SourceItemListBoxContents  : public ListBoxModel
+    {
+        int getNumRows() override { return 500; }
+
+        void paintListBoxItem (int, Graphics&, int, int, bool) override
+        {
+        }
+    };
+
+    //==============================================================================
+    ListBox sourceListBox  { "ListBox", nullptr };
+    SourceItemListBoxContents sourceModel;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ListBoxDemo)
+};
+
 //==============================================================================
 struct DemoTabbedComponent  : public TabbedComponent
 {
