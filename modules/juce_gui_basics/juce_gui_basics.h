@@ -52,9 +52,9 @@
   minimumCppStandard: 17
 
   dependencies:       juce_graphics juce_data_structures
-  OSXFrameworks:      Cocoa QuartzCore
+  OSXFrameworks:      Cocoa QuartzCore GameController
   WeakOSXFrameworks:  Metal MetalKit
-  iOSFrameworks:      CoreServices UIKit
+  iOSFrameworks:      CoreServices UIKit GameController
   WeakiOSFrameworks:  Metal MetalKit UniformTypeIdentifiers UserNotifications
 
  END_JUCE_MODULE_DECLARATION
@@ -340,6 +340,7 @@ namespace juce
 #include "lookandfeel/juce_LookAndFeel_V3.h"
 #include "lookandfeel/juce_LookAndFeel_V4.h"
 #include "mouse/juce_LassoComponent.h"
+#include "gamepad/juce_Gamepad.h"
 
 #if JUCE_LINUX || JUCE_BSD
  #if JUCE_GUI_BASICS_INCLUDE_XHEADERS

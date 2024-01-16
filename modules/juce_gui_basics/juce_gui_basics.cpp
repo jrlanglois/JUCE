@@ -127,6 +127,12 @@
    #pragma comment(lib, "GlU32.Lib")
   #endif
 
+  #if JUCE_DIRECT2D
+   #pragma comment (lib, "Dwrite.lib")
+   #pragma comment (lib, "D2d1.lib")
+  #endif
+
+   #pragma comment (lib, "xinput.lib")
  #endif
 #endif
 
@@ -181,6 +187,10 @@
    #include "native/juce_ContentSharer_ios.cpp"
   #endif
 
+  #import <GameController/GameController.h>
+  #import <GameController/GCController.h>
+  #include "native/juce_Gamepad_mac.mm"
+
  #else
   #include "native/accessibility/juce_Accessibility_mac.mm"
   #include "native/juce_PerScreenDisplayLinks_mac.h"
@@ -216,6 +226,7 @@
  #include "native/juce_NativeMessageBox_windows.cpp"
  #include "native/juce_DragAndDrop_windows.cpp"
  #include "native/juce_FileChooser_windows.cpp"
+ #include "native/juce_Gamepad_windows.cpp"
 
 #elif JUCE_LINUX || JUCE_BSD
  #include "native/juce_XSymbols_linux.cpp"
@@ -246,10 +257,13 @@
   #include "native/juce_ContentSharer_android.cpp"
  #endif
 
+ #include "native/juce_Gamepad_android.cpp"
+
 #endif
 
 //==============================================================================
 // Depends on types defined in platform-specific windowing files
+#include "gamepad/juce_Gamepad.cpp"
 #include "mouse/juce_MouseCursor.cpp"
 
 #if JUCE_UNIT_TESTS
