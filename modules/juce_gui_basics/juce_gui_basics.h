@@ -69,6 +69,15 @@
 #include <juce_data_structures/juce_data_structures.h>
 
 //==============================================================================
+/** Config: JUCE_ENABLE_GAMEPADS
+    If this option is turned on, gamepad integration will be added.
+
+    This is disabled by default because it will bring in extra libraries on most systems.
+*/
+#ifndef JUCE_ENABLE_GAMEPADS
+ #define JUCE_ENABLE_GAMEPADS 0
+#endif
+
 /** Config: JUCE_ENABLE_REPAINT_DEBUGGING
     If this option is turned on, each area of the screen that gets repainted will
     flash in a random colour, so that you can see exactly which bits of your
@@ -340,7 +349,10 @@ namespace juce
 #include "lookandfeel/juce_LookAndFeel_V3.h"
 #include "lookandfeel/juce_LookAndFeel_V4.h"
 #include "mouse/juce_LassoComponent.h"
-#include "gamepad/juce_Gamepad.h"
+
+#if JUCE_ENABLE_GAMEPADS
+ #include "gamepad/juce_Gamepad.h"
+#endif
 
 #if JUCE_LINUX || JUCE_BSD
  #if JUCE_GUI_BASICS_INCLUDE_XHEADERS

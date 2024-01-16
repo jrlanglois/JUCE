@@ -132,7 +132,10 @@
    #pragma comment (lib, "D2d1.lib")
   #endif
 
+  #if JUCE_ENABLE_GAMEPADS
+   #include <xinput.h>
    #pragma comment (lib, "xinput.lib")
+  #endif
  #endif
 #endif
 
@@ -187,9 +190,11 @@
    #include "native/juce_ContentSharer_ios.cpp"
   #endif
 
-  #import <GameController/GameController.h>
-  #import <GameController/GCController.h>
-  #include "native/juce_Gamepad_mac.mm"
+  #if JUCE_ENABLE_GAMEPADS
+   #import <GameController/GameController.h>
+   #import <GameController/GCController.h>
+   #include "native/juce_Gamepad_mac.mm"
+  #endif
 
  #else
   #include "native/accessibility/juce_Accessibility_mac.mm"
@@ -226,7 +231,10 @@
  #include "native/juce_NativeMessageBox_windows.cpp"
  #include "native/juce_DragAndDrop_windows.cpp"
  #include "native/juce_FileChooser_windows.cpp"
- #include "native/juce_Gamepad_windows.cpp"
+
+ #if JUCE_ENABLE_GAMEPADS
+  #include "native/juce_Gamepad_windows.cpp"
+ #endif
 
 #elif JUCE_LINUX || JUCE_BSD
  #include "native/juce_XSymbols_linux.cpp"
@@ -257,13 +265,18 @@
   #include "native/juce_ContentSharer_android.cpp"
  #endif
 
- #include "native/juce_Gamepad_android.cpp"
+ #if JUCE_ENABLE_GAMEPADS
+  #include "native/juce_Gamepad_android.cpp"
+ #endif
 
 #endif
 
 //==============================================================================
 // Depends on types defined in platform-specific windowing files
-#include "gamepad/juce_Gamepad.cpp"
+#if JUCE_ENABLE_GAMEPADS
+ #include "gamepad/juce_Gamepad.cpp"
+#endif
+
 #include "mouse/juce_MouseCursor.cpp"
 
 #if JUCE_UNIT_TESTS
