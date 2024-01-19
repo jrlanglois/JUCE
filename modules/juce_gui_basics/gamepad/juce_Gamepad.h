@@ -30,7 +30,7 @@ namespace juce
 
     To obtain a gamepad's instance... TODO
 
-    @see https://docs.microsoft.com/en-us/windows/win32/xinput/programming-guide
+    @see https://learn.microsoft.com/en-us/uwp/api/windows.gaming.input.gamepad?view=winrt-22621
     @see https://developer.apple.com/documentation/gamecontroller
     @see https://github.com/elanthis/gamepad/blob/master/gamepad.c
 */
@@ -71,9 +71,12 @@ public:
     {
         none,
         unknown,
-        xbox,
-        playstation,
-        nintendo,
+        xbox360,
+        xboxOne,
+        ps3,
+        ps4,
+        ps5,
+        nintendoSwitch,
         siriRemote,
         appleRemote,
         luna

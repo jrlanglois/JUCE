@@ -26,124 +26,13 @@
 namespace juce
 {
 
-/**
-    GamepadInputSource gis (0);
-
-    if (gis.isConnected())
-    {
-        Logger::writeToLog (String ("ID: ")                     + String (gis.getID()));
-        Logger::writeToLog (String ("Battery Type: ")           + String ((int) gis.getBatteryType()));
-        Logger::writeToLog (String ("Battery Level: ")          + String (gis.getBatteryLevel()));
-        Logger::writeToLog (String ("Type: ")                   + String ((int) gis.getType()));
-        Logger::writeToLog (String ("Subtype: ")                + String ((int) gis.getSubtype()));
-        Logger::writeToLog (String ("Is wireless? ")            + booleanToString (gis.isWireless(), true));
-        Logger::writeToLog (String ("Is virtual? ")             + booleanToString (gis.isVirtual(), true));
-        Logger::writeToLog (String ("Supports orientation? ")   + booleanToString (gis.supportsOrientation(), true));
-        Logger::writeToLog (String ("Supports motion? ")        + booleanToString (gis.supportsMotion(), true));
-        Logger::writeToLog (String ("Has light? ")              + booleanToString (gis.hasLight(), true));
-        Logger::writeToLog (String ("Has accelerometer? ")      + booleanToString (gis.hasAccelerometer(), true));
-        Logger::writeToLog (String ("Has gyroscope? ")          + booleanToString (gis.hasGyroscope(), true));
-    }
-
-    while (gis.isConnected())
-    {
-        auto addVibesIfPossible = [&] (Point<double> axis, Point<double> deadzone, bool isLeft)
-        {
-            const auto mag = getMagnitude (axis);
-
-            if (mag > getMagnitude (deadzone))
-            {
-                if (isLeft)
-                  gis.setLeftMotorVibration (1.0 - mag);
-                else
-                  gis.setRightMotorVibration (1.0 - mag);
-            }
-        };
-
-        addVibesIfPossible (gis.getLeftAxis(), gis.getLeftAxisDeadZone(), true);
-        addVibesIfPossible (gis.getRightAxis(), gis.getRightAxisDeadZone(), false);
-
-        using DirectionalPadButton = GamepadInputSource::DirectionalPadButton;
-        auto logIfDirectionalPadButtonIsDown = [&] (DirectionalPadButton b, const String& name)
-        {
-            if (gis.isDirectionalPadButtonDown (b))
-                Logger::writeToLog ("DirectionalPad: " + name);
-        };
-
-        logIfDirectionalPadButtonIsDown (DirectionalPadButton::up,      "Up");
-        logIfDirectionalPadButtonIsDown (DirectionalPadButton::right,   "Right");
-        logIfDirectionalPadButtonIsDown (DirectionalPadButton::down,    "Down");
-        logIfDirectionalPadButtonIsDown (DirectionalPadButton::left,    "Left");
-
-        using ActionButton = GamepadInputSource::ActionButton;
-        auto logIfActionButtonIsDown = [&] (ActionButton b, const String& name)
-        {
-            if (gis.isActionButtonDown (b))
-                Logger::writeToLog ("ActionButton: " + name);
-        };
-
-        logIfActionButtonIsDown (ActionButton::up,      "Up");
-        logIfActionButtonIsDown (ActionButton::right,   "Right");
-        logIfActionButtonIsDown (ActionButton::down,    "Down");
-        logIfActionButtonIsDown (ActionButton::left,    "Left");
-
-        using ShoulderButton = GamepadInputSource::ShoulderButton;
-        auto logIfShoulderButtonIsDown = [&] (ShoulderButton b, const String& name)
-        {
-            if (gis.isShoulderButtonDown (b))
-                Logger::writeToLog ("ShoulderButton: " + name);
-        };
-
-        logIfShoulderButtonIsDown (ShoulderButton::leftTrigger,     "leftTrigger");
-        logIfShoulderButtonIsDown (ShoulderButton::leftBumper,      "leftBumper");
-        logIfShoulderButtonIsDown (ShoulderButton::leftAnalog,      "leftAnalog");
-        logIfShoulderButtonIsDown (ShoulderButton::rightTrigger,    "rightTrigger");
-        logIfShoulderButtonIsDown (ShoulderButton::rightBumper,     "rightBumper");
-        logIfShoulderButtonIsDown (ShoulderButton::rightAnalog,     "rightAnalog");
-
-        using SpecialButton = GamepadInputSource::SpecialButton;
-        auto logIfSpecialButtonIsDown = [&] (SpecialButton b, const String& name)
-        {
-            if (gis.isSpecialButtonDown (b))
-                Logger::writeToLog ("SpecialButton: " + name);
-        };
-
-        logIfSpecialButtonIsDown (SpecialButton::start,         "start");
-        logIfSpecialButtonIsDown (SpecialButton::select,        "select");
-        logIfSpecialButtonIsDown (SpecialButton::back,          "back");
-        logIfSpecialButtonIsDown (SpecialButton::centre,        "centre");
-        logIfSpecialButtonIsDown (SpecialButton::guide,         "guide");
-        logIfSpecialButtonIsDown (SpecialButton::blue,          "blue");
-        logIfSpecialButtonIsDown (SpecialButton::red,           "red");
-        logIfSpecialButtonIsDown (SpecialButton::green,         "green");
-        logIfSpecialButtonIsDown (SpecialButton::yellow,        "yellow");
-        logIfSpecialButtonIsDown (SpecialButton::volumeUp,      "volumeUp");
-        logIfSpecialButtonIsDown (SpecialButton::volumeDown,    "volumeDown");
-        logIfSpecialButtonIsDown (SpecialButton::volumeMute,    "volumeMute");
-        logIfSpecialButtonIsDown (SpecialButton::channelUp,     "channelUp");
-        logIfSpecialButtonIsDown (SpecialButton::channelDown,   "channelDown");
-        logIfSpecialButtonIsDown (SpecialButton::playPause,     "playPause");
-        logIfSpecialButtonIsDown (SpecialButton::stop,          "stop");
-        logIfSpecialButtonIsDown (SpecialButton::rewind,        "rewind");
-        logIfSpecialButtonIsDown (SpecialButton::fastForward,   "fastForward");
-        logIfSpecialButtonIsDown (SpecialButton::previousTrack, "previousTrack");
-        logIfSpecialButtonIsDown (SpecialButton::nextTrack,     "nextTrack");
-
-        Thread::sleep (100);
-    }
-*/
-
 class GamepadInputSource::Pimpl final
 {
 public:
     Pimpl (int indexOrId) :
-        index ((DWORD) indexOrId)
+        index (indexOrId)
     {
-        jassert (indexOrId < XUSER_MAX_COUNT);
-
-        zerostruct (state);
-        zerostruct (caps);
-        zerostruct (batteryInfo);
+        jassert (indexOrId <= 3);
     }
 
     ~Pimpl()
@@ -151,23 +40,7 @@ public:
     }
 
     //==============================================================================
-    void updateCapabilities (DWORD& result) const
-    {
-        result = ERROR_DEVICE_NOT_CONNECTED;
-
-        if (updateState())
-            result = XInputGetCapabilities (index, BATTERY_DEVTYPE_GAMEPAD, &caps);
-    }
-
-    void updateCapabilities (bool& wasOk) const
-    {
-        DWORD v = ERROR_SUCCESS;
-        updateCapabilities (v);
-        wasOk = v == ERROR_SUCCESS;
-    }
-
-    //==============================================================================
-    constexpr int getID() const                                     { return (int) index; }
+    constexpr int getID() const                                     { return index; }
     String getName() const                                          { return {}; }
     constexpr bool isVirtual() const                                { return false; }
     constexpr bool supportsOrientation() const                      { return false; }
@@ -182,9 +55,7 @@ public:
     //==============================================================================
     bool isConnected() const
     {
-        DWORD rv;
-        updateCapabilities (rv);
-        return rv == ERROR_SUCCESS;
+        return updateState();
     }
 
     Type getType() const
@@ -192,13 +63,12 @@ public:
         if (! isConnected())
             return Type::none;
 
-        return caps.Type == XINPUT_DEVTYPE_GAMEPAD
-            ? Type::xbox
-            : Type::unknown;
+        return Type::none;
     }
 
     Subtype getSubtype() const
     {
+#if 0
         DWORD rv;
         updateCapabilities (rv);
 
@@ -221,27 +91,25 @@ public:
             default:
             break;
         };
-
+#endif
         return Subtype::unknown;
     }
 
     bool supportsVoice() const
     {
+#if 0
         DWORD rv;
         updateCapabilities (rv);
         if (rv == ERROR_SUCCESS)
             return (caps.Flags & XINPUT_CAPS_VOICE_SUPPORTED) != 0;
-
+#endif
         return false;
     }
 
     //==============================================================================
     void updateBatteryInfo (bool& wasOk) const
     {
-        zerostruct (batteryInfo);
-
-        wasOk = updateState()
-             && XInputGetBatteryInformation (index, BATTERY_DEVTYPE_GAMEPAD, &batteryInfo) == ERROR_SUCCESS;
+        wasOk = false;
     }
 
     BatteryType getBatteryType() const
@@ -251,6 +119,7 @@ public:
 
         if (wasOk)
         {
+#if 0
             switch (batteryInfo.BatteryType)
             {
                 case BATTERY_TYPE_WIRED:    return BatteryType::wired;
@@ -260,6 +129,7 @@ public:
 
                 default: break;
             };
+#endif
         }
 
         return BatteryType::none;
@@ -276,6 +146,7 @@ public:
         updateBatteryInfo (wasOk);
         if (wasOk)
         {
+#if 0
             switch (batteryInfo.BatteryLevel)
             {
                 case BATTERY_LEVEL_EMPTY:   return 0.0;
@@ -285,6 +156,7 @@ public:
 
                 default: break;
             };
+#endif
         }
 
         return 0.0;
@@ -297,10 +169,10 @@ public:
         {
             switch (b)
             {
-                case DirectionalPadButton::up:      return (state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP) != 0;
-                case DirectionalPadButton::right:   return (state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0;
-                case DirectionalPadButton::down:    return (state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN) != 0;
-                case DirectionalPadButton::left:    return (state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) != 0;
+                // case DirectionalPadButton::up:      return (state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP) != 0;
+                // case DirectionalPadButton::right:   return (state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0;
+                // case DirectionalPadButton::down:    return (state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN) != 0;
+                // case DirectionalPadButton::left:    return (state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) != 0;
 
                 default: jassertfalse; break;
             };
@@ -321,10 +193,10 @@ public:
         {
             switch (b)
             {
-                case ActionButton::down:    return (state.Gamepad.wButtons & XINPUT_GAMEPAD_A) != 0;
-                case ActionButton::right:   return (state.Gamepad.wButtons & XINPUT_GAMEPAD_B) != 0;
-                case ActionButton::left:    return (state.Gamepad.wButtons & XINPUT_GAMEPAD_X) != 0;
-                case ActionButton::up:      return (state.Gamepad.wButtons & XINPUT_GAMEPAD_Y) != 0;
+                // case ActionButton::down:    return (state.Gamepad.wButtons & XINPUT_GAMEPAD_A) != 0;
+                // case ActionButton::right:   return (state.Gamepad.wButtons & XINPUT_GAMEPAD_B) != 0;
+                // case ActionButton::left:    return (state.Gamepad.wButtons & XINPUT_GAMEPAD_X) != 0;
+                // case ActionButton::up:      return (state.Gamepad.wButtons & XINPUT_GAMEPAD_Y) != 0;
 
                 default: jassertfalse; break;
             };
@@ -341,6 +213,7 @@ public:
     //==============================================================================
     Point<double> getAxis (double x, double y, bool isLeft, bool ignoreDeadzone) const
     {
+#if 0
         if (ignoreDeadzone)
             return
             {
@@ -360,25 +233,27 @@ public:
             jmap (jmax (x, dz), lowerLimit, upperLimit, -1.0, 1.0),
             jmap (jmax (y, dz), lowerLimit, upperLimit, -1.0, 1.0),
         };
+#endif
+        return {};
     }
 
     Point<double> getLeftAxis (bool ignoreDeadzone) const
     {
-        if (updateState())
-            return getAxis ((double) state.Gamepad.sThumbLX, (double) state.Gamepad.sThumbLY, true, ignoreDeadzone);
+        // if (updateState())
+        //     return getAxis ((double) state.Gamepad.sThumbLX, (double) state.Gamepad.sThumbLY, true, ignoreDeadzone);
 
         return {};
     }
 
     Point<double> getRightAxis (bool ignoreDeadzone) const
     {
-        if (updateState())
-            return getAxis ((double) state.Gamepad.sThumbRX, (double) state.Gamepad.sThumbRY, false, ignoreDeadzone);
+        // if (updateState())
+        //     return getAxis ((double) state.Gamepad.sThumbRX, (double) state.Gamepad.sThumbRY, false, ignoreDeadzone);
 
         return {};
     }
 
-    Point<double> getDeadZone (double value) const
+    static Point<double> getDeadZone (double value)
     {
         return
         {
@@ -387,8 +262,13 @@ public:
         };
     }
 
-    Point<double> getLeftAxisDeadZone() const   { return getDeadZone ((double) XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE); }
-    Point<double> getRightAxisDeadZone() const  { return getDeadZone ((double) XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE); }
+    static double remapMotorVibration (DWORD value)
+    {
+        return jmap ((double) value, 0.0, 65535.0, 0.0, 1.0);
+    }
+
+    Point<double> getLeftAxisDeadZone() const   { return {}; } // return getDeadZone ((double) XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE); }
+    Point<double> getRightAxisDeadZone() const  { return {}; } // return getDeadZone ((double) XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE); }
 
     void setLeftAxisDeadZone (Point<double>) {}
     void setRightAxisDeadZone (Point<double>) {}
@@ -396,43 +276,40 @@ public:
     //==============================================================================
     void setLeftMotorVibration (double v)
     {
-        bool wasOk;
-        updateCapabilities (wasOk);
-        if (! wasOk)
-            return;
-
-        caps.Vibration.wLeftMotorSpeed = (WORD) jmap (v, 0.0, 65535.0);
-        wasOk = XInputSetState (index, &caps.Vibration) == ERROR_SUCCESS;
-        jassertquiet (wasOk);
+        // bool wasOk;
+        // updateCapabilities (wasOk);
+        // if (! wasOk)
+        //     return;
+        // 
+        // caps.Vibration.wLeftMotorSpeed = (WORD) jmap (v, 0.0, 65535.0);
+        // wasOk = XInputSetState (index, &caps.Vibration) == ERROR_SUCCESS;
+        // jassertquiet (wasOk);
     }
 
     void setRightMotorVibration (double v)
     {
-        bool wasOk;
-        updateCapabilities (wasOk);
-        if (! wasOk)
-            return;
-
-        caps.Vibration.wRightMotorSpeed = (WORD) jmap (v, 0.0, 65535.0);
-        wasOk = XInputSetState (index, &caps.Vibration) == ERROR_SUCCESS;
-        jassertquiet (wasOk);
-    }
-
-    static double remapMotorVibration (DWORD value)
-    {
-        return jmap ((double) value, 0.0, 65535.0, 0.0, 1.0);
+        // bool wasOk;
+        // updateCapabilities (wasOk);
+        // if (! wasOk)
+        //     return;
+        // 
+        // caps.Vibration.wRightMotorSpeed = (WORD) jmap (v, 0.0, 65535.0);
+        // wasOk = XInputSetState (index, &caps.Vibration) == ERROR_SUCCESS;
+        // jassertquiet (wasOk);
     }
 
     double getMotorVibration (bool isLeft) const
     {
-        bool wasOk;
-        updateCapabilities (wasOk);
-        if (! wasOk)
-            return 0.0;
+        // bool wasOk;
+        // updateCapabilities (wasOk);
+        // if (! wasOk)
+        //     return 0.0;
+        // 
+        // return remapMotorVibration (isLeft
+        //                                 ? caps.Vibration.wLeftMotorSpeed
+        //                                 : caps.Vibration.wRightMotorSpeed);
 
-        return remapMotorVibration (isLeft
-                                        ? caps.Vibration.wLeftMotorSpeed
-                                        : caps.Vibration.wRightMotorSpeed);
+        return {};
     }
 
     double getLeftMotorVibration() const    { return getMotorVibration (true); }
@@ -443,29 +320,29 @@ public:
     {
         if (updateState())
         {
-            switch (b)
-            {
-                case ShoulderButton::leftBumper:    return (state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0 ? 1.0 : 0.0;
-                case ShoulderButton::rightBumper:   return (state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0 ? 1.0 : 0.0;
-                case ShoulderButton::leftAnalog:    return (state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0 ? 1.0 : 0.0;
-                case ShoulderButton::rightAnalog:   return (state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0 ? 1.0 : 0.0;
-
-                case ShoulderButton::leftTrigger:
-                case ShoulderButton::rightTrigger:
-                {
-                    auto v = b == ShoulderButton::leftTrigger
-                                ? state.Gamepad.bLeftTrigger
-                                : state.Gamepad.bRightTrigger;
-
-                    if (v <= XINPUT_GAMEPAD_TRIGGER_THRESHOLD)
-                        return 0.0;
-
-                    v -= XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
-                    return (double) v / (255.0 - (double) XINPUT_GAMEPAD_TRIGGER_THRESHOLD);
-                }
-
-                default: jassertfalse; break;
-            };
+            // switch (b)
+            // {
+            //     case ShoulderButton::leftBumper:    return (state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0 ? 1.0 : 0.0;
+            //     case ShoulderButton::rightBumper:   return (state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0 ? 1.0 : 0.0;
+            //     case ShoulderButton::leftAnalog:    return (state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0 ? 1.0 : 0.0;
+            //     case ShoulderButton::rightAnalog:   return (state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0 ? 1.0 : 0.0;
+            // 
+            //     case ShoulderButton::leftTrigger:
+            //     case ShoulderButton::rightTrigger:
+            //     {
+            //         auto v = b == ShoulderButton::leftTrigger
+            //                     ? state.Gamepad.bLeftTrigger
+            //                     : state.Gamepad.bRightTrigger;
+            // 
+            //         if (v <= XINPUT_GAMEPAD_TRIGGER_THRESHOLD)
+            //             return 0.0;
+            // 
+            //         v -= XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+            //         return (double) v / (255.0 - (double) XINPUT_GAMEPAD_TRIGGER_THRESHOLD);
+            //     }
+            // 
+            //     default: jassertfalse; break;
+            // };
         }
 
         return 0.0;
@@ -481,13 +358,13 @@ public:
     {
         if (updateState())
         {
-            switch (b)
-            {
-                case SpecialButton::start:  return (state.Gamepad.wButtons & XINPUT_GAMEPAD_START) != 0;
-                case SpecialButton::back:   return (state.Gamepad.wButtons & XINPUT_GAMEPAD_BACK) != 0;
-
-                default: break;
-            };
+            // switch (b)
+            // {
+            //     case SpecialButton::start:  return (state.Gamepad.wButtons & XINPUT_GAMEPAD_START) != 0;
+            //     case SpecialButton::back:   return (state.Gamepad.wButtons & XINPUT_GAMEPAD_BACK) != 0;
+            // 
+            //     default: break;
+            // };
         }
 
         return false;
@@ -500,19 +377,43 @@ public:
 
 private:
     //==============================================================================
-    const DWORD index = 0;
-    mutable XINPUT_STATE state;
-    mutable XINPUT_CAPABILITIES caps;
-    mutable XINPUT_BATTERY_INFORMATION batteryInfo;
+    const int index = 0;
+    // mutable XINPUT_STATE state;
+    // mutable XINPUT_CAPABILITIES caps;
+    // mutable XINPUT_BATTERY_INFORMATION batteryInfo;
 
     //==============================================================================
     bool updateState() const
     {
-        zerostruct (state);
-        zerostruct (caps);
-        zerostruct (batteryInfo);
+        auto hr = RoInitialize(RO_INIT_MULTITHREADED);
+        jassert(SUCCEEDED(hr));
 
-        return XInputGetState (index, &state) == ERROR_SUCCESS;
+        ComPtr<IGamepadStatics> gamepadStatics;
+        hr = RoGetActivationFactory(HStringReference(L"Windows.Gaming.Input.Gamepad").Get(), __uuidof(IGamepadStatics), &gamepadStatics);
+        jassert(SUCCEEDED(hr));
+
+        ComPtr<IVectorView<Gamepad*>> gamepads;
+        hr = gamepadStatics->get_Gamepads(&gamepads);
+        jassert(SUCCEEDED(hr));
+
+        uint32_t gamepadCount;
+        hr = gamepads->get_Size(&gamepadCount);
+        jassert(SUCCEEDED(hr));
+
+        for (uint32_t i = 0; i < gamepadCount; i++)
+        {
+            ComPtr<IGamepad> gamepad;
+            hr = gamepads->GetAt(i, &gamepad);
+            jassert(SUCCEEDED(hr));
+
+            GamepadReading gamepadReading;
+            hr = gamepad->GetCurrentReading(&gamepadReading);
+            jassert(SUCCEEDED(hr));
+
+            std::cout << "Gamepad " << i + 1 << " buttons value is: " << gamepadReading.Buttons << std::endl;
+        }
+
+        return false;
     }
 
     //==============================================================================

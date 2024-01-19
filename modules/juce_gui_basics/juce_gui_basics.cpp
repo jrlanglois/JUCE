@@ -133,8 +133,15 @@
   #endif
 
   #if JUCE_ENABLE_GAMEPADS
-   #include <xinput.h>
-   #pragma comment (lib, "xinput.lib")
+   #include <roapi.h>
+   #include <wrl.h>
+   #include <windows.gaming.input.h>
+   #pragma comment(lib, "runtimeobject.lib")
+
+   using namespace ABI::Windows::Foundation::Collections;
+   using namespace ABI::Windows::Gaming::Input;
+   using namespace Microsoft::WRL;
+   using namespace Microsoft::WRL::Wrappers;
   #endif
  #endif
 #endif
