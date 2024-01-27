@@ -197,12 +197,6 @@
    #include "native/juce_ContentSharer_ios.cpp"
   #endif
 
-  #if JUCE_ENABLE_GAMEPADS
-   #import <GameController/GameController.h>
-   #import <GameController/GCController.h>
-   #include "native/juce_Gamepad_mac.mm"
-  #endif
-
  #else
   #include "native/accessibility/juce_Accessibility_mac.mm"
   #include "native/juce_PerScreenDisplayLinks_mac.h"
@@ -215,6 +209,12 @@
  #endif
 
  #include "native/juce_MouseCursor_mac.mm"
+
+ #if JUCE_ENABLE_GAMEPADS
+  #import <GameController/GameController.h>
+  #import <GameController/GCController.h>
+  #include "native/juce_Gamepad_mac.mm"
+ #endif
 
 #elif JUCE_WINDOWS
  #include <juce_graphics/native/juce_Direct2DMetrics_windows.h>
@@ -258,6 +258,10 @@
  JUCE_END_IGNORE_WARNINGS_GCC_LIKE
 
  #include "native/juce_FileChooser_linux.cpp"
+
+ #if JUCE_ENABLE_GAMEPADS
+  #include "native/juce_Gamepad_linux.cpp"
+ #endif
 
 #elif JUCE_ANDROID
 

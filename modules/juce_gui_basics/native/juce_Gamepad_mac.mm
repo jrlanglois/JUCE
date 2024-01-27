@@ -29,123 +29,16 @@ namespace juce
 {
 
 #undef JUCE_MACOS_SUPPORTS_LIGHT
-#define JUCE_MACOS_SUPPORTS_LIGHT MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_3
+#define JUCE_MACOS_SUPPORTS_LIGHT (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_11_0)
 
 #undef JUCE_MACOS_SUPPORTS_THUMBSTICK
-#define JUCE_MACOS_SUPPORTS_THUMBSTICK MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
+#define JUCE_MACOS_SUPPORTS_THUMBSTICK (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14_1)
 
 #undef JUCE_MACOS_SUPPORTS_XBOX_AND_DUALSHOCK
-#define JUCE_MACOS_SUPPORTS_XBOX_AND_DUALSHOCK MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_11_0
+#define JUCE_MACOS_SUPPORTS_XBOX_AND_DUALSHOCK (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_11_0)
 
 #undef JUCE_MACOS_SUPPORTS_DUALSENSE
-#define JUCE_MACOS_SUPPORTS_DUALSENSE MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_11_3
-
-/**
-    GamepadInputSource gis (0);
-
-    if (gis.isConnected())
-    {
-        Logger::writeToLog (String ("ID: ")                     + String (gis.getID()));
-        Logger::writeToLog (String ("Battery Type: ")           + String ((int) gis.getBatteryType()));
-        Logger::writeToLog (String ("Battery Level: ")          + String (gis.getBatteryLevel()));
-        Logger::writeToLog (String ("Type: ")                   + String ((int) gis.getType()));
-        Logger::writeToLog (String ("Subtype: ")                + String ((int) gis.getSubtype()));
-        Logger::writeToLog (String ("Is wireless? ")            + booleanToString (gis.isWireless(), true));
-        Logger::writeToLog (String ("Is virtual? ")             + booleanToString (gis.isVirtual(), true));
-        Logger::writeToLog (String ("Supports orientation? ")   + booleanToString (gis.supportsOrientation(), true));
-        Logger::writeToLog (String ("Supports motion? ")        + booleanToString (gis.supportsMotion(), true));
-        Logger::writeToLog (String ("Has light? ")              + booleanToString (gis.hasLight(), true));
-        Logger::writeToLog (String ("Has accelerometer? ")      + booleanToString (gis.hasAccelerometer(), true));
-        Logger::writeToLog (String ("Has gyroscope? ")          + booleanToString (gis.hasGyroscope(), true));
-    }
-
-    while (gis.isConnected())
-    {
-        auto addVibesIfPossible = [&] (Point<double> axis, Point<double> deadzone, bool isLeft)
-        {
-            const auto mag = getMagnitude (axis);
-
-            if (mag > getMagnitude (deadzone))
-            {
-                if (isLeft)
-                  gis.setLeftMotorVibration (1.0 - mag);
-                else
-                  gis.setRightMotorVibration (1.0 - mag);
-            }
-        };
-
-        addVibesIfPossible (gis.getLeftAxis(), gis.getLeftAxisDeadZone(), true);
-        addVibesIfPossible (gis.getRightAxis(), gis.getRightAxisDeadZone(), false);
-
-        using DirectionalPadButton = GamepadInputSource::DirectionalPadButton;
-        auto logIfDirectionalPadButtonIsDown = [&] (DirectionalPadButton b, const String& name)
-        {
-            if (gis.isDirectionalPadButtonDown (b))
-                Logger::writeToLog ("DirectionalPad: " + name);
-        };
-
-        logIfDirectionalPadButtonIsDown (DirectionalPadButton::up,      "Up");
-        logIfDirectionalPadButtonIsDown (DirectionalPadButton::right,   "Right");
-        logIfDirectionalPadButtonIsDown (DirectionalPadButton::down,    "Down");
-        logIfDirectionalPadButtonIsDown (DirectionalPadButton::left,    "Left");
-
-        using ActionButton = GamepadInputSource::ActionButton;
-        auto logIfActionButtonIsDown = [&] (ActionButton b, const String& name)
-        {
-            if (gis.isActionButtonDown (b))
-                Logger::writeToLog ("ActionButton: " + name);
-        };
-
-        logIfActionButtonIsDown (ActionButton::up,      "Up");
-        logIfActionButtonIsDown (ActionButton::right,   "Right");
-        logIfActionButtonIsDown (ActionButton::down,    "Down");
-        logIfActionButtonIsDown (ActionButton::left,    "Left");
-
-        using ShoulderButton = GamepadInputSource::ShoulderButton;
-        auto logIfShoulderButtonIsDown = [&] (ShoulderButton b, const String& name)
-        {
-            if (gis.isShoulderButtonDown (b))
-                Logger::writeToLog ("ShoulderButton: " + name);
-        };
-
-        logIfShoulderButtonIsDown (ShoulderButton::leftTrigger,     "leftTrigger");
-        logIfShoulderButtonIsDown (ShoulderButton::leftBumper,      "leftBumper");
-        logIfShoulderButtonIsDown (ShoulderButton::leftAnalog,      "leftAnalog");
-        logIfShoulderButtonIsDown (ShoulderButton::rightTrigger,    "rightTrigger");
-        logIfShoulderButtonIsDown (ShoulderButton::rightBumper,     "rightBumper");
-        logIfShoulderButtonIsDown (ShoulderButton::rightAnalog,     "rightAnalog");
-
-        using SpecialButton = GamepadInputSource::SpecialButton;
-        auto logIfSpecialButtonIsDown = [&] (SpecialButton b, const String& name)
-        {
-            if (gis.isSpecialButtonDown (b))
-                Logger::writeToLog ("SpecialButton: " + name);
-        };
-
-        logIfSpecialButtonIsDown (SpecialButton::start,         "start");
-        logIfSpecialButtonIsDown (SpecialButton::select,        "select");
-        logIfSpecialButtonIsDown (SpecialButton::back,          "back");
-        logIfSpecialButtonIsDown (SpecialButton::centre,        "centre");
-        logIfSpecialButtonIsDown (SpecialButton::guide,         "guide");
-        logIfSpecialButtonIsDown (SpecialButton::blue,          "blue");
-        logIfSpecialButtonIsDown (SpecialButton::red,           "red");
-        logIfSpecialButtonIsDown (SpecialButton::green,         "green");
-        logIfSpecialButtonIsDown (SpecialButton::yellow,        "yellow");
-        logIfSpecialButtonIsDown (SpecialButton::volumeUp,      "volumeUp");
-        logIfSpecialButtonIsDown (SpecialButton::volumeDown,    "volumeDown");
-        logIfSpecialButtonIsDown (SpecialButton::volumeMute,    "volumeMute");
-        logIfSpecialButtonIsDown (SpecialButton::channelUp,     "channelUp");
-        logIfSpecialButtonIsDown (SpecialButton::channelDown,   "channelDown");
-        logIfSpecialButtonIsDown (SpecialButton::playPause,     "playPause");
-        logIfSpecialButtonIsDown (SpecialButton::stop,          "stop");
-        logIfSpecialButtonIsDown (SpecialButton::rewind,        "rewind");
-        logIfSpecialButtonIsDown (SpecialButton::fastForward,   "fastForward");
-        logIfSpecialButtonIsDown (SpecialButton::previousTrack, "previousTrack");
-        logIfSpecialButtonIsDown (SpecialButton::nextTrack,     "nextTrack");
-
-        Thread::sleep (100);
-    }
-*/
+#define JUCE_MACOS_SUPPORTS_DUALSENSE (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_11_3)
 
 static id connectObserver = nil;
 static id disconnectObserver = nil;
@@ -157,6 +50,9 @@ public:
         playerIndex (static_cast<GCControllerPlayerIndex> (indexOrId))
     {
         updateState();
+
+        if (connectObserver != nullptr)
+            return;
 
         NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
         connectObserver = [center addObserverForName:GCControllerDidConnectNotification
@@ -208,9 +104,13 @@ public:
         const auto desc = getName();
 
         if (desc.isEmpty())                                     return Type::none;
-        else if (desc.equalsIgnoreCase ("Pro Controller"))      return Type::nintendo;
-        else if (desc.containsIgnoreCase ("Xbox"))              return Type::xbox;
-        else if (desc.equalsIgnoreCase ("Wireless Controller")) return Type::playstation;
+        else if (desc.equalsIgnoreCase ("Pro Controller"))      return Type::switchPro;
+        else if (desc.containsIgnoreCase ("Xbox360"))           return Type::xbox360;
+        else if (desc.containsIgnoreCase ("Xbox"))              return Type::xboxOne;
+        else if (desc.containsIgnoreCase ("DualShock 4"))       return Type::dualShock4;
+        else if (desc.containsIgnoreCase ("DualShock"))         return Type::dualShock;
+        else if (desc.containsIgnoreCase ("DualSense"))         return Type::dualSense;
+        else if (desc.containsIgnoreCase ("Luna"))              return Type::luna;
         // else {} // TODO: Siri remote & Apple remote
 
         return Type::unknown;
@@ -220,9 +120,13 @@ public:
     {
         switch (getType())
         {
-            case Type::nintendo:
-            case Type::xbox:
-            case Type::playstation:
+            case Type::xbox360:
+            case Type::xboxOne:
+            case Type::dualShock:
+            case Type::dualShock4:
+            case Type::dualSense:
+            case Type::switchPro:
+            case Type::luna:
                 return Subtype::gamepad;
 
             case Type::siriRemote:
