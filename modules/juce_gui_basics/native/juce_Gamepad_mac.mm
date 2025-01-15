@@ -92,6 +92,9 @@ public:
 
         String name (controller.description.UTF8String);
 
+
+        String desc (controller.description.UTF8String);
+
         if (name.containsIgnoreCase ("vendorName"))
             name = name.fromFirstOccurrenceOf ("'", false, false)
                        .upToLastOccurrenceOf("'", false, false);
@@ -421,12 +424,6 @@ public:
 
 private:
     //==============================================================================
-    const GCControllerPlayerIndex playerIndex;
-    mutable GCController* controller = nullptr;
-    mutable GCGamepad* gamepad = nullptr;
-    mutable GCMicroGamepad* microGamepad = nullptr;
-    mutable GCExtendedGamepad* extendedGamepad = nullptr;
-
     struct ControllerProfiles final
     {
         void clear()
@@ -471,6 +468,10 @@ private:
        #endif
     };
 
+    const GCControllerPlayerIndex playerIndex;
+    mutable GCController* controller = nullptr;
+    mutable GCMicroGamepad* microGamepad = nullptr;
+    mutable GCExtendedGamepad* extendedGamepad = nullptr;
     mutable ControllerProfiles profiles;
     mutable MiscFeatures miscFeatures;
 
@@ -481,7 +482,6 @@ private:
         const auto index = static_cast<int> (playerIndex);
 
         controller = nullptr;
-        gamepad = nullptr;
         microGamepad = nullptr;
         extendedGamepad = nullptr;
         profiles.clear();
@@ -490,7 +490,6 @@ private:
         if ([latestControllers count] >= (index + 1))
         {
             controller = latestControllers[index];
-            gamepad = [controller gamepad];
             microGamepad = [controller microGamepad];
             extendedGamepad = [controller extendedGamepad];
 
