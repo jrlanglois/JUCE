@@ -954,6 +954,36 @@ const int KeyPress::stopKey                 = 0x30001;
 const int KeyPress::fastForwardKey          = 0x30002;
 const int KeyPress::rewindKey               = 0x30003;
 
+const int KeyPress::volumeUpKey             = VK_VOLUME_UP      | extendedKeyModifier;
+const int KeyPress::volumeDownKey           = VK_VOLUME_DOWN    | extendedKeyModifier;
+const int KeyPress::muteKey                 = VK_VOLUME_MUTE    | extendedKeyModifier;
+
+const int KeyPress::channelUpKey            = 0x3200b;
+const int KeyPress::channelDownKey          = 0x3200c;
+const int KeyPress::menuKey                 = 0x3200d;
+const int KeyPress::guideKey                = 0x3200e;
+const int KeyPress::captionsKey             = 0x3200f;
+const int KeyPress::settingsKey             = 0x32010;
+const int KeyPress::findKey                 = VK_BROWSER_SEARCH | extendedKeyModifier;
+const int KeyPress::favouriteKey            = 0x32011;
+const int KeyPress::helpKey                 = VK_HELP           | extendedKeyModifier;
+
+const int KeyPress::buttonRed               = 0x32012;
+const int KeyPress::buttonGreen             = 0x32013;
+const int KeyPress::buttonBlue              = 0x32014;
+const int KeyPress::buttonYellow            = 0x32015;
+const int KeyPress::startKey                = 0x32016;
+const int KeyPress::selectKey               = VK_SELECT         | extendedKeyModifier;;
+const int KeyPress::buttonAKey              = 0x32017;
+const int KeyPress::buttonBKey              = 0x32018;
+const int KeyPress::buttonCKey              = 0x32019;
+const int KeyPress::buttonXKey              = 0x3201a;
+const int KeyPress::buttonYKey              = 0x3201b;
+const int KeyPress::buttonZKey              = 0x3201c;
+const int KeyPress::buttonL1Key             = 0x3201d;
+const int KeyPress::buttonL2Key             = 0x3201e;
+const int KeyPress::buttonR1Key             = 0x3201f;
+const int KeyPress::buttonR2Key             = 0x32020;
 
 //==============================================================================
 class WindowsBitmapImage final : public ImagePixelData
@@ -3325,6 +3355,16 @@ private:
             case APPCOMMAND_MEDIA_STOP:             key = KeyPress::stopKey; break;
             case APPCOMMAND_MEDIA_NEXTTRACK:        key = KeyPress::fastForwardKey; break;
             case APPCOMMAND_MEDIA_PREVIOUSTRACK:    key = KeyPress::rewindKey; break;
+            case APPCOMMAND_VOLUME_UP:              key = KeyPress::volumeUpKey; break;
+            case APPCOMMAND_VOLUME_DOWN:            key = KeyPress::volumeDownKey; break;
+            case APPCOMMAND_VOLUME_MUTE:            key = KeyPress::muteKey; break;
+            case APPCOMMAND_HELP:                   key = KeyPress::helpKey; break;
+            case APPCOMMAND_FIND:                   key = KeyPress::findKey; break;
+            case APPCOMMAND_MEDIA_CHANNEL_UP:       key = KeyPress::channelUpKey; break;
+            case APPCOMMAND_MEDIA_CHANNEL_DOWN:     key = KeyPress::channelDownKey; break;
+            case APPCOMMAND_BROWSER_SEARCH:         key = KeyPress::findKey; break;
+            case APPCOMMAND_BROWSER_FAVORITES:      key = KeyPress::favouriteKey; break;
+
             default: break;
         }
 

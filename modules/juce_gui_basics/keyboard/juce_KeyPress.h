@@ -195,84 +195,115 @@ public:
     // KeyPress objects, use getTextDescription() and createFromDescription() instead.
     //
 
-    static const int spaceKey;      /**< key-code for the space bar */
-    static const int escapeKey;     /**< key-code for the escape key */
-    static const int returnKey;     /**< key-code for the return key*/
-    static const int tabKey;        /**< key-code for the tab key*/
+    static const int spaceKey;              /**< key-code for the space bar */
+    static const int escapeKey;             /**< key-code for the escape key */
+    static const int returnKey;             /**< key-code for the return key*/
+    static const int tabKey;                /**< key-code for the tab key*/
 
-    static const int deleteKey;     /**< key-code for the delete key (not backspace) */
-    static const int backspaceKey;  /**< key-code for the backspace key */
-    static const int insertKey;     /**< key-code for the insert key */
+    static const int deleteKey;             /**< key-code for the delete key (not backspace) */
+    static const int backspaceKey;          /**< key-code for the backspace key */
+    static const int insertKey;             /**< key-code for the insert key */
 
-    static const int upKey;         /**< key-code for the cursor-up key */
-    static const int downKey;       /**< key-code for the cursor-down key */
-    static const int leftKey;       /**< key-code for the cursor-left key */
-    static const int rightKey;      /**< key-code for the cursor-right key */
-    static const int pageUpKey;     /**< key-code for the page-up key */
-    static const int pageDownKey;   /**< key-code for the page-down key */
-    static const int homeKey;       /**< key-code for the home key */
-    static const int endKey;        /**< key-code for the end key */
+    static const int upKey;                 /**< key-code for the cursor-up key */
+    static const int downKey;               /**< key-code for the cursor-down key */
+    static const int leftKey;               /**< key-code for the cursor-left key */
+    static const int rightKey;              /**< key-code for the cursor-right key */
+    static const int pageUpKey;             /**< key-code for the page-up key */
+    static const int pageDownKey;           /**< key-code for the page-down key */
+    static const int homeKey;               /**< key-code for the home key */
+    static const int endKey;                /**< key-code for the end key */
 
-    static const int F1Key;         /**< key-code for the F1 key */
-    static const int F2Key;         /**< key-code for the F2 key */
-    static const int F3Key;         /**< key-code for the F3 key */
-    static const int F4Key;         /**< key-code for the F4 key */
-    static const int F5Key;         /**< key-code for the F5 key */
-    static const int F6Key;         /**< key-code for the F6 key */
-    static const int F7Key;         /**< key-code for the F7 key */
-    static const int F8Key;         /**< key-code for the F8 key */
-    static const int F9Key;         /**< key-code for the F9 key */
-    static const int F10Key;        /**< key-code for the F10 key */
-    static const int F11Key;        /**< key-code for the F11 key */
-    static const int F12Key;        /**< key-code for the F12 key */
-    static const int F13Key;        /**< key-code for the F13 key */
-    static const int F14Key;        /**< key-code for the F14 key */
-    static const int F15Key;        /**< key-code for the F15 key */
-    static const int F16Key;        /**< key-code for the F16 key */
-    static const int F17Key;        /**< key-code for the F17 key */
-    static const int F18Key;        /**< key-code for the F18 key */
-    static const int F19Key;        /**< key-code for the F19 key */
-    static const int F20Key;        /**< key-code for the F20 key */
-    static const int F21Key;        /**< key-code for the F21 key */
-    static const int F22Key;        /**< key-code for the F22 key */
-    static const int F23Key;        /**< key-code for the F23 key */
-    static const int F24Key;        /**< key-code for the F24 key */
-    static const int F25Key;        /**< key-code for the F25 key */
-    static const int F26Key;        /**< key-code for the F26 key */
-    static const int F27Key;        /**< key-code for the F27 key */
-    static const int F28Key;        /**< key-code for the F28 key */
-    static const int F29Key;        /**< key-code for the F29 key */
-    static const int F30Key;        /**< key-code for the F30 key */
-    static const int F31Key;        /**< key-code for the F31 key */
-    static const int F32Key;        /**< key-code for the F32 key */
-    static const int F33Key;        /**< key-code for the F33 key */
-    static const int F34Key;        /**< key-code for the F34 key */
-    static const int F35Key;        /**< key-code for the F35 key */
+    static const int F1Key;                 /**< key-code for the F1 key */
+    static const int F2Key;                 /**< key-code for the F2 key */
+    static const int F3Key;                 /**< key-code for the F3 key */
+    static const int F4Key;                 /**< key-code for the F4 key */
+    static const int F5Key;                 /**< key-code for the F5 key */
+    static const int F6Key;                 /**< key-code for the F6 key */
+    static const int F7Key;                 /**< key-code for the F7 key */
+    static const int F8Key;                 /**< key-code for the F8 key */
+    static const int F9Key;                 /**< key-code for the F9 key */
+    static const int F10Key;                /**< key-code for the F10 key */
+    static const int F11Key;                /**< key-code for the F11 key */
+    static const int F12Key;                /**< key-code for the F12 key */
+    static const int F13Key;                /**< key-code for the F13 key */
+    static const int F14Key;                /**< key-code for the F14 key */
+    static const int F15Key;                /**< key-code for the F15 key */
+    static const int F16Key;                /**< key-code for the F16 key */
+    static const int F17Key;                /**< key-code for the F17 key */
+    static const int F18Key;                /**< key-code for the F18 key */
+    static const int F19Key;                /**< key-code for the F19 key */
+    static const int F20Key;                /**< key-code for the F20 key */
+    static const int F21Key;                /**< key-code for the F21 key */
+    static const int F22Key;                /**< key-code for the F22 key */
+    static const int F23Key;                /**< key-code for the F23 key */
+    static const int F24Key;                /**< key-code for the F24 key */
+    static const int F25Key;                /**< key-code for the F25 key */
+    static const int F26Key;                /**< key-code for the F26 key */
+    static const int F27Key;                /**< key-code for the F27 key */
+    static const int F28Key;                /**< key-code for the F28 key */
+    static const int F29Key;                /**< key-code for the F29 key */
+    static const int F30Key;                /**< key-code for the F30 key */
+    static const int F31Key;                /**< key-code for the F31 key */
+    static const int F32Key;                /**< key-code for the F32 key */
+    static const int F33Key;                /**< key-code for the F33 key */
+    static const int F34Key;                /**< key-code for the F34 key */
+    static const int F35Key;                /**< key-code for the F35 key */
 
-    static const int numberPad0;     /**< key-code for the 0 on the numeric keypad. */
-    static const int numberPad1;     /**< key-code for the 1 on the numeric keypad. */
-    static const int numberPad2;     /**< key-code for the 2 on the numeric keypad. */
-    static const int numberPad3;     /**< key-code for the 3 on the numeric keypad. */
-    static const int numberPad4;     /**< key-code for the 4 on the numeric keypad. */
-    static const int numberPad5;     /**< key-code for the 5 on the numeric keypad. */
-    static const int numberPad6;     /**< key-code for the 6 on the numeric keypad. */
-    static const int numberPad7;     /**< key-code for the 7 on the numeric keypad. */
-    static const int numberPad8;     /**< key-code for the 8 on the numeric keypad. */
-    static const int numberPad9;     /**< key-code for the 9 on the numeric keypad. */
+    static const int numberPad0;            /**< key-code for the 0 on the numeric keypad. */
+    static const int numberPad1;            /**< key-code for the 1 on the numeric keypad. */
+    static const int numberPad2;            /**< key-code for the 2 on the numeric keypad. */
+    static const int numberPad3;            /**< key-code for the 3 on the numeric keypad. */
+    static const int numberPad4;            /**< key-code for the 4 on the numeric keypad. */
+    static const int numberPad5;            /**< key-code for the 5 on the numeric keypad. */
+    static const int numberPad6;            /**< key-code for the 6 on the numeric keypad. */
+    static const int numberPad7;            /**< key-code for the 7 on the numeric keypad. */
+    static const int numberPad8;            /**< key-code for the 8 on the numeric keypad. */
+    static const int numberPad9;            /**< key-code for the 9 on the numeric keypad. */
 
-    static const int numberPadAdd;            /**< key-code for the add sign on the numeric keypad. */
-    static const int numberPadSubtract;       /**< key-code for the subtract sign on the numeric keypad. */
-    static const int numberPadMultiply;       /**< key-code for the multiply sign on the numeric keypad. */
-    static const int numberPadDivide;         /**< key-code for the divide sign on the numeric keypad. */
-    static const int numberPadSeparator;      /**< key-code for the comma on the numeric keypad. */
-    static const int numberPadDecimalPoint;   /**< key-code for the decimal point sign on the numeric keypad. */
-    static const int numberPadEquals;         /**< key-code for the equals key on the numeric keypad. */
-    static const int numberPadDelete;         /**< key-code for the delete key on the numeric keypad. */
+    static const int numberPadAdd;          /**< key-code for the add sign on the numeric keypad. */
+    static const int numberPadSubtract;     /**< key-code for the subtract sign on the numeric keypad. */
+    static const int numberPadMultiply;     /**< key-code for the multiply sign on the numeric keypad. */
+    static const int numberPadDivide;       /**< key-code for the divide sign on the numeric keypad. */
+    static const int numberPadSeparator;    /**< key-code for the comma on the numeric keypad. */
+    static const int numberPadDecimalPoint; /**< key-code for the decimal point sign on the numeric keypad. */
+    static const int numberPadEquals;       /**< key-code for the equals key on the numeric keypad. */
+    static const int numberPadDelete;       /**< key-code for the delete key on the numeric keypad. */
 
-    static const int playKey;        /**< key-code for a multimedia 'play' key, (not all keyboards will have one) */
-    static const int stopKey;        /**< key-code for a multimedia 'stop' key, (not all keyboards will have one) */
-    static const int fastForwardKey; /**< key-code for a multimedia 'fast-forward' key, (not all keyboards will have one) */
-    static const int rewindKey;      /**< key-code for a multimedia 'rewind' key, (not all keyboards will have one) */
+    static const int playKey;               /**< key-code for a multimedia 'play' key, (not all keyboards will have one). */
+    static const int stopKey;               /**< key-code for a multimedia 'stop' key, (not all keyboards will have one). */
+    static const int fastForwardKey;        /**< key-code for a multimedia 'fast-forward' key, (not all keyboards will have one). */
+    static const int rewindKey;             /**< key-code for a multimedia 'rewind' key, (not all keyboards will have one). */
+    static const int muteKey;               /**< key-code for a multimedia 'mute' key, (not all keyboards will have one). */
+    static const int volumeUpKey;           /**< key-code for a multimedia 'volume up' key, (not all keyboards will have one). */
+    static const int volumeDownKey;         /**< key-code for a multimedia 'volume down' key, (not all keyboards will have one). */
+
+    static const int channelUpKey;          /**< key-code for a 10 foot system/remote control's 'channel up' key. */
+    static const int channelDownKey;        /**< key-code for a 10 foot system/remote control's 'channel down' key. */
+    static const int menuKey;               /**< key-code for a 10 foot system/remote control's 'menu' key. */
+    static const int guideKey;              /**< key-code for a 10 foot system/remote control's 'guide' key. */
+    static const int captionsKey;           /**< key-code for a 10 foot system/remote control's 'captions' key. */
+    static const int settingsKey;           /**< key-code for a 10 foot system/remote control's 'settings' key. */
+    static const int findKey;               /**< key-code for a 10 foot system/remote control's 'find' key. */
+    static const int favouriteKey;          /**< key-code for a 10 foot system/remote control's 'favourite' key. */
+    static const int helpKey;               /**< key-code for a 10 foot system/remote control's 'help' key. */
+
+    static const int buttonRed;             /**< key-code for a 10 foot system/remote control's 'red' key. */
+    static const int buttonGreen;           /**< key-code for a 10 foot system/remote control's 'green' key. */
+    static const int buttonBlue;            /**< key-code for a 10 foot system/remote control's 'blue' key. */
+    static const int buttonYellow;          /**< key-code for a 10 foot system/remote control's 'yellow' key. */
+
+    static const int startKey;              /**< key-code for a game controller's 'start' key. */
+    static const int selectKey;             /**< key-code for a game controller's 'select' key. */
+    static const int buttonAKey;            /**< key-code for a game controller's 'button A' key. */
+    static const int buttonBKey;            /**< key-code for a game controller's 'button B' key. */
+    static const int buttonCKey;            /**< key-code for a game controller's 'button C' key. */
+    static const int buttonXKey;            /**< key-code for a game controller's 'button X' key. */
+    static const int buttonYKey;            /**< key-code for a game controller's 'button Y' key. */
+    static const int buttonZKey;            /**< key-code for a game controller's 'button Z' key. */
+    static const int buttonL1Key;           /**< key-code for a game controller's 'button L1' key. */
+    static const int buttonL2Key;           /**< key-code for a game controller's 'button L2' key. */
+    static const int buttonR1Key;           /**< key-code for a game controller's 'button R1' key. */
+    static const int buttonR2Key;           /**< key-code for a game controller's 'button R2' key. */
 
 private:
     //==============================================================================

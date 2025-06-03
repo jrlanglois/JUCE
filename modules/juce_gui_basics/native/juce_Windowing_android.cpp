@@ -1212,6 +1212,36 @@ static constexpr int translateAndroidKeyCode (int keyCode) noexcept
         case 162: return '(';
         case 163: return ')';
 
+        case 24:    return KeyPress::volumeUpKey;
+        case 25:    return KeyPress::volumeDownKey;
+        case 82:    return KeyPress::menuKey;
+        case 84:    return KeyPress::findKey;
+        case 96:    return KeyPress::buttonAKey;
+        case 97:    return KeyPress::buttonBKey;
+        case 98:    return KeyPress::buttonCKey;
+        case 99:    return KeyPress::buttonXKey;
+        case 100:   return KeyPress::buttonYKey;
+        case 101:   return KeyPress::buttonZKey;
+        case 102:   return KeyPress::buttonL1Key;
+        case 103:   return KeyPress::buttonR1Key;
+        case 104:   return KeyPress::buttonL2Key;
+        case 105:   return KeyPress::buttonR2Key;
+        case 108:   return KeyPress::startKey;
+        case 109:   return KeyPress::selectKey;
+        case 164:   return KeyPress::muteKey;
+        case 166:   return KeyPress::channelUpKey;
+        case 167:   return KeyPress::channelDownKey;
+        case 172:   return KeyPress::guideKey;
+        case 175:   return KeyPress::captionsKey;
+        case 176:   return KeyPress::settingsKey;
+        case 183:   return KeyPress::buttonRed;
+        case 184:   return KeyPress::buttonGreen;
+        case 185:   return KeyPress::buttonYellow;
+        case 186:   return KeyPress::buttonBlue;
+        case 259:   return KeyPress::helpKey;
+
+        // case ???: return KeyPress::favouriteKey;
+
         default:  return 0;
     }
 }
@@ -2882,6 +2912,34 @@ const int KeyPress::playKey                 = extendedKeyModifier + 69;
 const int KeyPress::stopKey                 = extendedKeyModifier + 70;
 const int KeyPress::fastForwardKey          = extendedKeyModifier + 71;
 const int KeyPress::rewindKey               = extendedKeyModifier + 72;
+const int KeyPress::muteKey                 = extendedKeyModifier + 72;
+const int KeyPress::volumeUpKey             = extendedKeyModifier + 73;
+const int KeyPress::volumeDownKey           = extendedKeyModifier + 74;
+const int KeyPress::channelUpKey            = extendedKeyModifier + 75;
+const int KeyPress::channelDownKey          = extendedKeyModifier + 76;
+const int KeyPress::menuKey                 = extendedKeyModifier + 77;
+const int KeyPress::guideKey                = extendedKeyModifier + 78;
+const int KeyPress::captionsKey             = extendedKeyModifier + 79;
+const int KeyPress::findKey                 = extendedKeyModifier + 80;
+const int KeyPress::favouriteKey            = extendedKeyModifier + 81;
+const int KeyPress::helpKey                 = extendedKeyModifier + 82;
+const int KeyPress::settingsKey             = extendedKeyModifier + 83;
+const int KeyPress::buttonRed               = extendedKeyModifier + 84;
+const int KeyPress::buttonGreen             = extendedKeyModifier + 85;
+const int KeyPress::buttonBlue              = extendedKeyModifier + 86;
+const int KeyPress::buttonYellow            = extendedKeyModifier + 87;
+const int KeyPress::startKey                = extendedKeyModifier + 88;
+const int KeyPress::selectKey               = extendedKeyModifier + 89;
+const int KeyPress::buttonAKey              = extendedKeyModifier + 90;
+const int KeyPress::buttonBKey              = extendedKeyModifier + 91;
+const int KeyPress::buttonCKey              = extendedKeyModifier + 92;
+const int KeyPress::buttonXKey              = extendedKeyModifier + 93;
+const int KeyPress::buttonYKey              = extendedKeyModifier + 94;
+const int KeyPress::buttonZKey              = extendedKeyModifier + 95;
+const int KeyPress::buttonL1Key             = extendedKeyModifier + 96;
+const int KeyPress::buttonL2Key             = extendedKeyModifier + 97;
+const int KeyPress::buttonR1Key             = extendedKeyModifier + 98;
+const int KeyPress::buttonR2Key             = extendedKeyModifier + 99;
 
 //==============================================================================
 #ifdef JUCE_PUSH_NOTIFICATIONS_ACTIVITY

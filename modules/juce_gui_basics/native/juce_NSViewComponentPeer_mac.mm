@@ -3105,4 +3105,33 @@ const int KeyPress::stopKey                 = extendedKeyModifier + 0x01;
 const int KeyPress::fastForwardKey          = extendedKeyModifier + 0x02;
 const int KeyPress::rewindKey               = extendedKeyModifier + 0x03;
 
+const int KeyPress::muteKey                 = ;
+const int KeyPress::volumeUpKey             = ;
+const int KeyPress::volumeDownKey           = ;
+const int KeyPress::channelUpKey            = ;
+const int KeyPress::channelDownKey          = ;
+const int KeyPress::menuKey                 = ;
+const int KeyPress::guideKey                = ;
+const int KeyPress::captionsKey             = ;
+const int KeyPress::settingsKey             = ;
+const int KeyPress::findKey                 = ;
+const int KeyPress::favouriteKey            = ;
+const int KeyPress::helpKey                 = ;
+const int KeyPress::buttonRed               = ;
+const int KeyPress::buttonGreen             = ;
+const int KeyPress::buttonBlue              = ;
+const int KeyPress::buttonYellow            = ;
+const int KeyPress::startKey                = ;
+const int KeyPress::selectKey               = ;
+const int KeyPress::buttonAKey              = ;
+const int KeyPress::buttonBKey              = ;
+const int KeyPress::buttonCKey              = ;
+const int KeyPress::buttonXKey              = ;
+const int KeyPress::buttonYKey              = ;
+const int KeyPress::buttonZKey              = ;
+const int KeyPress::buttonL1Key             = ;
+const int KeyPress::buttonL2Key             = ;
+const int KeyPress::buttonR1Key             = ;
+const int KeyPress::buttonR2Key             = ;
+
 } // namespace juce
