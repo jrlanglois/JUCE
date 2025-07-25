@@ -91,7 +91,7 @@ static StringArray jucePermissionToAndroidPermissions (RuntimePermissions::Permi
     return {};
 }
 
-static RuntimePermissions::PermissionID androidPermissionToJucePermission (const String& permission)
+static std::optional<RuntimePermissions::PermissionID> androidPermissionToJucePermission (const String& permission)
 {
     static const std::map<String, RuntimePermissions::PermissionID> map
     {
@@ -109,14 +109,14 @@ static RuntimePermissions::PermissionID androidPermissionToJucePermission (const
 
     const auto iter = map.find (permission);
     return iter != map.cend() ? iter->second
-                              : static_cast<RuntimePermissions::PermissionID> (-1);
+                              : std::nullopt;
 }
 
 //==============================================================================
 struct PermissionsRequest
 {
     RuntimePermissions::Callback callback;
-    RuntimePermissions::PermissionID permission = static_cast<RuntimePermissions::PermissionID> (-1);
+    std::optional<String> permission;
 };
 
 //==============================================================================
@@ -195,12 +195,9 @@ struct PermissionsOverlay final : public FragmentOverlay
                 auto permissionsArray = jucePermissionToAndroidPermissions (request.permission);
                 auto jPermissionsArray = juceStringArrayToJava (permissionsArray);
 
+                auto requestPermissionsMethodID = env->GetMethodID (AndroidFragment, "requestPermissions", "([Ljava/lang/String;I)V");
 
-                auto requestPermissionsMethodID
-                    = env->GetMethodID (AndroidFragment, "requestPermissions", "([Ljava/lang/String;I)V");
-
-                // this code should only be reached for SDKs >= 23, so this method should be
-                // be available
+                // this code should only be reached for SDKs >= 23, so this method should be be available
                 jassert (requestPermissionsMethodID != nullptr);
 
                 env->CallVoidMethod (getNativeHandle(), requestPermissionsMethodID, jPermissionsArray.get(), 0);
@@ -223,7 +220,7 @@ struct PermissionsOverlay final : public FragmentOverlay
 };
 
 //==============================================================================
-void RuntimePermissions::request (PermissionID permission, Callback callback)
+void RuntimePermissions::request (const String& requestedPermission, Callback callback)
 {
     const auto requestedPermissions = jucePermissionToAndroidPermissions (permission);
 
@@ -245,20 +242,20 @@ void RuntimePermissions::request (PermissionID permission, Callback callback)
         return;
     }
 
-    auto alreadyGranted = isGranted (permission);
+    auto alreadyGranted = isGranted (requestedPermission);
 
-    if (alreadyGranted)
+    if (alreadyGranted || getAndroidSDKVersion() < 23)
     {
         callback (alreadyGranted);
         return;
     }
 
-    PermissionsRequest request { std::move (callback), permission };
+    PermissionsRequest request { std::move (callback), requestedPermission };
 
     static CriticalSection overlayGuard;
     ScopedLock lock (overlayGuard);
 
-    std::unique_ptr<PermissionsOverlay>& overlay = PermissionsOverlay::getSingleton();
+    auto& overlay = PermissionsOverlay::getSingleton();
 
     bool alreadyOpen = true;
 
@@ -274,9 +271,24 @@ void RuntimePermissions::request (PermissionID permission, Callback callback)
         overlay->open();
 }
 
-bool RuntimePermissions::isRequired (PermissionID /*permission*/)
+void RuntimePermissions::request (PermissionID permission, Callback callback)
 {
-    return true;
+    request (jucePermissionToAndroidPermission (permission), callback);
+}
+
+bool RuntimePermissions::isRequired (const String&)
+{
+    return getAndroidSDKVersion() >= 23;
+}
+
+bool RuntimePermissions::isRequired (PermissionID permission)
+{
+    const auto requestedPermissions = jucePermissionToAndroidPermissions (permission);
+
+    return std::all_of (requestedPermissions.begin(), requestedPermissions.end(), [] (const auto& p)
+    {
+        return isRequired (p);
+    });
 }
 
 bool RuntimePermissions::isGranted (PermissionID permission)
@@ -287,11 +299,10 @@ bool RuntimePermissions::isGranted (PermissionID permission)
 
     return std::all_of (requestedPermissions.begin(), requestedPermissions.end(), [env] (const auto& p)
     {
-        return 0 == env->CallIntMethod (getAppContext().get(),
-                                        AndroidContext.checkCallingOrSelfPermission,
-                                        javaString (p).get());
+        return env->CallIntMethod (getAppContext().get(),
+                                   AndroidContext.checkCallingOrSelfPermission,
+                                   javaString (p).get()) == 0;
     });
-
 }
 
 } // namespace juce
