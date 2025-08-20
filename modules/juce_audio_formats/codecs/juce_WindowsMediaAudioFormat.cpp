@@ -133,7 +133,7 @@ private:
 
 //==============================================================================
 static const char* wmFormatName = "Windows Media";
-static const char* const extensions[] = { ".mp3", ".wmv", ".asf", ".wm", ".wma", nullptr };
+static const char* const extensions[] = { ".mp3", ".wmv", ".asf", ".wm", ".wma", ".wav", ".wave", ".w64", ".bwf", nullptr };
 
 //==============================================================================
 class WMAudioReader final : public AudioFormatReader
@@ -346,7 +346,7 @@ bool WindowsMediaAudioFormat::isCompressed()    { return true; }
 //==============================================================================
 AudioFormatReader* WindowsMediaAudioFormat::createReaderFor (InputStream* sourceStream, bool deleteStreamIfOpeningFails)
 {
-    std::unique_ptr<WindowsMediaCodec::WMAudioReader> r (new WindowsMediaCodec::WMAudioReader (sourceStream));
+    auto r = std::make_unique<WindowsMediaCodec::WMAudioReader> (sourceStream);
 
     if (r->sampleRate > 0)
         return r.release();
