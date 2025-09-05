@@ -954,6 +954,74 @@ const int KeyPress::stopKey                 = 0x30001;
 const int KeyPress::fastForwardKey          = 0x30002;
 const int KeyPress::rewindKey               = 0x30003;
 
+// Additional cross-platform keys
+const int KeyPress::capsLockKey             = VK_CAPITAL;
+const int KeyPress::numLockKey              = VK_NUMLOCK        | extendedKeyModifier;
+const int KeyPress::scrollLockKey           = VK_SCROLL         | extendedKeyModifier;
+const int KeyPress::pauseKey                = VK_PAUSE          | extendedKeyModifier;
+const int KeyPress::printScreenKey          = VK_SNAPSHOT       | extendedKeyModifier;
+const int KeyPress::menuKey                 = VK_APPS           | extendedKeyModifier;
+
+// Left/Right modifier keys
+const int KeyPress::leftShiftKey            = VK_LSHIFT;
+const int KeyPress::rightShiftKey           = VK_RSHIFT;
+const int KeyPress::leftCtrlKey             = VK_LCONTROL;
+const int KeyPress::rightCtrlKey            = VK_RCONTROL;
+const int KeyPress::leftAltKey              = VK_LMENU;
+const int KeyPress::rightAltKey             = VK_RMENU;
+const int KeyPress::leftWindowsKey          = VK_LWIN           | extendedKeyModifier;
+const int KeyPress::rightWindowsKey         = VK_RWIN           | extendedKeyModifier;
+
+// Additional media keys
+const int KeyPress::playPauseKey            = VK_MEDIA_PLAY_PAUSE | extendedKeyModifier;
+const int KeyPress::nextTrackKey            = VK_MEDIA_NEXT_TRACK | extendedKeyModifier;
+const int KeyPress::previousTrackKey        = VK_MEDIA_PREV_TRACK | extendedKeyModifier;
+const int KeyPress::recordKey               = 0x31100;  // Custom code (not standard VK_)
+const int KeyPress::muteKey                 = VK_VOLUME_MUTE      | extendedKeyModifier;
+const int KeyPress::volumeUpKey             = VK_VOLUME_UP        | extendedKeyModifier;
+const int KeyPress::volumeDownKey           = VK_VOLUME_DOWN      | extendedKeyModifier;
+
+// Browser/Application keys
+const int KeyPress::browserBackKey          = VK_BROWSER_BACK     | extendedKeyModifier;
+const int KeyPress::browserForwardKey       = VK_BROWSER_FORWARD  | extendedKeyModifier;
+const int KeyPress::browserRefreshKey       = VK_BROWSER_REFRESH  | extendedKeyModifier;
+const int KeyPress::browserHomeKey          = VK_BROWSER_HOME     | extendedKeyModifier;
+const int KeyPress::browserSearchKey        = VK_BROWSER_SEARCH   | extendedKeyModifier;
+const int KeyPress::browserFavouritesKey    = VK_BROWSER_FAVORITES | extendedKeyModifier;
+const int KeyPress::mailKey                 = VK_LAUNCH_MAIL      | extendedKeyModifier;
+const int KeyPress::calculatorKey           = VK_LAUNCH_APP2      | extendedKeyModifier;
+const int KeyPress::myComputerKey           = VK_LAUNCH_APP1      | extendedKeyModifier;
+
+// Power/System keys
+const int KeyPress::sleepKey                = VK_SLEEP            | extendedKeyModifier;
+const int KeyPress::wakeUpKey               = 0x31101;  // Custom code (not standard VK_)
+
+// Remote Control/TV keys
+const int KeyPress::channelUpKey            = 0x31200;  // Custom code (Windows Media Center uses these)
+const int KeyPress::channelDownKey          = 0x31201;  // Custom code
+const int KeyPress::guideKey                = 0x31202;  // Custom code
+const int KeyPress::infoKey                 = 0x31203;  // Custom code
+const int KeyPress::exitKey                 = 0x31204;  // Custom code
+
+// Coloured buttons (RGBY)
+const int KeyPress::redKey                  = 0x31210;  // Custom code
+const int KeyPress::greenKey                = 0x31211;  // Custom code
+const int KeyPress::yellowKey               = 0x31212;  // Custom code
+const int KeyPress::blueKey                 = 0x31213;  // Custom code
+
+// Media/DVR remote keys
+const int KeyPress::liveTvKey               = 0x31220;  // Custom code
+const int KeyPress::recordedTvKey           = 0x31221;  // Custom code
+const int KeyPress::replayKey               = 0x31222;  // Custom code
+const int KeyPress::skipForwardKey          = 0x31223;  // Custom code
+
+// Additional TV/Remote keys
+const int KeyPress::aspectRatioKey          = 0x31230;  // Custom code
+const int KeyPress::subtitleKey             = 0x31231;  // Custom code
+const int KeyPress::audioLanguageKey        = 0x31232;  // Custom code
+const int KeyPress::zoomKey                 = 0x31233;  // Custom code
+const int KeyPress::powerKey                = 0x31234;  // Custom code
+
 
 //==============================================================================
 class WindowsBitmapImage final : public ImagePixelData
@@ -3288,9 +3356,31 @@ private:
             case VK_F22:
             case VK_F23:
             case VK_F24:
+            // Media keys
+            case VK_MEDIA_PLAY_PAUSE:
+            case VK_MEDIA_NEXT_TRACK:
+            case VK_MEDIA_PREV_TRACK:
+            case VK_VOLUME_MUTE:
+            case VK_VOLUME_UP:
+            case VK_VOLUME_DOWN:
+            // Browser/Application keys
+            case VK_BROWSER_BACK:
+            case VK_BROWSER_FORWARD:
+            case VK_BROWSER_REFRESH:
+            case VK_BROWSER_HOME:
+            case VK_BROWSER_SEARCH:
+            case VK_BROWSER_FAVORITES:
+            case VK_LAUNCH_MAIL:
+            case VK_LAUNCH_APP1:
+            case VK_LAUNCH_APP2:
+            // Power/System keys
+            case VK_SLEEP:
                 used = handleKeyUpOrDown (true);
                 used = handleKeyPress (extendedKeyModifier | (int) key, 0) || used;
                 break;
+
+            // Note: Remote control keys use custom codes and typically won't come through
+            // the standard Windows message loop, but are handled via DirectInput or other APIs
 
             default:
                 used = handleKeyUpOrDown (true);

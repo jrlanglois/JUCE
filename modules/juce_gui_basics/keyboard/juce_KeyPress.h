@@ -274,6 +274,74 @@ public:
     static const int fastForwardKey; /**< key-code for a multimedia 'fast-forward' key, (not all keyboards will have one) */
     static const int rewindKey;      /**< key-code for a multimedia 'rewind' key, (not all keyboards will have one) */
 
+    // Additional media keys
+    static const int playPauseKey;          /**< key-code for a multimedia 'play/pause' toggle key */
+    static const int nextTrackKey;          /**< key-code for a multimedia 'next track' key */
+    static const int previousTrackKey;      /**< key-code for a multimedia 'previous track' key */
+    static const int recordKey;             /**< key-code for a multimedia 'record' key */
+    static const int muteKey;               /**< key-code for a 'mute' key */
+    static const int volumeUpKey;           /**< key-code for a 'volume up' key */
+    static const int volumeDownKey;         /**< key-code for a 'volume down' key */
+
+    // Browser/Application keys
+    static const int browserBackKey;        /**< key-code for a 'browser back' key */
+    static const int browserForwardKey;     /**< key-code for a 'browser forward' key */
+    static const int browserRefreshKey;     /**< key-code for a 'browser refresh' key */
+    static const int browserHomeKey;        /**< key-code for a 'browser home' key */
+    static const int browserSearchKey;      /**< key-code for a 'browser search' key */
+    static const int browserFavouritesKey;  /**< key-code for a 'browser favourites' key */
+    static const int mailKey;               /**< key-code for a 'mail' application key */
+    static const int calculatorKey;         /**< key-code for a 'calculator' application key */
+    static const int myComputerKey;         /**< key-code for a 'my computer' key */
+
+    // Power/System keys
+    static const int sleepKey;              /**< key-code for a 'sleep' key */
+    static const int wakeUpKey;             /**< key-code for a 'wake up' key */
+
+    // Remote Control/TV keys
+    static const int channelUpKey;          /**< key-code for a 'channel up' key */
+    static const int channelDownKey;        /**< key-code for a 'channel down' key */
+    static const int guideKey;              /**< key-code for a 'guide/EPG' key */
+    static const int infoKey;               /**< key-code for an 'info/display' key */
+    static const int exitKey;               /**< key-code for an 'exit/back' key */
+
+    // Coloured buttons (RGBY)
+    static const int redKey;                /**< key-code for a 'red' button */
+    static const int greenKey;              /**< key-code for a 'green' button */
+    static const int blueKey;               /**< key-code for a 'blue' button */
+    static const int yellowKey;             /**< key-code for a 'yellow' button */
+
+    // Media/DVR remote keys
+    static const int liveTvKey;             /**< key-code for a 'live TV' key */
+    static const int recordedTvKey;         /**< key-code for a 'recorded TV/DVR' key */
+    static const int replayKey;             /**< key-code for a 'replay/skip back' key */
+    static const int skipForwardKey;        /**< key-code for a 'skip forward' key */
+
+    // Additional TV/Remote keys
+    static const int aspectRatioKey;        /**< key-code for an 'aspect ratio' key */
+    static const int subtitleKey;           /**< key-code for a 'subtitle/CC' key */
+    static const int audioLanguageKey;      /**< key-code for an 'audio/language' key */
+    static const int zoomKey;               /**< key-code for a 'zoom' key */
+    static const int powerKey;              /**< key-code for a 'power on/off' key */
+
+    // Additional cross-platform keys
+    static const int capsLockKey;           /**< key-code for the caps lock key */
+    static const int numLockKey;            /**< key-code for the num lock key */
+    static const int scrollLockKey;         /**< key-code for the scroll lock key */
+    static const int pauseKey;              /**< key-code for the pause/break key */
+    static const int printScreenKey;        /**< key-code for the print screen key */
+    static const int menuKey;               /**< key-code for the menu/context menu key */
+
+    // Left/Right modifier keys (for when you need to distinguish between them)
+    static const int leftShiftKey;          /**< key-code for the left shift key */
+    static const int rightShiftKey;         /**< key-code for the right shift key */
+    static const int leftCtrlKey;           /**< key-code for the left control key */
+    static const int rightCtrlKey;          /**< key-code for the right control key */
+    static const int leftAltKey;            /**< key-code for the left alt key */
+    static const int rightAltKey;           /**< key-code for the right alt key */
+    static const int leftWindowsKey;        /**< key-code for the left windows/cmd key */
+    static const int rightWindowsKey;       /**< key-code for the right windows/cmd key */
+
 private:
     //==============================================================================
     int keyCode = 0;

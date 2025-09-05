@@ -2448,4 +2448,72 @@ const int KeyPress::stopKey               = 0x30001;
 const int KeyPress::fastForwardKey        = 0x30002;
 const int KeyPress::rewindKey             = 0x30003;
 
+// Additional cross-platform keys
+const int KeyPress::capsLockKey             = 0x40000;
+const int KeyPress::numLockKey              = 0x40001; // Limited support on iOS
+const int KeyPress::scrollLockKey           = 0x40002; // Limited support on iOS
+const int KeyPress::pauseKey                = 0x40003; // Limited support on iOS
+const int KeyPress::printScreenKey          = 0x40004; // Limited support on iOS
+const int KeyPress::menuKey                 = 0x40005; // Limited support on iOS
+
+// Left/Right modifier keys (limited differentiation on iOS)
+const int KeyPress::leftShiftKey            = 0x40010;
+const int KeyPress::rightShiftKey           = 0x40011;
+const int KeyPress::leftCtrlKey             = 0x40012;
+const int KeyPress::rightCtrlKey            = 0x40013;
+const int KeyPress::leftAltKey              = 0x40014;
+const int KeyPress::rightAltKey             = 0x40015;
+const int KeyPress::leftWindowsKey          = 0x40016; // Maps to Cmd on iOS keyboards
+const int KeyPress::rightWindowsKey         = 0x40017; // Maps to Cmd on iOS keyboards
+
+// Additional media keys (limited support on iOS)
+const int KeyPress::playPauseKey            = 0x50000;
+const int KeyPress::nextTrackKey            = 0x50001;
+const int KeyPress::previousTrackKey        = 0x50002;
+const int KeyPress::recordKey               = 0x50003;
+const int KeyPress::muteKey                 = 0x50004;
+const int KeyPress::volumeUpKey             = 0x50005;
+const int KeyPress::volumeDownKey           = 0x50006;
+
+// Browser/Application keys (very limited support on iOS)
+const int KeyPress::browserBackKey          = 0x50010;
+const int KeyPress::browserForwardKey       = 0x50011;
+const int KeyPress::browserRefreshKey       = 0x50012;
+const int KeyPress::browserHomeKey          = 0x50013;
+const int KeyPress::browserSearchKey        = 0x50014;
+const int KeyPress::browserFavouritesKey    = 0x50015;
+const int KeyPress::mailKey                 = 0x50016;
+const int KeyPress::calculatorKey           = 0x50017;
+const int KeyPress::myComputerKey           = 0x50018;
+
+// Power/System keys (limited support on iOS)
+const int KeyPress::sleepKey                = 0x50020;
+const int KeyPress::wakeUpKey               = 0x50021;
+
+// Remote Control/TV keys (limited support on iOS)
+const int KeyPress::channelUpKey            = 0x60000;
+const int KeyPress::channelDownKey          = 0x60001;
+const int KeyPress::guideKey                = 0x60002;
+const int KeyPress::infoKey                 = 0x60003;
+const int KeyPress::exitKey                 = 0x60004;
+
+// Coloured buttons (RGBY) (limited support on iOS)
+const int KeyPress::redKey                  = 0x60010;
+const int KeyPress::greenKey                = 0x60011;
+const int KeyPress::yellowKey               = 0x60012;
+const int KeyPress::blueKey                 = 0x60013;
+
+// Media/DVR remote keys (limited support on iOS)
+const int KeyPress::liveTvKey               = 0x60020;
+const int KeyPress::recordedTvKey           = 0x60021;
+const int KeyPress::replayKey               = 0x60022;
+const int KeyPress::skipForwardKey          = 0x60023;
+
+// Additional TV/Remote keys (limited support on iOS)
+const int KeyPress::aspectRatioKey          = 0x60030;
+const int KeyPress::subtitleKey             = 0x60031;
+const int KeyPress::audioLanguageKey        = 0x60032;
+const int KeyPress::zoomKey                 = 0x60033;
+const int KeyPress::powerKey                = 0x60034;
+
 } // namespace juce

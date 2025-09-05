@@ -3115,4 +3115,72 @@ const int KeyPress::stopKey                 = extendedKeyModifier + 0x01;
 const int KeyPress::fastForwardKey          = extendedKeyModifier + 0x02;
 const int KeyPress::rewindKey               = extendedKeyModifier + 0x03;
 
+// Additional cross-platform keys
+const int KeyPress::capsLockKey             = 0x39;  // kVK_CapsLock
+const int KeyPress::numLockKey              = extendedKeyModifier + 0x47;  // kVK_ANSI_KeypadClear (closest equivalent)
+const int KeyPress::scrollLockKey           = extendedKeyModifier + 0x107; // Not directly supported, use custom code
+const int KeyPress::pauseKey                = extendedKeyModifier + 0x108; // Not directly supported, use custom code
+const int KeyPress::printScreenKey          = extendedKeyModifier + 0x109; // Not directly supported, use custom code
+const int KeyPress::menuKey                 = extendedKeyModifier + 0x6E;  // kVK_Menu
+
+// Left/Right modifier keys
+const int KeyPress::leftShiftKey            = 0x38;  // kVK_Shift
+const int KeyPress::rightShiftKey           = 0x3C;  // kVK_RightShift
+const int KeyPress::leftCtrlKey             = 0x3B;  // kVK_Control
+const int KeyPress::rightCtrlKey            = 0x3E;  // kVK_RightControl
+const int KeyPress::leftAltKey              = 0x3A;  // kVK_Option
+const int KeyPress::rightAltKey             = 0x3D;  // kVK_RightOption
+const int KeyPress::leftWindowsKey          = 0x37;  // kVK_Command
+const int KeyPress::rightWindowsKey         = 0x36;  // kVK_RightCommand
+
+// Additional media keys
+const int KeyPress::playPauseKey            = extendedKeyModifier + 0x200;  // NX_KEYTYPE_PLAY
+const int KeyPress::nextTrackKey            = extendedKeyModifier + 0x201;  // NX_KEYTYPE_NEXT
+const int KeyPress::previousTrackKey        = extendedKeyModifier + 0x202;  // NX_KEYTYPE_PREVIOUS
+const int KeyPress::recordKey               = extendedKeyModifier + 0x203;  // Custom code
+const int KeyPress::muteKey                 = extendedKeyModifier + 0x204;  // NX_KEYTYPE_MUTE
+const int KeyPress::volumeUpKey             = extendedKeyModifier + 0x205;  // NX_KEYTYPE_SOUND_UP
+const int KeyPress::volumeDownKey           = extendedKeyModifier + 0x206;  // NX_KEYTYPE_SOUND_DOWN
+
+// Browser/Application keys (limited native support on macOS)
+const int KeyPress::browserBackKey          = extendedKeyModifier + 0x210;
+const int KeyPress::browserForwardKey       = extendedKeyModifier + 0x211;
+const int KeyPress::browserRefreshKey       = extendedKeyModifier + 0x212;
+const int KeyPress::browserHomeKey          = extendedKeyModifier + 0x213;
+const int KeyPress::browserSearchKey        = extendedKeyModifier + 0x214;
+const int KeyPress::browserFavouritesKey    = extendedKeyModifier + 0x215;
+const int KeyPress::mailKey                 = extendedKeyModifier + 0x216;
+const int KeyPress::calculatorKey           = extendedKeyModifier + 0x217;
+const int KeyPress::myComputerKey           = extendedKeyModifier + 0x218;
+
+// Power/System keys
+const int KeyPress::sleepKey                = extendedKeyModifier + 0x220;  // Custom code
+const int KeyPress::wakeUpKey               = extendedKeyModifier + 0x221;  // Custom code
+
+// Remote Control/TV keys
+const int KeyPress::channelUpKey            = extendedKeyModifier + 0x300;  // Custom code
+const int KeyPress::channelDownKey          = extendedKeyModifier + 0x301;  // Custom code
+const int KeyPress::guideKey                = extendedKeyModifier + 0x302;  // Custom code
+const int KeyPress::infoKey                 = extendedKeyModifier + 0x303;  // Custom code
+const int KeyPress::exitKey                 = extendedKeyModifier + 0x304;  // Custom code
+
+// Coloured buttons (RGBY)
+const int KeyPress::redKey                  = extendedKeyModifier + 0x310;  // Custom code
+const int KeyPress::greenKey                = extendedKeyModifier + 0x311;  // Custom code
+const int KeyPress::yellowKey               = extendedKeyModifier + 0x312;  // Custom code
+const int KeyPress::blueKey                 = extendedKeyModifier + 0x313;  // Custom code
+
+// Media/DVR remote keys
+const int KeyPress::liveTvKey               = extendedKeyModifier + 0x320;  // Custom code
+const int KeyPress::recordedTvKey           = extendedKeyModifier + 0x321;  // Custom code
+const int KeyPress::replayKey               = extendedKeyModifier + 0x322;  // Custom code
+const int KeyPress::skipForwardKey          = extendedKeyModifier + 0x323;  // Custom code
+
+// Additional TV/Remote keys
+const int KeyPress::aspectRatioKey          = extendedKeyModifier + 0x330;  // Custom code
+const int KeyPress::subtitleKey             = extendedKeyModifier + 0x331;  // Custom code
+const int KeyPress::audioLanguageKey        = extendedKeyModifier + 0x332;  // Custom code
+const int KeyPress::zoomKey                 = extendedKeyModifier + 0x333;  // Custom code
+const int KeyPress::powerKey                = extendedKeyModifier + 0x334;  // Custom code
+
 } // namespace juce

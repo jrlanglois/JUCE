@@ -1268,6 +1268,42 @@ static constexpr int translateAndroidKeyCode (int keyCode) noexcept
         case 140: return KeyPress::F10Key;            // KEYCODE_F10
         case 141: return KeyPress::F11Key;            // KEYCODE_F11
         case 142: return KeyPress::F12Key;            // KEYCODE_F12
+        case 115: return KeyPress::capsLockKey;       // KEYCODE_CAPS_LOCK
+        case 143: return KeyPress::numLockKey;        // KEYCODE_NUM_LOCK
+        case 116: return KeyPress::scrollLockKey;     // KEYCODE_SCROLL_LOCK
+        case 121: return KeyPress::pauseKey;          // KEYCODE_BREAK
+        case 120: return KeyPress::printScreenKey;    // KEYCODE_SYSRQ
+        case 82:  return KeyPress::menuKey;           // KEYCODE_MENU
+        case 126: return KeyPress::playPauseKey;      // KEYCODE_MEDIA_PLAY_PAUSE
+        case 130: return KeyPress::recordKey;         // KEYCODE_MEDIA_RECORD
+        case 164: return KeyPress::muteKey;           // KEYCODE_VOLUME_MUTE
+        case 24:  return KeyPress::volumeUpKey;       // KEYCODE_VOLUME_UP
+        case 25:  return KeyPress::volumeDownKey;     // KEYCODE_VOLUME_DOWN
+        case 4:   return KeyPress::browserBackKey;    // KEYCODE_BACK
+        case 125: return KeyPress::browserForwardKey; // KEYCODE_FORWARD
+        case 223: return KeyPress::sleepKey;          // KEYCODE_SLEEP
+        case 224: return KeyPress::wakeUpKey;         // KEYCODE_WAKEUP
+        case 166: return KeyPress::channelUpKey;      // KEYCODE_CHANNEL_UP
+        case 167: return KeyPress::channelDownKey;    // KEYCODE_CHANNEL_DOWN
+        case 172: return KeyPress::guideKey;          // KEYCODE_GUIDE
+        case 165: return KeyPress::infoKey;           // KEYCODE_INFO
+        case 174: return KeyPress::exitKey;           // KEYCODE_TV_INPUT (closest to exit)
+        case 183: return KeyPress::redKey;            // KEYCODE_PROG_RED
+        case 184: return KeyPress::greenKey;          // KEYCODE_PROG_GREEN
+        case 185: return KeyPress::yellowKey;         // KEYCODE_PROG_YELLOW
+        case 186: return KeyPress::blueKey;           // KEYCODE_PROG_BLUE
+        case 170: return KeyPress::liveTvKey;         // KEYCODE_TV
+        case 232: return KeyPress::recordedTvKey;     // KEYCODE_DVR
+        case 26:  return KeyPress::powerKey;          // KEYCODE_POWER
+        // Left/Right modifier keys when pressed as standalone keys
+        case 59:  return KeyPress::leftShiftKey;      // KEYCODE_SHIFT_LEFT
+        case 60:  return KeyPress::rightShiftKey;     // KEYCODE_SHIFT_RIGHT
+        case 113: return KeyPress::leftCtrlKey;       // KEYCODE_CTRL_LEFT
+        case 114: return KeyPress::rightCtrlKey;      // KEYCODE_CTRL_RIGHT
+        case 57:  return KeyPress::leftAltKey;        // KEYCODE_ALT_LEFT
+        case 58:  return KeyPress::rightAltKey;       // KEYCODE_ALT_RIGHT
+        case 117: return KeyPress::leftWindowsKey;    // KEYCODE_META_LEFT (Windows/Cmd key)
+        case 118: return KeyPress::rightWindowsKey;   // KEYCODE_META_RIGHT (Windows/Cmd key)
         case 144: return '0';
         case 145: return '1';
         case 146: return '2';
@@ -1294,15 +1330,27 @@ static constexpr int translateAndroidKeyCode (int keyCode) noexcept
 
 static constexpr int translateAndroidKeyboardFlags (int javaFlags) noexcept
 {
-    constexpr int metaShiftOn = 0x1;
-    constexpr int metaAltOn   = 0x02;
-    constexpr int metaCtrlOn  = 0x1000;
+    // Basic modifier keys
+    constexpr int metaShiftOn      = 0x1;     // META_SHIFT_ON
+    constexpr int metaAltOn        = 0x02;    // META_ALT_ON
+    constexpr int metaCtrlOn       = 0x1000;  // META_CTRL_ON
+    constexpr int metaMetaOn       = 0x10000; // META_META_ON (Windows/Cmd key)
 
     int flags = 0;
 
-    if ((javaFlags & metaShiftOn) != 0) flags |= ModifierKeys::shiftModifier;
-    if ((javaFlags & metaAltOn) != 0)   flags |= ModifierKeys::altModifier;
-    if ((javaFlags & metaCtrlOn) != 0)  flags |= ModifierKeys::ctrlModifier;
+    // Basic modifiers (existing functionality)
+    if ((javaFlags & metaShiftOn) != 0)   flags |= ModifierKeys::shiftModifier;
+    if ((javaFlags & metaAltOn) != 0)     flags |= ModifierKeys::altModifier;
+    if ((javaFlags & metaCtrlOn) != 0)    flags |= ModifierKeys::ctrlModifier;
+
+    // Command/Meta key (Windows key on Android keyboards)
+    // On Android, Meta key should map to commandModifier consistently
+    if ((javaFlags & metaMetaOn) != 0)    flags |= ModifierKeys::commandModifier;
+
+    // Note: Left/Right specific modifiers are available but not
+    // currently mapped to JUCE ModifierKeys since JUCE doesn't have left/right
+    // modifier flags. Applications can use the new leftShiftKey/rightShiftKey
+    // KeyPress constants instead for left/right detection.
 
     return flags;
 }
@@ -3094,6 +3142,74 @@ const int KeyPress::playKey                 = extendedKeyModifier + 69;
 const int KeyPress::stopKey                 = extendedKeyModifier + 70;
 const int KeyPress::fastForwardKey          = extendedKeyModifier + 71;
 const int KeyPress::rewindKey               = extendedKeyModifier + 72;
+
+// Additional cross-platform keys
+const int KeyPress::capsLockKey             = extendedKeyModifier + 73;
+const int KeyPress::numLockKey              = extendedKeyModifier + 74;
+const int KeyPress::scrollLockKey           = extendedKeyModifier + 75;
+const int KeyPress::pauseKey                = extendedKeyModifier + 76;
+const int KeyPress::printScreenKey          = extendedKeyModifier + 77;
+const int KeyPress::menuKey                 = extendedKeyModifier + 78;
+
+// Left/Right modifier keys
+const int KeyPress::leftShiftKey            = extendedKeyModifier + 79;
+const int KeyPress::rightShiftKey           = extendedKeyModifier + 80;
+const int KeyPress::leftCtrlKey             = extendedKeyModifier + 81;
+const int KeyPress::rightCtrlKey            = extendedKeyModifier + 82;
+const int KeyPress::leftAltKey              = extendedKeyModifier + 83;
+const int KeyPress::rightAltKey             = extendedKeyModifier + 84;
+const int KeyPress::leftWindowsKey          = extendedKeyModifier + 85;
+const int KeyPress::rightWindowsKey         = extendedKeyModifier + 86;
+
+// Additional media keys
+const int KeyPress::playPauseKey            = extendedKeyModifier + 87;
+const int KeyPress::nextTrackKey            = extendedKeyModifier + 88;
+const int KeyPress::previousTrackKey        = extendedKeyModifier + 89;
+const int KeyPress::recordKey               = extendedKeyModifier + 90;
+const int KeyPress::muteKey                 = extendedKeyModifier + 91;
+const int KeyPress::volumeUpKey             = extendedKeyModifier + 92;
+const int KeyPress::volumeDownKey           = extendedKeyModifier + 93;
+
+// Browser/Application keys
+const int KeyPress::browserBackKey          = extendedKeyModifier + 94;
+const int KeyPress::browserForwardKey       = extendedKeyModifier + 95;
+const int KeyPress::browserRefreshKey       = extendedKeyModifier + 96;
+const int KeyPress::browserHomeKey          = extendedKeyModifier + 97;
+const int KeyPress::browserSearchKey        = extendedKeyModifier + 98;
+const int KeyPress::browserFavouritesKey    = extendedKeyModifier + 99;
+const int KeyPress::mailKey                 = extendedKeyModifier + 100;
+const int KeyPress::calculatorKey           = extendedKeyModifier + 101;
+const int KeyPress::myComputerKey           = extendedKeyModifier + 102;
+
+// Power/System keys
+const int KeyPress::sleepKey                = extendedKeyModifier + 103;
+const int KeyPress::wakeUpKey               = extendedKeyModifier + 104;
+
+// Remote Control/TV keys
+const int KeyPress::channelUpKey            = extendedKeyModifier + 105;
+const int KeyPress::channelDownKey          = extendedKeyModifier + 106;
+const int KeyPress::guideKey                = extendedKeyModifier + 107;
+const int KeyPress::infoKey                 = extendedKeyModifier + 108;
+const int KeyPress::exitKey                 = extendedKeyModifier + 109;
+
+// Coloured buttons (RGBY)
+const int KeyPress::redKey                  = extendedKeyModifier + 110;
+const int KeyPress::greenKey                = extendedKeyModifier + 111;
+const int KeyPress::yellowKey               = extendedKeyModifier + 112;
+const int KeyPress::blueKey                 = extendedKeyModifier + 113;
+
+// Media/DVR remote keys
+const int KeyPress::liveTvKey               = extendedKeyModifier + 114;
+const int KeyPress::recordedTvKey           = extendedKeyModifier + 115;
+const int KeyPress::replayKey               = extendedKeyModifier + 116;
+const int KeyPress::skipForwardKey          = extendedKeyModifier + 117;
+
+// Additional TV/Remote keys
+const int KeyPress::aspectRatioKey          = extendedKeyModifier + 118;
+const int KeyPress::subtitleKey             = extendedKeyModifier + 119;
+const int KeyPress::audioLanguageKey        = extendedKeyModifier + 120;
+const int KeyPress::zoomKey                 = extendedKeyModifier + 121;
+const int KeyPress::powerKey                = extendedKeyModifier + 122;
 
 //==============================================================================
 #ifdef JUCE_PUSH_NOTIFICATIONS_ACTIVITY

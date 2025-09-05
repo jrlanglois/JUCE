@@ -522,6 +522,74 @@ const int KeyPress::stopKey               = ((int) 0xffeeff01)       | Keys::ext
 const int KeyPress::fastForwardKey        = ((int) 0xffeeff02)       | Keys::extendedKeyModifier;
 const int KeyPress::rewindKey             = ((int) 0xffeeff03)       | Keys::extendedKeyModifier;
 
+// Additional cross-platform keys
+const int KeyPress::capsLockKey            = XK_Caps_Lock         & 0xff;
+const int KeyPress::numLockKey             = (XK_Num_Lock         & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::scrollLockKey          = (XK_Scroll_Lock      & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::pauseKey               = (XK_Pause            & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::printScreenKey         = (XK_Print            & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::menuKey                = (XK_Menu             & 0xff) | Keys::extendedKeyModifier;
+
+// Left/Right modifier keys
+const int KeyPress::leftShiftKey           = (XK_Shift_L          & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::rightShiftKey          = (XK_Shift_R          & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::leftCtrlKey            = (XK_Control_L        & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::rightCtrlKey           = (XK_Control_R        & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::leftAltKey             = (XK_Alt_L            & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::rightAltKey            = (XK_Alt_R            & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::leftWindowsKey         = (XK_Super_L          & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::rightWindowsKey        = (XK_Super_R          & 0xff) | Keys::extendedKeyModifier;
+
+// Additional media keys
+const int KeyPress::playPauseKey           = (XF86XK_AudioPlay    & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::nextTrackKey           = (XF86XK_AudioNext    & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::previousTrackKey       = (XF86XK_AudioPrev    & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::recordKey              = (XF86XK_AudioRecord  & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::muteKey                = (XF86XK_AudioMute    & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::volumeUpKey            = (XF86XK_AudioRaiseVolume & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::volumeDownKey          = (XF86XK_AudioLowerVolume & 0xff) | Keys::extendedKeyModifier;
+
+// Browser/Application keys
+const int KeyPress::browserBackKey         = (XF86XK_Back         & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::browserForwardKey      = (XF86XK_Forward      & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::browserRefreshKey      = (XF86XK_Reload       & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::browserHomeKey         = (XF86XK_HomePage     & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::browserSearchKey       = (XF86XK_Search       & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::browserFavouritesKey   = (XF86XK_Favorites    & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::mailKey                = (XF86XK_Mail         & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::calculatorKey          = (XF86XK_Calculator   & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::myComputerKey          = (XF86XK_MyComputer   & 0xff) | Keys::extendedKeyModifier;
+
+// Power/System keys
+const int KeyPress::sleepKey               = (XF86XK_Sleep        & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::wakeUpKey              = (XF86XK_WakeUp       & 0xff) | Keys::extendedKeyModifier;
+
+// Remote Control/TV keys (using XF86 keysyms where available)
+const int KeyPress::channelUpKey           = (XF86XK_ChannelUp    & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::channelDownKey         = (XF86XK_ChannelDown  & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::guideKey               = (XF86XK_Guide        & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::infoKey                = (XF86XK_Info         & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::exitKey                = (XF86XK_Exit         & 0xff) | Keys::extendedKeyModifier;
+
+// Coloured buttons (RGBY) (using XF86 keysyms where available)
+const int KeyPress::redKey                 = (XF86XK_Red          & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::greenKey               = (XF86XK_Green        & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::yellowKey              = (XF86XK_Yellow       & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::blueKey                = (XF86XK_Blue         & 0xff) | Keys::extendedKeyModifier;
+
+// Media/DVR remote keys (using XF86 keysyms where available)
+const int KeyPress::liveTvKey              = (XF86XK_TV           & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::recordedTvKey          = (XF86XK_Video        & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::replayKey              = (XF86XK_AudioRewind  & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::skipForwardKey         = (XF86XK_AudioForward & 0xff) | Keys::extendedKeyModifier;
+
+// Additional TV/Remote keys (using XF86 keysyms where available)
+const int KeyPress::aspectRatioKey         = (XF86XK_AspectRatio  & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::subtitleKey            = (XF86XK_Subtitle     & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::audioLanguageKey       = (XF86XK_AudioCycleTrack & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::zoomKey                = (XF86XK_ZoomIn       & 0xff) | Keys::extendedKeyModifier;
+const int KeyPress::powerKey               = (XF86XK_PowerOff     & 0xff) | Keys::extendedKeyModifier;
+
 static void updateKeyStates (int keycode, bool press) noexcept
 {
     auto keybyte = keycode >> 3;
