@@ -245,24 +245,30 @@ public:
     */
     void removeAccentColourListener (AccentColourListener* listener);
 
-    /** Returns the operating system's accent color (Windows only).
+    /** Returns the operating system's accent colour.
 
-        On Windows, this returns the accent color set by the user in
+        On Windows, this returns the accent colour set by the user in
         Windows Settings -> Personalization -> Colors.
 
-        On other platforms, this returns an invalid/default color.
+        On macOS (10.14+), this returns the user's chosen accent colour from
+        System Settings -> Appearance.
 
-        To receive a callback when this color changes, implement the AccentColourListener
+        On other platforms, this returns an invalid/default colour.
+
+        To receive a callback when this colour changes, implement the AccentColourListener
         interface and use addAccentColourListener() to register a listener.
 
         @see addAccentColourListener, removeAccentColourListener
     */
     Colour getAccentColour() const;
 
-    /** System colour types available on Windows platforms.
+    /** System colour types available on Windows and macOS.
 
         These are ordered intuitively by category: base colours, accent colour,
         then accent variants from darkest to lightest.
+
+        Note: Accent colour variants (dark1-3, light1-3) are only available on Windows.
+        On macOS, these variants return an invalid/default colour.
 
         @see getSystemColour
     */
@@ -270,43 +276,51 @@ public:
     {
         background,     /**< Background colour */
         foreground,     /**< Foreground colour */
-        complement,     /**< Complement colour */
+        complement,     /**< Complement colour (separator colour on macOS) */
         accent,         /**< Main accent colour (same as Desktop::getAccentColour()) */
-        accentDark1,    /**< Accent dark variant 1 (lightest dark) */
-        accentDark2,    /**< Accent dark variant 2 */
-        accentDark3,    /**< Accent dark variant 3 (darkest) */
-        accentLight1,   /**< Accent light variant 1 (darkest light) */
-        accentLight2,   /**< Accent light variant 2 */
-        accentLight3    /**< Accent light variant 3 (lightest) */
+        accentDark1,    /**< Accent dark variant 1 (lightest dark) - Windows only */
+        accentDark2,    /**< Accent dark variant 2 - Windows only */
+        accentDark3,    /**< Accent dark variant 3 (darkest) - Windows only */
+        accentLight1,   /**< Accent light variant 1 (darkest light) - Windows only */
+        accentLight2,   /**< Accent light variant 2 - Windows only */
+        accentLight3    /**< Accent light variant 3 (lightest) - Windows only */
     };
 
-    /** Returns a specific UI colour type from Windows (Windows only).
+    /** Returns a specific UI colour type.
 
         This allows you to query various colour types including:
-        - Accent colour and its variants (dark/light)
+        - Accent colour and its variants (dark/light variants on Windows only)
         - Background and foreground colours
         - Complement colour
 
         @param colourType   The colour type to query
 
-        On non-Windows platforms, this returns an invalid/default colour.
+        On Windows and macOS, this returns the corresponding system colour.
+        On other platforms, this returns an invalid/default colour.
 
         @see SystemColourType
     */
     Colour getSystemColour (SystemColourType colourType) const;
 
-    /** Returns true if Windows transparency effects are enabled (Windows only).
+    /** Returns true if transparency effects are enabled.
 
         On Windows 10/11, this corresponds to the "Transparency effects" setting in
         Windows Settings -> Personalization -> Colors.
+
+        On macOS (10.10+), this checks if "Reduce transparency" is disabled in
+        System Settings -> Accessibility -> Display.
 
         On other platforms, this always returns false.
     */
     bool areTransparencyEffectsEnabled() const;
 
-    /** Returns true if Windows animations are enabled (Windows only).
+    /** Returns true if animations are enabled.
 
         On Windows, this corresponds to the system-wide animations setting.
+
+        On macOS (10.12+), this checks if "Reduce motion" is disabled in
+        System Settings -> Accessibility -> Display.
+
         Users can disable animations for accessibility or performance reasons.
 
         On other platforms, this always returns false.

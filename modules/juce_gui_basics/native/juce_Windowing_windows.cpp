@@ -1403,7 +1403,7 @@ struct UWPUIViewSettings
     bool areAnimationsEnabled() const
     {
         BOOL animationsEnabled = TRUE;
-        if (::SystemParametersInfoW (SPI_GETCLIENTAREAANIMATION, 0, &animationsEnabled, 0))
+        if (SystemParametersInfo (SPI_GETCLIENTAREAANIMATION, 0, &animationsEnabled, 0) != FALSE)
             return animationsEnabled != FALSE;
 
         return false;
