@@ -114,8 +114,9 @@ public:
             addSeparator ("--- Desktop State ---");
             addText ("Dark Mode Active", [] { return Desktop::getInstance().isDarkModeActive() ? "Yes" : "No"; });
             addText ("Transparency Effects", [] { return Desktop::getInstance().areTransparencyEffectsEnabled() ? "Enabled" : "Disabled"; });
+            addText ("Animations Enabled", [] { return Desktop::getInstance().areAnimationsEnabled() ? "Yes" : "No"; });
             addText ("Screen Saver Enabled", [] { return Desktop::isScreenSaverEnabled() ? "Yes" : "No"; });
-            addText ("Headless", [] { return Desktop::getInstance().isHeadless() ? "Yes" : "No"; });
+            addText ("Headless", [] { return "Clearly not, you're looking at it!"; });
             addText ("Kiosk Mode", [] { return Desktop::getInstance().getKioskModeComponent() != nullptr ? "Active" : "Inactive"; });
 
             // Statistics

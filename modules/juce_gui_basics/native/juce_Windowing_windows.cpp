@@ -1206,6 +1206,7 @@ JUCE_COMCLASS (IUISettings, "85361600-1c63-4627-bcb1-3a89e0bc9c55") : public IIn
 
     JUCE_COMCALL GetColorValue (UIColorType, UIColor*) = 0;
     JUCE_COMCALL GetUIElementColor (UIElementType, UIColor*) = 0;
+    JUCE_COMCALL get_AnimationsEnabled (boolean*) = 0;
 };
 
 typedef HRESULT (WINAPI* WindowsCreateStringReferenceFuncPtr) (PCWSTR, UINT32, void*, HSTRING*);
@@ -1389,6 +1390,25 @@ struct UWPUIViewSettings
             {
                 boolean enabled = 0;
                 if (SUCCEEDED (uiSettings4->GetAdvancedEffectsEnabled (&enabled)))
+                    return enabled != 0;
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            // WinRT exception occurred, return false
+        }
+
+        return false;
+    }
+
+    bool areAnimationsEnabled() const
+    {
+        __try
+        {
+            if (uiSettings != nullptr)
+            {
+                boolean enabled = 0;
+                if (SUCCEEDED (uiSettings->get_AnimationsEnabled (&enabled)))
                     return enabled != 0;
             }
         }
@@ -5938,8 +5958,8 @@ Colour Desktop::getSystemColour (Desktop::SystemColourType colourType) const
     if (index >= std::size (mapping))
         return Colours::transparentBlack;
 
-    for (int i = 0; i < getNumComponents(); ++i)
-        if (auto* comp = getComponent (i))
+    for (auto comp : desktopComponents)
+        if (comp != nullptr)
             if (auto* peer = dynamic_cast<HWNDComponentPeer*> (comp->getPeer()))
                 return peer->getUWPViewSettings().getColorValue (mapping[index]);
 
@@ -5948,10 +5968,20 @@ Colour Desktop::getSystemColour (Desktop::SystemColourType colourType) const
 
 bool Desktop::areTransparencyEffectsEnabled() const
 {
-    for (int i = 0; i < getNumComponents(); ++i)
-        if (auto* comp = getComponent (i))
+    for (auto comp : desktopComponents)
+        if (comp != nullptr)
             if (auto* peer = dynamic_cast<HWNDComponentPeer*> (comp->getPeer()))
                 return peer->getUWPViewSettings().areTransparencyEffectsEnabled();
+
+    return false;
+}
+
+bool Desktop::areAnimationsEnabled() const
+{
+    for (auto comp : desktopComponents)
+        if (comp != nullptr)
+            if (auto* peer = dynamic_cast<HWNDComponentPeer*> (comp->getPeer()))
+                return peer->getUWPViewSettings().areAnimationsEnabled();
 
     return false;
 }

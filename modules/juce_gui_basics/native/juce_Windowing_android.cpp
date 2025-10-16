@@ -2636,6 +2636,11 @@ bool Desktop::areTransparencyEffectsEnabled() const
     return false;  // Not implemented on Android
 }
 
+bool Desktop::areAnimationsEnabled() const
+{
+    return false;  // Not implemented on Android
+}
+
 double Desktop::getDefaultMasterScale()
 {
     return 1.0;

@@ -606,6 +606,11 @@ bool Desktop::areTransparencyEffectsEnabled() const
     return false;  // Not implemented on iOS
 }
 
+bool Desktop::areAnimationsEnabled() const
+{
+    return false;  // Not implemented on iOS
+}
+
 JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wundeclared-selector")
 static const auto darkModeSelector = @selector (darkModeChanged:);
 JUCE_END_IGNORE_WARNINGS_GCC_LIKE

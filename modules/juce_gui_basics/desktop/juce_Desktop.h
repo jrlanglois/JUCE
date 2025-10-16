@@ -304,6 +304,15 @@ public:
     */
     bool areTransparencyEffectsEnabled() const;
 
+    /** Returns true if Windows animations are enabled (Windows only).
+
+        On Windows, this corresponds to the system-wide animations setting.
+        Users can disable animations for accessibility or performance reasons.
+
+        On other platforms, this always returns false.
+    */
+    bool areAnimationsEnabled() const;
+
     //==============================================================================
     /** Takes a component and makes it full-screen, removing the taskbar, dock, etc.
 
