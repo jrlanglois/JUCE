@@ -1206,7 +1206,6 @@ JUCE_COMCLASS (IUISettings, "85361600-1c63-4627-bcb1-3a89e0bc9c55") : public IIn
 
     JUCE_COMCALL GetColorValue (UIColorType, UIColor*) = 0;
     JUCE_COMCALL GetUIElementColor (UIElementType, UIColor*) = 0;
-    JUCE_COMCALL get_AnimationsEnabled (boolean*) = 0;
 };
 
 typedef HRESULT (WINAPI* WindowsCreateStringReferenceFuncPtr) (PCWSTR, UINT32, void*, HSTRING*);
@@ -1403,19 +1402,9 @@ struct UWPUIViewSettings
 
     bool areAnimationsEnabled() const
     {
-        __try
-        {
-            if (uiSettings != nullptr)
-            {
-                boolean enabled = 0;
-                if (SUCCEEDED (uiSettings->get_AnimationsEnabled (&enabled)))
-                    return enabled != 0;
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            // WinRT exception occurred, return false
-        }
+        BOOL animationsEnabled = TRUE;
+        if (::SystemParametersInfoW (SPI_GETCLIENTAREAANIMATION, 0, &animationsEnabled, 0))
+            return animationsEnabled != FALSE;
 
         return false;
     }
