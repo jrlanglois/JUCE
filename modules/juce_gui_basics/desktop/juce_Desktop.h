@@ -77,6 +77,27 @@ public:
 
 //==============================================================================
 /**
+    Classes can implement this interface and register themselves with the Desktop class
+    to receive callbacks when the operating system accent color setting changes (Windows only).
+    The Desktop::getAccentColour() method can be used to query the current setting.
+
+    @see Desktop::addAccentColourListener, Desktop::removeAccentColourListener,
+         Desktop::getAccentColour
+
+    @tags{GUI}
+*/
+class JUCE_API  AccentColourListener
+{
+public:
+    /** Destructor. */
+    virtual ~AccentColourListener() = default;
+
+    /** Callback to indicate that the system accent color has changed. */
+    virtual void accentColourChanged() = 0;
+};
+
+//==============================================================================
+/**
     Describes and controls aspects of the computer's desktop.
 
     @tags{GUI}
@@ -207,6 +228,81 @@ public:
         @see addDarkModeSettingListener, removeDarkModeSettingListener
     */
     bool isDarkModeActive() const;
+
+    //==============================================================================
+    /** Registers an AccentColourListener that will receive a callback when the
+        operating system accent color setting changes (Windows only).
+
+        On platforms other than Windows, this method has no effect.
+
+        @see getAccentColour, removeAccentColourListener
+    */
+    void addAccentColourListener (AccentColourListener* listener);
+
+    /** Unregisters an AccentColourListener that was added with addAccentColourListener().
+
+        @see addAccentColourListener
+    */
+    void removeAccentColourListener (AccentColourListener* listener);
+
+    /** Returns the operating system's accent color (Windows only).
+
+        On Windows, this returns the accent color set by the user in
+        Windows Settings -> Personalization -> Colors.
+
+        On other platforms, this returns an invalid/default color.
+
+        To receive a callback when this color changes, implement the AccentColourListener
+        interface and use addAccentColourListener() to register a listener.
+
+        @see addAccentColourListener, removeAccentColourListener
+    */
+    Colour getAccentColour() const;
+
+    /** System colour types available on Windows platforms.
+
+        These are ordered intuitively by category: base colours, accent colour,
+        then accent variants from darkest to lightest.
+
+        @see getSystemColour
+    */
+    enum class SystemColourType
+    {
+        background,     /**< Background colour */
+        foreground,     /**< Foreground colour */
+        complement,     /**< Complement colour */
+        accent,         /**< Main accent colour (same as Desktop::getAccentColour()) */
+        accentDark1,    /**< Accent dark variant 1 (lightest dark) */
+        accentDark2,    /**< Accent dark variant 2 */
+        accentDark3,    /**< Accent dark variant 3 (darkest) */
+        accentLight1,   /**< Accent light variant 1 (darkest light) */
+        accentLight2,   /**< Accent light variant 2 */
+        accentLight3    /**< Accent light variant 3 (lightest) */
+    };
+
+    /** Returns a specific UI colour type from Windows (Windows only).
+
+        This allows you to query various colour types including:
+        - Accent colour and its variants (dark/light)
+        - Background and foreground colours
+        - Complement colour
+
+        @param colourType   The colour type to query
+
+        On non-Windows platforms, this returns an invalid/default colour.
+
+        @see SystemColourType
+    */
+    Colour getSystemColour (SystemColourType colourType) const;
+
+    /** Returns true if Windows transparency effects are enabled (Windows only).
+
+        On Windows 10/11, this corresponds to the "Transparency effects" setting in
+        Windows Settings -> Personalization -> Colors.
+
+        On other platforms, this always returns false.
+    */
+    bool areTransparencyEffectsEnabled() const;
 
     //==============================================================================
     /** Takes a component and makes it full-screen, removing the taskbar, dock, etc.
@@ -440,6 +536,7 @@ private:
     ListenerList<MouseListener> mouseListeners;
     ListenerList<FocusChangeListener> focusListeners;
     ListenerList<DarkModeSettingListener> darkModeSettingListeners;
+    ListenerList<AccentColourListener> accentColourListeners;
 
     Array<Component*> desktopComponents;
     Array<ComponentPeer*> peers;
@@ -496,6 +593,7 @@ private:
 
     static std::unique_ptr<NativeDarkModeChangeDetectorImpl> createNativeDarkModeChangeDetectorImpl();
     void darkModeChanged();
+    void accentColourChanged();
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Desktop)

@@ -2621,6 +2621,21 @@ bool Desktop::isDarkModeActive() const
     return nativeDarkModeChangeDetectorImpl->isDarkModeEnabled();
 }
 
+Colour Desktop::getAccentColour() const
+{
+    return {};  // Not implemented on Android
+}
+
+Colour Desktop::getSystemColour (Desktop::SystemColourType) const
+{
+    return {};  // Not implemented on Android
+}
+
+bool Desktop::areTransparencyEffectsEnabled() const
+{
+    return false;  // Not implemented on Android
+}
+
 double Desktop::getDefaultMasterScale()
 {
     return 1.0;

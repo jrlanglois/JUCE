@@ -235,6 +235,12 @@ void Desktop::removeDarkModeSettingListener (DarkModeSettingListener* l)  { dark
 void Desktop::darkModeChanged()  { darkModeSettingListeners.call ([] (auto& l) { l.darkModeSettingChanged(); }); }
 
 //==============================================================================
+void Desktop::addAccentColourListener    (AccentColourListener* l)  { accentColourListeners.add (l); }
+void Desktop::removeAccentColourListener (AccentColourListener* l)  { accentColourListeners.remove (l); }
+
+void Desktop::accentColourChanged()  { accentColourListeners.call ([] (auto& l) { l.accentColourChanged(); }); }
+
+//==============================================================================
 void Desktop::resetTimer()
 {
     if (mouseListeners.size() == 0)

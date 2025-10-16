@@ -720,6 +720,21 @@ bool Desktop::isDarkModeActive() const
     return nativeDarkModeChangeDetectorImpl->isDarkModeEnabled();
 }
 
+Colour Desktop::getAccentColour() const
+{
+    return {};  // Not implemented on Linux
+}
+
+Colour Desktop::getSystemColour (Desktop::SystemColourType) const
+{
+    return {};  // Not implemented on Linux
+}
+
+bool Desktop::areTransparencyEffectsEnabled() const
+{
+    return false;  // Not implemented on Linux
+}
+
 static bool screenSaverAllowed = true;
 
 void Desktop::setScreenSaverEnabled (bool isEnabled)

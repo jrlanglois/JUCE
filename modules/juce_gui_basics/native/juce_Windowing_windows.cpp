@@ -690,6 +690,8 @@ private:
             if (darkModeEnabled != wasDarkModeEnabled)
                 Desktop::getInstance().darkModeChanged();
         }
+
+        Desktop::getInstance().accentColourChanged();
     }
 
     using ShouldAppsUseDarkModeFunc = bool (WINAPI*)();
@@ -1163,11 +1165,86 @@ JUCE_COMCLASS (IUIViewSettings, "c63657f6-8850-470d-88f8-455e16ea2c26")  : publi
     JUCE_COMCALL GetUserInteractionMode (UserInteractionMode*) = 0;
 };
 
+//==============================================================================
+struct UIColor
+{
+    uint8_t A, R, G, B;
+};
+
+JUCE_COMCLASS (IUISettings, "85361600-1c63-4627-bcb1-3a89e0bc9c55") : public IInspectable
+{
+    enum UIColorType
+    {
+        Background           = 0,
+        Foreground           = 1,
+        AccentDark3          = 2,
+        AccentDark2          = 3,
+        AccentDark1          = 4,
+        Accent               = 5,
+        AccentLight1         = 6,
+        AccentLight2         = 7,
+        AccentLight3         = 8,
+        Complement           = 9
+    };
+
+    enum UIElementType
+    {
+        ActiveCaption        = 0,
+        Background_          = 1,
+        ButtonFace           = 2,
+        ButtonText           = 3,
+        CaptionText          = 4,
+        GrayText             = 5,
+        Highlight            = 6,
+        HighlightText        = 7,
+        Hotlight             = 8,
+        InactiveCaption      = 9,
+        InactiveCaptionText  = 10,
+        Window               = 11,
+        WindowText           = 12
+    };
+
+    JUCE_COMCALL GetColorValue (UIColorType, UIColor*) = 0;
+    JUCE_COMCALL GetUIElementColor (UIElementType, UIColor*) = 0;
+};
+
+typedef HRESULT (WINAPI* WindowsCreateStringReferenceFuncPtr) (PCWSTR, UINT32, void*, HSTRING*);
+
+struct ITypedEventHandler_UISettings : public IUnknown
+{
+    JUCE_COMCALL Invoke (IUISettings*, IInspectable*) = 0;
+};
+
+JUCE_COMCLASS (IUISettings2, "bad82401-2721-44f9-bb91-2bb228be442f") : public IInspectable
+{
+    JUCE_COMCALL GetTextScaleFactor (double*) = 0;
+    JUCE_COMCALL add_TextScaleFactorChanged (ITypedEventHandler_UISettings*, INT64*) = 0;
+    JUCE_COMCALL remove_TextScaleFactorChanged (INT64) = 0;
+};
+
+JUCE_COMCLASS (IUISettings3, "03021be4-5254-4781-8194-5168f7d06d7b") : public IInspectable
+{
+    JUCE_COMCALL GetColorValue (IUISettings::UIColorType, UIColor*) = 0;
+    JUCE_COMCALL add_ColorValuesChanged (ITypedEventHandler_UISettings*, INT64*) = 0;
+    JUCE_COMCALL remove_ColorValuesChanged (INT64) = 0;
+};
+
+JUCE_COMCLASS (IUISettings4, "52bb3002-919b-4d6b-9b78-8dd66ff4b93b") : public IInspectable
+{
+    JUCE_COMCALL GetAdvancedEffectsEnabled (boolean*) = 0;
+    JUCE_COMCALL add_AdvancedEffectsEnabledChanged (ITypedEventHandler_UISettings*, INT64*) = 0;
+    JUCE_COMCALL remove_AdvancedEffectsEnabledChanged (INT64) = 0;
+};
+
 } // namespace juce
 
 #ifdef __CRT_UUID_DECL
 __CRT_UUID_DECL (juce::IUIViewSettingsInterop, 0x3694dbf9, 0x8f68, 0x44be, 0x8f, 0xf5, 0x19, 0x5c, 0x98, 0xed, 0xe8, 0xa6)
 __CRT_UUID_DECL (juce::IUIViewSettings,        0xc63657f6, 0x8850, 0x470d, 0x88, 0xf8, 0x45, 0x5e, 0x16, 0xea, 0x2c, 0x26)
+__CRT_UUID_DECL (juce::IUISettings,            0x85361600, 0x1c63, 0x4627, 0xbc, 0xb1, 0x3a, 0x89, 0xe0, 0xbc, 0x9c, 0x55)
+__CRT_UUID_DECL (juce::IUISettings2,           0xbad82401, 0x2721, 0x44f9, 0xbb, 0x91, 0x2b, 0xb2, 0x28, 0xbe, 0x44, 0x2f)
+__CRT_UUID_DECL (juce::IUISettings3,           0x03021be4, 0x5254, 0x4781, 0x81, 0x94, 0x51, 0x68, 0xf7, 0xd0, 0x6d, 0x7b)
+__CRT_UUID_DECL (juce::IUISettings4,           0x52bb3002, 0x919b, 0x4d6b, 0x9b, 0x78, 0x8d, 0xd6, 0x6f, 0xf4, 0xb9, 0x3b)
 #endif
 
 namespace juce
@@ -1194,6 +1271,7 @@ struct UWPUIViewSettings
             if (status != S_OK && status != S_FALSE && (unsigned) status != 0x80010106L)
                 return;
 
+            // Initialize UIViewSettings
             LPCWSTR uwpClassName = L"Windows.UI.ViewManagement.UIViewSettings";
             HSTRING uwpClassId = nullptr;
 
@@ -1210,9 +1288,116 @@ struct UWPUIViewSettings
             if (status != S_OK || viewSettingsInterop == nullptr)
                 return;
 
+            // Initialize UISettings for accent colour support
+            roActivateInstance = (RoActivateInstanceFuncPtr) ::GetProcAddress (dll.h, "RoActivateInstance");
+
+            if (roActivateInstance != nullptr)
+            {
+                LPCWSTR uiSettingsClassName = L"Windows.UI.ViewManagement.UISettings";
+                HSTRING uiSettingsClassId = nullptr;
+
+                if (createHString (uiSettingsClassName, (::UINT32) wcslen (uiSettingsClassName), &uiSettingsClassId) == S_OK
+                     && uiSettingsClassId != nullptr)
+                {
+                    ComSmartPtr<IInspectable> uiSettingsInspectable;
+
+                    status = roActivateInstance (uiSettingsClassId, (IInspectable**) uiSettingsInspectable.resetAndGetPointerAddress());
+                    deleteHString (uiSettingsClassId);
+
+                    if (status == S_OK && uiSettingsInspectable != nullptr)
+                    {
+                        // Get IUISettings interface
+                        JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wlanguage-extension-token")
+                        uiSettingsInspectable->QueryInterface (__uuidof (IUISettings), (void**) uiSettings.resetAndGetPointerAddress());
+                        uiSettingsInspectable->QueryInterface (__uuidof (IUISettings3), (void**) uiSettings3.resetAndGetPointerAddress());
+                        uiSettingsInspectable->QueryInterface (__uuidof (IUISettings4), (void**) uiSettings4.resetAndGetPointerAddress());
+                        JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+                    }
+                }
+            }
+
             // move dll into member var
             comBaseDLL = std::move (dll);
         }
+    }
+
+    Colour getAccentColour() const
+    {
+        if (uiSettings != nullptr)
+        {
+            __try
+            {
+                UIColor color;
+                if (SUCCEEDED (uiSettings->GetColorValue (IUISettings::UIColorType::Accent, &color)))
+                    return Colour (color.R, color.G, color.B, color.A);
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                // WinRT exception occurred, return empty colour
+            }
+        }
+        return {};
+    }
+
+    Colour getUIElementColour (IUISettings::UIElementType elementType) const
+    {
+        if (uiSettings != nullptr)
+        {
+            __try
+            {
+                UIColor color;
+                if (SUCCEEDED (uiSettings->GetUIElementColor (elementType, &color)))
+                    return Colour (color.R, color.G, color.B, color.A);
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                // WinRT exception occurred, return empty colour
+            }
+        }
+        return {};
+    }
+
+    Colour getColorValue (IUISettings::UIColorType colorType) const
+    {
+        __try
+        {
+            if (uiSettings3 != nullptr)
+            {
+                UIColor color;
+                if (SUCCEEDED (uiSettings3->GetColorValue (colorType, &color)))
+                    return Colour (color.R, color.G, color.B, color.A);
+            }
+            else if (uiSettings != nullptr)
+            {
+                UIColor color;
+                if (SUCCEEDED (uiSettings->GetColorValue (colorType, &color)))
+                    return Colour (color.R, color.G, color.B, color.A);
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            // WinRT exception occurred, return empty colour
+        }
+        return {};
+    }
+
+    bool areTransparencyEffectsEnabled() const
+    {
+        __try
+        {
+            if (uiSettings4 != nullptr)
+            {
+                boolean enabled = 0;
+                if (SUCCEEDED (uiSettings4->GetAdvancedEffectsEnabled (&enabled)))
+                    return enabled != 0;
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            // WinRT exception occurred, return false
+        }
+
+        return false;
     }
 
 private:
@@ -1232,14 +1417,19 @@ private:
 
     using RoInitializeFuncPtr           = HRESULT (WINAPI*) (int);
     using RoGetActivationFactoryFuncPtr = HRESULT (WINAPI*) (HSTRING, REFIID, void**);
+    using RoActivateInstanceFuncPtr     = HRESULT (WINAPI*) (HSTRING, IInspectable**);
     using WindowsCreateStringFuncPtr    = HRESULT (WINAPI*) (LPCWSTR,UINT32, HSTRING*);
     using WindowsDeleteStringFuncPtr    = HRESULT (WINAPI*) (HSTRING);
 
     ComBaseModule comBaseDLL;
     ComSmartPtr<IUIViewSettingsInterop> viewSettingsInterop;
+    ComSmartPtr<IUISettings> uiSettings;
+    ComSmartPtr<IUISettings3> uiSettings3;
+    ComSmartPtr<IUISettings4> uiSettings4;
 
     RoInitializeFuncPtr roInitialize;
     RoGetActivationFactoryFuncPtr roGetActivationFactory;
+    RoActivateInstanceFuncPtr roActivateInstance;
     WindowsCreateStringFuncPtr createHString;
     WindowsDeleteStringFuncPtr deleteHString;
 };
@@ -2095,7 +2285,9 @@ public:
         return result;
     }
 
-    bool hasTitleBar() const                 { return (styleFlags & windowHasTitleBar) != 0; }
+    bool hasTitleBar() const                            { return (styleFlags & windowHasTitleBar) != 0; }
+    double getScaleFactor() const                       { return scaleFactor; }
+    UWPUIViewSettings& getUWPViewSettings() noexcept    { return uwpViewSettings; }
 
 private:
     HWND hwnd, parentToAddTo;
@@ -5713,6 +5905,55 @@ void Desktop::setScreenSaverEnabled (const bool isEnabled)
 bool Desktop::isScreenSaverEnabled()
 {
     return screenSaverDefeater == nullptr;
+}
+
+Colour Desktop::getAccentColour() const
+{
+    for (int i = 0; i < getNumComponents(); ++i)
+        if (auto* comp = getComponent (i))
+            if (auto* peer = dynamic_cast<HWNDComponentPeer*> (comp->getPeer()))
+                return peer->getUWPViewSettings().getAccentColour();
+
+    return Colours::transparentBlack;
+}
+
+Colour Desktop::getSystemColour (Desktop::SystemColourType colourType) const
+{
+    // Map Desktop::SystemColourType to WinRT UIColorType
+    static constexpr IUISettings::UIColorType mapping[] =
+    {
+        IUISettings::UIColorType::Background,       // Desktop::SystemColourType::background
+        IUISettings::UIColorType::Foreground,       // Desktop::SystemColourType::foreground
+        IUISettings::UIColorType::Complement,       // Desktop::SystemColourType::complement
+        IUISettings::UIColorType::Accent,           // Desktop::SystemColourType::accent
+        IUISettings::UIColorType::AccentDark1,      // Desktop::SystemColourType::accentDark1
+        IUISettings::UIColorType::AccentDark2,      // Desktop::SystemColourType::accentDark2
+        IUISettings::UIColorType::AccentDark3,      // Desktop::SystemColourType::accentDark3
+        IUISettings::UIColorType::AccentLight1,     // Desktop::SystemColourType::accentLight1
+        IUISettings::UIColorType::AccentLight2,     // Desktop::SystemColourType::accentLight2
+        IUISettings::UIColorType::AccentLight3      // Desktop::SystemColourType::accentLight3
+    };
+
+    auto index = static_cast<size_t> (colourType);
+    if (index >= std::size (mapping))
+        return Colours::transparentBlack;
+
+    for (int i = 0; i < getNumComponents(); ++i)
+        if (auto* comp = getComponent (i))
+            if (auto* peer = dynamic_cast<HWNDComponentPeer*> (comp->getPeer()))
+                return peer->getUWPViewSettings().getColorValue (mapping[index]);
+
+    return Colours::transparentBlack;
+}
+
+bool Desktop::areTransparencyEffectsEnabled() const
+{
+    for (int i = 0; i < getNumComponents(); ++i)
+        if (auto* comp = getComponent (i))
+            if (auto* peer = dynamic_cast<HWNDComponentPeer*> (comp->getPeer()))
+                return peer->getUWPViewSettings().areTransparencyEffectsEnabled();
+
+    return false;
 }
 
 //==============================================================================

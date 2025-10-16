@@ -307,6 +307,21 @@ bool Desktop::isDarkModeActive() const
                 isEqualToString: nsStringLiteral ("Dark")];
 }
 
+Colour Desktop::getAccentColour() const
+{
+    return {};  // Not implemented on macOS
+}
+
+Colour Desktop::getSystemColour (Desktop::SystemColourType) const
+{
+    return {};  // Not implemented on macOS
+}
+
+bool Desktop::areTransparencyEffectsEnabled() const
+{
+    return false;  // Not implemented on macOS
+}
+
 JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wundeclared-selector")
 static const auto darkModeSelector = @selector (darkModeChanged:);
 static const auto keyboardVisibilitySelector = @selector (keyboardVisiblityChanged:);
