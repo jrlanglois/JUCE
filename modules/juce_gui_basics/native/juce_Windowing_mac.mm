@@ -309,19 +309,22 @@ bool Desktop::isDarkModeActive() const
 
 Colour Desktop::getAccentColour() const
 {
+    NSColor* nsColour = nil;
+
     if (@available (macOS 10.14, *))
+        nsColour = [NSColor controlAccentColor];
+    else
+        nsColour = [NSColor highlightColor];
+
+    if (nsColour != nil)
     {
-        auto* nsColour = [NSColor controlAccentColor];
+        nsColour = [nsColour colorUsingColorSpace: [NSColorSpace sRGBColorSpace]];
         if (nsColour != nil)
         {
-            nsColour = [nsColour colorUsingColorSpace: [NSColorSpace sRGBColorSpace]];
-            if (nsColour != nil)
-            {
-                return Colour::fromFloatRGBA ((float) [nsColour redComponent],
-                                              (float) [nsColour greenComponent],
-                                              (float) [nsColour blueComponent],
-                                              (float) [nsColour alphaComponent]);
-            }
+            return Colour::fromFloatRGBA ((float) [nsColour redComponent],
+                                          (float) [nsColour greenComponent],
+                                          (float) [nsColour blueComponent],
+                                          (float) [nsColour alphaComponent]);
         }
     }
 
@@ -335,22 +338,15 @@ Colour Desktop::getSystemColour (Desktop::SystemColourType colourType) const
     switch (colourType)
     {
         case SystemColourType::background:
-            if (@available (macOS 10.14, *))
-                nsColour = [NSColor systemBackgroundColor];
-            else
-                nsColour = [NSColor windowBackgroundColor];
+            nsColour = [NSColor windowBackgroundColor];
             break;
 
         case SystemColourType::foreground:
-            if (@available (macOS 10.14, *))
-                nsColour = [NSColor labelColor];
-            else
-                nsColour = [NSColor textColor];
+            nsColour = [NSColor controlBackgroundColor];
             break;
 
         case SystemColourType::complement:
-            if (@available (macOS 10.14, *))
-                nsColour = [NSColor separatorColor];
+            nsColour = [NSColor controlTextColor];
             break;
 
         case SystemColourType::accent:
@@ -390,7 +386,7 @@ bool Desktop::areTransparencyEffectsEnabled() const
     if (@available (macOS 10.10, *))
         return ! [[NSWorkspace sharedWorkspace] accessibilityDisplayShouldReduceTransparency];
 
-    return true;  // Default to enabled on older macOS versions
+    return true;
 }
 
 bool Desktop::areAnimationsEnabled() const
@@ -399,7 +395,7 @@ bool Desktop::areAnimationsEnabled() const
     if (@available (macOS 10.12, *))
         return ! [[NSWorkspace sharedWorkspace] accessibilityDisplayShouldReduceMotion];
 
-    return true;  // Default to enabled on older macOS versions
+    return true;
 }
 
 JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wundeclared-selector")
