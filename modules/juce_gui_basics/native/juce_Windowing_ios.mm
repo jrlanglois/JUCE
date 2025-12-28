@@ -591,24 +591,95 @@ bool Desktop::isDarkModeActive() const
     return [[[UIScreen mainScreen] traitCollection] userInterfaceStyle] == UIUserInterfaceStyleDark;
 }
 
-Colour Desktop::getAccentColour() const
+static Colour convertUIColorToJUCEColour (UIColor* uiColour)
 {
-    return {};  // Not implemented on iOS
+    if (uiColour == nil)
+        return {};
+
+    CGFloat red = 0.0f, green = 0.0f, blue = 0.0f, alpha = 0.0f;
+
+    // Convert to RGB colour space if needed
+    auto* rgbColour = [nsColour colorUsingColorSpace: [NSColorSpace sRGBColorSpace]];
+
+    if (rgbColour != nil && [rgbColour getRed: &red green: &green blue: &blue alpha: &alpha])
+    {
+        return Colour::fromFloatRGBA ((float) red,
+                                      (float) green,
+                                      (float) blue,
+                                      (float) alpha);
+    }
+
+    return {};
 }
 
-Colour Desktop::getSystemColour (Desktop::SystemColourType) const
+// Forward declaration
+static const UIWindow* findWindow (const Desktop& desktop);
+
+Colour Desktop::getAccentColour() const
 {
-    return {};  // Not implemented on iOS
+    // iOS doesn't have a system-wide user-customisable accent colour like macOS.
+    // Instead, we return the app's tint colour which serves as the app's accent colour.
+    UIColor* tintColour = nil;
+
+    // Try to get the tint colour from a window
+    if (const auto* window = findWindow (*this))
+        tintColour = window.tintColor;
+
+    // Fallback to system blue (iOS default tint colour)
+    if (tintColour == nil)
+        tintColour = [UIColor systemBlueColor];
+
+    return convertUIColorToJUCEColour (tintColour);
+}
+
+Colour Desktop::getSystemColour (Desktop::SystemColourType colourType) const
+{
+    UIColor* uiColour = nil;
+
+    switch (colourType)
+    {
+        case SystemColourType::background:
+            if (@available (iOS 13.0, *))
+                uiColour = [UIColor systemBackgroundColor];
+            break;
+
+        case SystemColourType::foreground:
+            if (@available (iOS 13.0, *))
+                uiColour = [UIColor secondarySystemBackgroundColor];
+            break;
+
+        case SystemColourType::complement:
+            if (@available (iOS 13.0, *))
+                uiColour = [UIColor labelColor];
+            break;
+
+        case SystemColourType::accent:
+            return getAccentColour();
+
+        case SystemColourType::accentDark1:
+        case SystemColourType::accentDark2:
+        case SystemColourType::accentDark3:
+        case SystemColourType::accentLight1:
+        case SystemColourType::accentLight2:
+        case SystemColourType::accentLight3:
+            // iOS doesn't provide accent colour variants like Windows
+            return {};
+
+        default:
+            return {};
+    }
+
+    return convertUIColorToJUCEColour (uiColour);
 }
 
 bool Desktop::areTransparencyEffectsEnabled() const
 {
-    return false;  // Not implemented on iOS
+    return ! UIAccessibilityIsReduceTransparencyEnabled();
 }
 
 bool Desktop::areAnimationsEnabled() const
 {
-    return false;  // Not implemented on iOS
+    return ! UIAccessibilityIsReduceMotionEnabled();
 }
 
 JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wundeclared-selector")
