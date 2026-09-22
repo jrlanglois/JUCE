@@ -39,9 +39,6 @@ juce_generate_juce_header(UnitTestRunner)
 target_sources(UnitTestRunner PRIVATE Source/Main.cpp)
 
 target_compile_definitions(UnitTestRunner PRIVATE
-    JUCE_PLUGINHOST_AU=1
-    JUCE_PLUGINHOST_LV2=1
-    JUCE_PLUGINHOST_VST3=1
     JUCE_UNIT_TESTS=1
     JUCE_USE_CURL=0
     JUCE_WEB_BROWSER=0
@@ -49,6 +46,13 @@ target_compile_definitions(UnitTestRunner PRIVATE
     # Add -Wl,-ld_classic to the OTHER_LDFLAGS build setting if you need to
     # deploy to older versions of macOS.
     JUCE_SILENCE_XCODE_15_LINKER_WARNING=1)
+
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+    target_compile_definitions(UnitTestRunner PRIVATE
+        JUCE_PLUGINHOST_AU=1
+        JUCE_PLUGINHOST_LV2=1
+        JUCE_PLUGINHOST_VST3=1)
+endif()
 
 target_link_libraries(UnitTestRunner PRIVATE
     juce::juce_analytics

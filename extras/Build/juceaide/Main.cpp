@@ -255,9 +255,6 @@ void setIfEmpty (juce::String& field, juce::StringRef fallback)
 juce::build_tools::PlistOptions parsePlistOptions (const juce::File& file,
                                                    juce::build_tools::ProjectType::Target::Type type)
 {
-    if (type == juce::build_tools::ProjectType::Target::ConsoleApp)
-        juce::ConsoleApplication::fail ("Deduced project type does not require a plist", 1);
-
     const auto dict = parseProjectData (file);
 
     UpdateField updateField { dict };
@@ -268,6 +265,10 @@ juce::build_tools::PlistOptions parsePlistOptions (const juce::File& file,
     updateField ("PLIST_TO_MERGE",                       result.plistToMerge);
     updateField ("IS_IOS",                               result.iOS);
     updateField ("IS_TVOS",                              result.tvOS);
+
+    if (type == juce::build_tools::ProjectType::Target::ConsoleApp && ! result.tvOS)
+        juce::ConsoleApplication::fail ("Deduced project type does not require a plist", 1);
+
     updateField ("MICROPHONE_PERMISSION_ENABLED",        result.microphonePermissionEnabled);
     updateField ("MICROPHONE_PERMISSION_TEXT",           result.microphonePermissionText);
     updateField ("CAMERA_PERMISSION_ENABLED",            result.cameraPermissionEnabled);

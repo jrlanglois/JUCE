@@ -2345,9 +2345,15 @@ function(juce_add_console_app target)
 
     if(NOT JUCE_ARG__NO_RESOURCERC)
         set_target_properties(${target} PROPERTIES JUCE_TARGET_KIND_STRING "ConsoleApp")
-        _juce_write_configure_time_info(${target})
-        _juce_add_resources_rc(${target} ${target})
-        _juce_add_xcode_entitlements(${target} ${target})
+
+        if(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+            set_target_properties(${target} PROPERTIES MACOSX_BUNDLE TRUE)
+            _juce_configure_bundle(${target} ${target})
+        else()
+            _juce_write_configure_time_info(${target})
+            _juce_add_resources_rc(${target} ${target})
+            _juce_add_xcode_entitlements(${target} ${target})
+        endif()
     endif()
 endfunction()
 
