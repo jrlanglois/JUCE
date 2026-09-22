@@ -180,7 +180,7 @@ inline int juce_siginterrupt ([[maybe_unused]] int sig, [[maybe_unused]] int fla
 //==============================================================================
 namespace
 {
-   #if defined (__GLIBC__) || (JUCE_IOS && (! TARGET_OS_MACCATALYST) && (! __DARWIN_ONLY_64_BIT_INO_T)) // (this iOS stuff is to avoid a simulator bug)
+   #if defined (__GLIBC__) || ((JUCE_IOS || JUCE_TVOS) && (! TARGET_OS_MACCATALYST) && (! __DARWIN_ONLY_64_BIT_INO_T)) // (this UIKit stuff is to avoid a simulator bug)
     using juce_statStruct = struct stat64;
     #define JUCE_STAT  stat64
    #else
@@ -209,7 +209,7 @@ namespace
         return statfs (f.getFullPathName().toUTF8(), &result) == 0;
     }
 
-   #if JUCE_MAC || JUCE_IOS
+   #if JUCE_APPLE
     static int64 getCreationTime (const juce_statStruct& s) noexcept     { return (int64) s.st_birthtime; }
    #else
     static int64 getCreationTime (const juce_statStruct& s) noexcept     { return (int64) s.st_ctime; }
@@ -342,14 +342,14 @@ void File::getFileTimesInternal (int64& modificationTime, int64& accessTime, int
 
     if (juce_stat (fullPath, info))
     {
-      #if JUCE_MAC || (JUCE_IOS && __DARWIN_ONLY_64_BIT_INO_T)
+      #if JUCE_MAC || ((JUCE_IOS || JUCE_TVOS) && __DARWIN_ONLY_64_BIT_INO_T)
         modificationTime  = (int64) info.st_mtimespec.tv_sec * 1000 + info.st_mtimespec.tv_nsec / 1000000;
         accessTime        = (int64) info.st_atimespec.tv_sec * 1000 + info.st_atimespec.tv_nsec / 1000000;
         creationTime      = (int64) info.st_birthtimespec.tv_sec * 1000 + info.st_birthtimespec.tv_nsec / 1000000;
       #else
         modificationTime  = (int64) info.st_mtime * 1000;
         accessTime        = (int64) info.st_atime * 1000;
-       #if JUCE_IOS
+       #if JUCE_IOS || JUCE_TVOS
         creationTime      = (int64) info.st_birthtime * 1000;
        #else
         creationTime      = (int64) info.st_ctime * 1000;
@@ -365,7 +365,7 @@ bool File::setFileTimesInternal (int64 modificationTime, int64 accessTime, int64
 
     if ((modificationTime != 0 || accessTime != 0) && juce_stat (fullPath, info))
     {
-       #if JUCE_MAC || (JUCE_IOS && __DARWIN_ONLY_64_BIT_INO_T)
+       #if JUCE_MAC || ((JUCE_IOS || JUCE_TVOS) && __DARWIN_ONLY_64_BIT_INO_T)
         struct timeval times[2];
 
         bool setModificationTime = (modificationTime != 0);
@@ -702,7 +702,7 @@ int File::getVolumeSerialNumber() const
 #endif
 
 //==============================================================================
-#if ! JUCE_IOS
+#if ! (JUCE_IOS || JUCE_TVOS)
 void juce_runSystemCommand (const String&);
 void juce_runSystemCommand (const String& command)
 {
@@ -725,13 +725,13 @@ String juce_getOutputFromCommand (const String& command)
 #endif
 
 //==============================================================================
-#if JUCE_IOS
+#if JUCE_IOS || JUCE_TVOS
 class InterProcessLock::Pimpl
 {
 public:
     Pimpl (const String&, int)  {}
 
-    int handle = 1, refCount = 1;  // on iOS just fake success
+    int handle = 1, refCount = 1;  // on iOS and tvOS just fake success
 };
 
 #else
@@ -911,10 +911,10 @@ public:
                 return jmap (rt->getPriority(), 0, 10, min, max);
             }
 
-            // We only use this helper if we're on an old macos/ios platform that might
+            // We only use this helper if we're on an old Apple platform that might
             // still respect legacy pthread priorities for SCHED_OTHER.
-            #if JUCE_MAC || JUCE_IOS
-             const auto min = jmax (0, sched_get_priority_min (SCHED_OTHER));
+            #if JUCE_APPLE
+            const auto min = jmax (0, sched_get_priority_min (SCHED_OTHER));
              const auto max = jmax (0, sched_get_priority_max (SCHED_OTHER));
 
              const auto p = [prio]
@@ -938,7 +938,7 @@ public:
             return 0;
         }();
 
-        #if JUCE_MAC || JUCE_IOS || JUCE_BSD
+        #if JUCE_APPLE || JUCE_BSD
          const auto scheduler = SCHED_OTHER;
         #elif JUCE_LINUX
          const auto backgroundSched = prio == Thread::Priority::background ? SCHED_IDLE
@@ -995,7 +995,7 @@ void Thread::closeThreadHandle()
 
 void JUCE_CALLTYPE Thread::setCurrentThreadName (const String& name)
 {
-   #if JUCE_IOS || JUCE_MAC
+   #if JUCE_APPLE
     JUCE_AUTORELEASEPOOL
     {
         [[NSThread currentThread] setName: juceStringToNS (name)];
@@ -1108,6 +1108,35 @@ static String readPosixConfigFileValue (const char* file, const char* key)
 
 
 //==============================================================================
+#if JUCE_TVOS
+class ChildProcess::ActiveProcess
+{
+public:
+    ActiveProcess (const StringArray&, int) {}
+
+    bool isRunning() noexcept
+    {
+        return false;
+    }
+    int read (void*, int) noexcept
+    {
+        return 0;
+    }
+    bool killProcess() const noexcept
+    {
+        return false;
+    }
+    uint32 getExitCode() noexcept
+    {
+        return 0;
+    }
+
+    int childPID = 0;
+
+private:
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ActiveProcess)
+};
+#else
 class ChildProcess::ActiveProcess
 {
 public:
@@ -1261,6 +1290,7 @@ public:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ActiveProcess)
 };
+#endif
 
 bool ChildProcess::start (const String& command, int streamFlags)
 {

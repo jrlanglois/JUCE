@@ -73,14 +73,21 @@
     Enables the AudioCDReader class (on supported platforms).
 */
 #ifndef JUCE_USE_CDREADER
-#define JUCE_USE_CDREADER 0
+ #define JUCE_USE_CDREADER 0
 #endif
 
 /** Config: JUCE_USE_CDBURNER
     Enables the AudioCDBurner class (on supported platforms).
 */
 #ifndef JUCE_USE_CDBURNER
-#define JUCE_USE_CDBURNER 0
+ #define JUCE_USE_CDBURNER 0
+#endif
+
+#if JUCE_TVOS
+ #undef JUCE_USE_CDREADER
+ #define JUCE_USE_CDREADER 0
+ #undef JUCE_USE_CDBURNER
+ #define JUCE_USE_CDBURNER 0
 #endif
 
 //==============================================================================

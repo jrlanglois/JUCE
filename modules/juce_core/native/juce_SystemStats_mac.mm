@@ -98,7 +98,7 @@ void CPUInformation::initialise() noexcept
 }
 
 //==============================================================================
-#if ! JUCE_IOS
+#if JUCE_MAC
 static String getOSXVersion()
 {
     JUCE_AUTORELEASEPOOL
@@ -128,7 +128,9 @@ static String getOSXVersion()
 
 SystemStats::OperatingSystemType SystemStats::getOperatingSystemType()
 {
-   #if JUCE_IOS
+   #if JUCE_TVOS
+    return tvOS;
+   #elif JUCE_IOS
     return iOS;
    #else
     StringArray parts;
@@ -162,7 +164,9 @@ SystemStats::OperatingSystemType SystemStats::getOperatingSystemType()
 
 String SystemStats::getOperatingSystemName()
 {
-   #if JUCE_IOS
+   #if JUCE_TVOS
+    return "tvOS " + nsStringToJuce ([[UIDevice currentDevice] systemVersion]);
+   #elif JUCE_IOS
     return "iOS " + nsStringToJuce ([[UIDevice currentDevice] systemVersion]);
    #else
     return "Mac OSX " + getOSXVersion();
@@ -175,7 +179,7 @@ String SystemStats::getDeviceDescription()
         if (auto* simDeviceName = [userInfo objectForKey: @"SIMULATOR_MODEL_IDENTIFIER"])
             return nsStringToJuce (simDeviceName);
 
-   #if JUCE_IOS
+   #if JUCE_IOS || JUCE_TVOS
     const char* name = "hw.machine";
    #else
     const char* name = "hw.model";
@@ -378,7 +382,7 @@ String SystemStats::getUniqueDeviceID()
             if (CFGetTypeID (uuidTypeRef.get()) == CFStringGetTypeID())
                 return String::fromCFString ((CFStringRef) uuidTypeRef.get()).removeCharacters ("-");
     }
-   #elif JUCE_IOS
+   #elif JUCE_IOS || JUCE_TVOS
     JUCE_AUTORELEASEPOOL
     {
         if (UIDevice* device = [UIDevice currentDevice])

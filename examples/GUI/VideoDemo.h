@@ -35,7 +35,8 @@
 
  dependencies:     juce_core, juce_data_structures, juce_events, juce_graphics,
                    juce_gui_basics, juce_gui_extra, juce_video
- exporters:        xcode_mac, vs2022, vs2026, androidstudio, xcode_iphone
+ exporters:        xcode_mac, vs2022, vs2026, androidstudio, xcode_iphone,
+                   xcode_tvos
 
  moduleFlags:      JUCE_STRICT_REFCOUNTEDPOINTER=1
 
@@ -271,7 +272,7 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VideoDemo)
 };
-#elif JUCE_IOS || JUCE_ANDROID
+#elif JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
 //==============================================================================
 class VideoDemo final : public Component,
                         private Timer
@@ -281,7 +282,9 @@ public:
         : videoCompWithNativeControls (true),
           videoCompNoNativeControls (false)
     {
+       #if ! JUCE_TVOS
         loadLocalButton  .onClick = [this] { selectVideoFile(); };
+       #endif
         loadUrlButton    .onClick = [this] { showVideoUrlPrompt(); };
         seekToStartButton.onClick = [this] { seekVideoToStart(); };
         playButton       .onClick = [this] { playVideo(); };
@@ -339,7 +342,9 @@ public:
 
         setTransportControlsEnabled (false);
 
+       #if ! JUCE_TVOS
         addAndMakeVisible (loadLocalButton);
+       #endif
         addAndMakeVisible (loadUrlButton);
         addAndMakeVisible (volumeLabel);
         addAndMakeVisible (volumeSlider);
@@ -356,6 +361,7 @@ public:
 
         setSize (500, 500);
 
+       #if ! JUCE_TVOS
         RuntimePermissions::request (RuntimePermissions::readExternalStorage,
                                      [] (bool granted)
                                      {
@@ -367,6 +373,7 @@ public:
                                                                                " may be inaccessible.");
                                          }
                                      });
+       #endif
 
         setPortraitOrientationEnabled (true);
     }
@@ -396,9 +403,14 @@ public:
         area.reduce (0, marginSize);
 
         auto topArea = area.removeFromTop (buttonHeight);
-        loadLocalButton.setBounds (topArea.removeFromLeft (topArea.getWidth() / 6));
-        loadUrlButton.setBounds (topArea.removeFromLeft (loadLocalButton.getWidth()));
-        volumeLabel.setBounds (topArea.removeFromLeft (loadLocalButton.getWidth()));
+       #if JUCE_TVOS
+        auto topControlWidth = topArea.getWidth() / 5;
+       #else
+        auto topControlWidth = topArea.getWidth() / 6;
+        loadLocalButton.setBounds (topArea.removeFromLeft (topControlWidth));
+       #endif
+        loadUrlButton.setBounds (topArea.removeFromLeft (topControlWidth));
+        volumeLabel.setBounds (topArea.removeFromLeft (topControlWidth));
         volumeSlider.setBounds (topArea.reduced (10, 0));
 
         auto transportArea = area.removeFromBottom (buttonHeight);
@@ -434,7 +446,7 @@ private:
 
     VideoComponent videoCompWithNativeControls;
     VideoComponent videoCompNoNativeControls;
-   #if JUCE_IOS || JUCE_MAC
+   #if JUCE_APPLE
     VideoComponent* curVideoComp = &videoCompWithNativeControls;
    #else
     VideoComponent* curVideoComp = &videoCompNoNativeControls;
@@ -500,7 +512,7 @@ private:
     {
         unloadVideoFile();
 
-       #if JUCE_IOS || JUCE_MAC
+       #if JUCE_APPLE
         askIfUseNativeControls (url);
        #else
         loadUrl (url);

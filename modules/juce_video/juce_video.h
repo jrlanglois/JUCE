@@ -54,6 +54,7 @@
   dependencies:       juce_gui_extra
   OSXFrameworks:      AVKit AVFoundation CoreMedia
   iOSFrameworks:      AVKit AVFoundation CoreMedia
+  tvOSFrameworks:     AVKit AVFoundation CoreMedia
 
  END_JUCE_MODULE_DECLARATION
 
@@ -69,6 +70,7 @@
 //==============================================================================
 /** Config: JUCE_USE_CAMERA
     Enables camera support using the CameraDevice class (Mac, Windows, iOS, Android).
+    On tvOS, CameraDevice is a stub that reports no available devices.
 */
 #ifndef JUCE_USE_CAMERA
  #define JUCE_USE_CAMERA 0
@@ -84,7 +86,7 @@
  #define JUCE_CAMERA_LOG(x) {}
 #endif
 
-#if ! (JUCE_MAC || JUCE_WINDOWS || JUCE_IOS || JUCE_ANDROID)
+#if ! (JUCE_MAC || JUCE_WINDOWS || JUCE_IOS || JUCE_TVOS || JUCE_ANDROID)
  #undef JUCE_USE_CAMERA
 #endif
 

@@ -95,8 +95,8 @@ namespace MacFileHelpers
        #endif
     }
 
-   #if JUCE_IOS
-    static String getIOSSystemLocation (NSSearchPathDirectory type)
+   #if JUCE_IOS || JUCE_TVOS
+    static String getUIKitSystemLocation (NSSearchPathDirectory type)
     {
         return nsStringToJuce ([NSSearchPathForDirectoriesInDomains (type, NSUserDomainMask, YES)
                                 objectAtIndex: 0]);
@@ -141,7 +141,7 @@ bool File::isOnHardDisk() const
 
 bool File::isOnRemovableDrive() const
 {
-   #if JUCE_IOS
+   #if JUCE_IOS || JUCE_TVOS
     return false; // xxx is this possible?
    #else
     JUCE_AUTORELEASEPOOL
@@ -180,13 +180,18 @@ File File::getSpecialLocation (const SpecialLocationType type)
         {
             case userHomeDirectory:                 resultPath = nsStringToJuce (NSHomeDirectory()); break;
 
-          #if JUCE_IOS
-            case userDocumentsDirectory:            resultPath = MacFileHelpers::getIOSSystemLocation (NSDocumentDirectory); break;
-            case userDesktopDirectory:              resultPath = MacFileHelpers::getIOSSystemLocation (NSDesktopDirectory); break;
+          #if JUCE_IOS || JUCE_TVOS
+           #if JUCE_TVOS
+            case userDocumentsDirectory:            resultPath = MacFileHelpers::getUIKitSystemLocation (NSCachesDirectory); break;
+            case userDesktopDirectory:              jassertfalse; break;
+           #else
+            case userDocumentsDirectory:            resultPath = MacFileHelpers::getUIKitSystemLocation (NSDocumentDirectory); break;
+            case userDesktopDirectory:              resultPath = MacFileHelpers::getUIKitSystemLocation (NSDesktopDirectory); break;
+           #endif
 
             case tempDirectory:
             {
-                File tmp (MacFileHelpers::getIOSSystemLocation (NSCachesDirectory));
+                File tmp (MacFileHelpers::getUIKitSystemLocation (NSCachesDirectory));
                 tmp = tmp.getChildFile (juce_getExecutableFile().getFileNameWithoutExtension());
                 tmp.createDirectory();
                 return tmp.getFullPathName();
@@ -204,6 +209,19 @@ File File::getSpecialLocation (const SpecialLocationType type)
                 return File (tmp.getFullPathName());
             }
           #endif
+          #if JUCE_TVOS
+            case userMusicDirectory:
+            case userMoviesDirectory:
+            case userPicturesDirectory:
+            case commonApplicationDataDirectory:
+            case commonDocumentsDirectory:
+            case globalApplicationsDirectory:
+                jassertfalse;
+                break;
+            case userApplicationDataDirectory:
+                resultPath = MacFileHelpers::getUIKitSystemLocation (NSCachesDirectory);
+                break;
+          #else
             case userMusicDirectory:                resultPath = "~/Music"; break;
             case userMoviesDirectory:               resultPath = "~/Movies"; break;
             case userPicturesDirectory:             resultPath = "~/Pictures"; break;
@@ -211,6 +229,7 @@ File File::getSpecialLocation (const SpecialLocationType type)
             case commonApplicationDataDirectory:    resultPath = "/Library"; break;
             case commonDocumentsDirectory:          resultPath = "/Users/Shared"; break;
             case globalApplicationsDirectory:       resultPath = "/Applications"; break;
+          #endif
 
             case invokedExecutableFile:
                 if (juce_argv != nullptr && juce_argc > 0)
@@ -226,7 +245,7 @@ File File::getSpecialLocation (const SpecialLocationType type)
                 const File exe (juce_getExecutableFile());
                 const File parent (exe.getParentDirectory());
 
-               #if JUCE_IOS
+               #if JUCE_IOS || JUCE_TVOS
                 return parent;
                #else
                 return parent.getFullPathName().endsWithIgnoreCase ("Contents/MacOS")
@@ -296,6 +315,9 @@ bool File::moveToTrash() const
     if (! exists())
         return true;
 
+   #if JUCE_TVOS
+    return false;
+   #else
     JUCE_AUTORELEASEPOOL
     {
         NSError* error = nil;
@@ -303,6 +325,7 @@ bool File::moveToTrash() const
                                              resultingItemURL: nil
                                                         error: &error];
     }
+   #endif
 }
 
 //==============================================================================
@@ -395,7 +418,7 @@ bool JUCE_CALLTYPE Process::openDocument (const String& fileName, [[maybe_unused
         NSURL* filenameAsURL = File::createFileWithoutCheckingPath (fileName).exists() ? [NSURL fileURLWithPath: fileNameAsNS]
                                                                                        : [NSURL URLWithString: fileNameAsNS];
 
-      #if JUCE_IOS
+      #if JUCE_IOS || JUCE_TVOS
         [[UIApplication sharedApplication] openURL: filenameAsURL
                                            options: @{}
                                  completionHandler: nil];
@@ -457,7 +480,7 @@ bool JUCE_CALLTYPE Process::openDocument (const String& fileName, [[maybe_unused
 
 void File::revealToUser() const
 {
-   #if ! JUCE_IOS
+   #if ! (JUCE_IOS || JUCE_TVOS)
     if (exists())
         [[NSWorkspace sharedWorkspace] selectFile: juceStringToNS (getFullPathName()) inFileViewerRootedAtPath: nsEmptyString()];
     else if (getParentDirectory().exists())
@@ -477,7 +500,7 @@ OSType File::getMacOSType() const
 
 bool File::isBundle() const
 {
-   #if JUCE_IOS
+   #if JUCE_IOS || JUCE_TVOS
     return false; // xxx can't find a sensible way to do this without trying to open the bundle
    #else
     JUCE_AUTORELEASEPOOL

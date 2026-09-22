@@ -154,7 +154,7 @@ public:
         /* Forward mouse button flag. Otherwise known as button 5. */
         forwardButtonModifier                   = 256,
 
-       #if JUCE_MAC || JUCE_IOS
+       #if JUCE_APPLE
         /** Command key flag - on windows this is the same as the CTRL key flag. */
         commandModifier                         = 8,
 

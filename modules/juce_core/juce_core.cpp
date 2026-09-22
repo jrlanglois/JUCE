@@ -120,7 +120,7 @@
  #endif
 #endif
 
-#if JUCE_MAC || JUCE_IOS
+#if JUCE_APPLE
  #include <xlocale.h>
  #include <mach/mach.h>
 #endif
@@ -218,7 +218,7 @@
 #endif
 
 //==============================================================================
-#if JUCE_MAC || JUCE_IOS
+#if JUCE_APPLE
  #include "native/juce_Files_mac.mm"
  #include "native/juce_Network_mac.mm"
  #include "native/juce_Strings_mac.mm"
@@ -308,7 +308,7 @@
  #include "text/juce_CharPointer_UTF8_test.cpp"
  #include "text/juce_CharPointer_UTF16_test.cpp"
  #include "text/juce_CharPointer_UTF32_test.cpp"
- #if JUCE_MAC || JUCE_IOS
+ #if JUCE_APPLE
   #include "native/juce_ObjCHelpers_mac_test.mm"
  #endif
 #endif

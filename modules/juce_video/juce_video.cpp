@@ -48,7 +48,7 @@
 
 #include "juce_video.h"
 
-#if JUCE_MAC || JUCE_IOS
+#if JUCE_APPLE
  #import <AVFoundation/AVFoundation.h>
  #import <AVKit/AVKit.h>
 
@@ -77,6 +77,6 @@
 //==============================================================================
 #include "playback/juce_VideoComponent.cpp"
 
-#if JUCE_USE_CAMERA
+#if JUCE_USE_CAMERA || JUCE_TVOS
  #include "capture/juce_CameraDevice.cpp"
 #endif

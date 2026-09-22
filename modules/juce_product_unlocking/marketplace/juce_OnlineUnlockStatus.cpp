@@ -291,7 +291,7 @@ char OnlineUnlockStatus::MachineIDUtilities::getPlatformPrefix()
     return 'L';
    #elif JUCE_BSD
     return 'B';
-   #elif JUCE_IOS
+   #elif JUCE_IOS || JUCE_TVOS
     return 'I';
    #elif JUCE_ANDROID
     return 'A';

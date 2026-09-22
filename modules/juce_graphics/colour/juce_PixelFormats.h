@@ -461,7 +461,7 @@ public:
     /** Creates a pixel. */
     forcedinline constexpr PixelRGB (uint8 red, uint8 green, uint8 blue) noexcept
        :
-        #if JUCE_MAC || JUCE_IOS
+        #if JUCE_APPLE
          r (red), g (green), b (blue)
         #else
          b (blue), g (green), r (red)
@@ -712,7 +712,7 @@ public:
 
     //==============================================================================
     /** The indexes of the different components in the byte layout of this type of colour. */
-   #if JUCE_MAC || JUCE_IOS
+   #if JUCE_APPLE
     enum { indexR = 0, indexG = 1, indexB = 2 };
    #else
     enum { indexR = 2, indexG = 1, indexB = 0 };
@@ -720,7 +720,7 @@ public:
 
 private:
     //==============================================================================
-   #if JUCE_MAC || JUCE_IOS
+   #if JUCE_APPLE
     uint8 r, g, b;
    #else
     uint8 b, g, r;

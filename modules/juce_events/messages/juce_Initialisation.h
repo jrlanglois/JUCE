@@ -113,7 +113,7 @@ public:
   #define JUCE_MAIN_FUNCTION_ARGS  argc, (const char**) argv
  #endif
 
- #if JUCE_IOS
+ #if JUCE_IOS || JUCE_TVOS
 
   #define JUCE_CREATE_APPLICATION_DEFINE(AppClass) \
     JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wmissing-prototypes") \
@@ -160,12 +160,12 @@ public:
  #if JucePlugin_Build_Standalone
   #if JUCE_USE_CUSTOM_PLUGIN_STANDALONE_APP
     #define START_JUCE_APPLICATION(AppClass) JUCE_CREATE_APPLICATION_DEFINE(AppClass)
-    #if JUCE_IOS
+    #if JUCE_IOS || JUCE_TVOS
      #define START_JUCE_APPLICATION_WITH_CUSTOM_DELEGATE(AppClass, DelegateClass) JUCE_CREATE_APPLICATION_DEFINE_CUSTOM_DELEGATE(AppClass, DelegateClass)
     #endif
   #else
    #define START_JUCE_APPLICATION(AppClass) static_assert(false, "You are trying to use START_JUCE_APPLICATION in an audio plug-in. Define JUCE_USE_CUSTOM_PLUGIN_STANDALONE_APP=1 if you want to use a custom standalone target app.");
-   #if JUCE_IOS
+   #if JUCE_IOS || JUCE_TVOS
     #define START_JUCE_APPLICATION_WITH_CUSTOM_DELEGATE(AppClass, DelegateClass) static_assert(false, "You are trying to use START_JUCE_APPLICATION in an audio plug-in. Define JUCE_USE_CUSTOM_PLUGIN_STANDALONE_APP=1 if you want to use a custom standalone target app.");
    #endif
   #endif
@@ -177,9 +177,9 @@ public:
      JUCE_MAIN_FUNCTION_DEFINITION \
      JUCE_END_IGNORE_WARNINGS_GCC_LIKE
 
-  #if JUCE_IOS
+  #if JUCE_IOS || JUCE_TVOS
     /**
-       You can instruct JUCE to use a custom iOS app delegate class instead of JUCE's default
+       You can instruct JUCE to use a custom iOS or tvOS app delegate class instead of JUCE's default
        app delegate. For JUCE to work you must pass all messages to JUCE's internal app delegate.
        Below is an example of minimal forwarding custom delegate. Note that you are at your own
        risk if you decide to use your own delegate and subtle, hard to debug bugs may occur.

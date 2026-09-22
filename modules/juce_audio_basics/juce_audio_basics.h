@@ -54,6 +54,7 @@
   dependencies:       juce_core
   OSXFrameworks:      Accelerate
   iOSFrameworks:      Accelerate
+  tvOSFrameworks:     Accelerate
 
  END_JUCE_MODULE_DECLARATION
 

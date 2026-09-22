@@ -165,7 +165,7 @@ inline double ByteOrder::swap (double v) noexcept                   { union { ui
 
 inline uint32 ByteOrder::swap (uint32 n) noexcept
 {
-   #if JUCE_MAC || JUCE_IOS
+   #if JUCE_APPLE
     return OSSwapInt32 (n);
    #elif (JUCE_GCC  || JUCE_CLANG) && JUCE_INTEL && ! JUCE_NO_INLINE_ASM
     asm("bswap %%eax" : "=a"(n) : "a"(n));
@@ -181,7 +181,7 @@ inline uint32 ByteOrder::swap (uint32 n) noexcept
 
 inline uint64 ByteOrder::swap (uint64 value) noexcept
 {
-   #if JUCE_MAC || JUCE_IOS
+   #if JUCE_APPLE
     return OSSwapInt64 (value);
    #elif JUCE_MSVC
     return _byteswap_uint64 (value);

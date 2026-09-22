@@ -36,7 +36,7 @@
  dependencies:     juce_core, juce_data_structures, juce_events, juce_graphics,
                    juce_gui_basics
  exporters:        xcode_mac, vs2022, vs2026, linux_make, androidstudio,
-                   xcode_iphone
+                   xcode_iphone, xcode_tvos
 
  moduleFlags:      JUCE_STRICT_REFCOUNTEDPOINTER=1
 
@@ -1238,7 +1238,9 @@ private:
        #if ! JUCE_ANDROID
         std::make_shared<CodeEditorDemo>(),
        #endif
+       #if ! JUCE_TVOS
         std::make_shared<ComponentDemo>(),
+       #endif
         std::make_shared<ComponentTransformsDemo>(),
         std::make_shared<FontsDemo>(),
         std::make_shared<FontFeaturesDemo>(),

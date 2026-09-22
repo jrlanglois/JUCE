@@ -68,7 +68,7 @@
 
 #define JUCE_STATIC_LINK_GL_ES_VERSION_2_0 1
 #if ! JUCE_ANDROID || JUCE_ANDROID_GL_ES_VERSION_3_0
-#define JUCE_STATIC_LINK_GL_ES_VERSION_3_0 1
+ #define JUCE_STATIC_LINK_GL_ES_VERSION_3_0 1
 #endif
 
 #if JUCE_OPENGL_ES
@@ -78,7 +78,7 @@
 #endif
 
 //==============================================================================
-#if JUCE_IOS
+#if JUCE_IOS || JUCE_TVOS
  #import <QuartzCore/QuartzCore.h>
 
 //==============================================================================
@@ -152,10 +152,10 @@ static const char* getGLErrorMessage (const GLenum e) noexcept
     return "Unknown error";
 }
 
-#if JUCE_MAC || JUCE_IOS
+#if JUCE_APPLE
 
  #ifndef JUCE_IOS_MAC_VIEW
-  #if JUCE_IOS
+  #if JUCE_IOS || JUCE_TVOS
    #define JUCE_IOS_MAC_VIEW    UIView
    #define JUCE_IOS_MAC_WINDOW  UIWindow
   #else
@@ -176,7 +176,7 @@ static bool checkPeerIsValid (OpenGLContext* context)
         {
             if (auto* peer [[maybe_unused]] = comp->getPeer())
             {
-               #if JUCE_MAC || JUCE_IOS
+               #if JUCE_APPLE
                 if (auto* nsView = (JUCE_IOS_MAC_VIEW*) peer->getNativeHandle())
                 {
                     if ([[maybe_unused]] auto nsWindow = [nsView window])
@@ -263,12 +263,12 @@ private:
 #include "opengl/juce_OpenGLTexture.cpp"
 
 //==============================================================================
-#if JUCE_MAC || JUCE_IOS
+#if JUCE_APPLE
 
  #if JUCE_MAC
   #include "native/juce_OpenGL_mac.h"
  #else
-  #include "native/juce_OpenGL_ios.h"
+  #include "native/juce_OpenGL_uikit.h"
  #endif
 
 #elif JUCE_WINDOWS

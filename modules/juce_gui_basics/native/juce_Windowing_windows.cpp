@@ -753,7 +753,8 @@ const int KeyPress::playKey                 = 0x30000;
 const int KeyPress::stopKey                 = 0x30001;
 const int KeyPress::fastForwardKey          = 0x30002;
 const int KeyPress::rewindKey               = 0x30003;
-
+const int KeyPress::selectKey               = 0x30004;
+const int KeyPress::menuKey                 = 0x30005;
 
 //==============================================================================
 class WindowsBitmapImage final : public ImagePixelData

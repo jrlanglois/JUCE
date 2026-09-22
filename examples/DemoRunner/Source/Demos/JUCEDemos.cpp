@@ -55,7 +55,7 @@ void JUCEDemos::registerDemo (std::function<Component*()> constructorCallback, c
     auto f = findExamplesDirectoryFromExecutable (File::getSpecialLocation (File::currentApplicationFile));
    #endif
 
-    #if ! (JUCE_ANDROID || JUCE_IOS)
+    #if ! (JUCE_ANDROID || JUCE_IOS || JUCE_TVOS)
     if (f == File())
     {
         jassertfalse;

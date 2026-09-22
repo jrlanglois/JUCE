@@ -51,6 +51,7 @@ public:
         if (peer == nullptr)
             return;
 
+       #if JUCE_IOS
         if (isIPad())
         {
             getViewController().preferredContentSize = peer->view.frame.size;
@@ -63,6 +64,7 @@ public:
                 popoverController.delegate = popoverDelegate.get();
             }
         }
+       #endif
 
         if (auto* parentController = peer->controller)
             [parentController showViewController: getViewController() sender: parentController];
@@ -76,7 +78,11 @@ public:
 
         if (parent != nullptr)
         {
+           #if JUCE_IOS
             [getViewController() setModalPresentationStyle: UIModalPresentationPageSheet];
+           #else
+            [getViewController() setModalPresentationStyle: UIModalPresentationFullScreen];
+           #endif
 
             setBounds (parent->getLocalBounds());
 
@@ -105,7 +111,9 @@ public:
 
 private:
     virtual UIViewController* getViewController() const = 0;
+    UIViewComponentPeer* peer = nullptr;
 
+   #if JUCE_IOS
     static bool isIPad()
     {
         return [UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad;
@@ -130,12 +138,12 @@ private:
         }
     };
 
-    UIViewComponentPeer* peer = nullptr;
     NSUniquePtr<NSObject<UIPopoverPresentationControllerDelegate>> popoverDelegate { []
     {
         static PopoverDelegateClass cls;
         return cls.createInstance();
     }() };
+   #endif
 };
 
 } // namespace juce::detail

@@ -734,7 +734,7 @@ struct MenuWindow final : public Component, private AsyncUpdater
                 componentAttachedTo->keyPressed (key);
             }
         }
-        else if (key.isKeyCode (KeyPress::returnKey) || key.isKeyCode (KeyPress::spaceKey))
+        else if (key.isKeyCode (KeyPress::returnKey) || key.isKeyCode (KeyPress::selectKey) || key.isKeyCode (KeyPress::spaceKey))
         {
             triggerCurrentlyHighlightedItem();
         }

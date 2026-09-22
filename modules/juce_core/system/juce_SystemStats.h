@@ -64,6 +64,7 @@ public:
         Android         = 0x0800,
         iOS             = 0x1000,
         WASM            = 0x2000,
+        tvOS            = 0x4000,
 
         MacOSX_10_7     = MacOSX | 7,
         MacOSX_10_8     = MacOSX | 8,

@@ -190,18 +190,26 @@ public:
     //==============================================================================
     static String getDisplayNameMac()        { return "Xcode (macOS)"; }
     static String getDisplayNameiOS()        { return "Xcode (iOS)"; }
-
+    static String getDisplayNameTVOS()       { return "Xcode (tvOS)"; }
     static String getTargetFolderNameMac()   { return "MacOSX"; }
     static String getTargetFolderNameiOS()   { return "iOS"; }
-
+    static String getTargetFolderNameTVOS()  { return "tvOS"; }
     static String getValueTreeTypeNameMac()  { return "XCODE_MAC"; }
     static String getValueTreeTypeNameiOS()  { return "XCODE_IPHONE"; }
+    static String getValueTreeTypeNameTVOS() { return "XCODE_TVOS"; }
+
+    enum class Platform
+    {
+        macOS,
+        iOS,
+        tvOS
+    };
 
     //==============================================================================
-    XcodeProjectExporter (Project& p, const ValueTree& t, const bool isIOS)
+    XcodeProjectExporter (Project& p, const ValueTree& t, Platform platformToUse)
         : ProjectExporter (p, t),
           xcodeCanUseDwarf (true),
-          iOS (isIOS),
+          platform (platformToUse),
           applicationCategoryValue                     (settings, Ids::applicationCategory,                     getUndoManager(), ""),
           customPListValue                             (settings, Ids::customPList,                             getUndoManager()),
           pListPrefixHeaderValue                       (settings, Ids::pListPrefixHeader,                       getUndoManager()),
@@ -216,7 +224,7 @@ public:
           prebuildCommandValue                         (settings, Ids::prebuildCommand,                         getUndoManager()),
           postSignCommandValue                         (settings, Ids::postSignCommand,                         getUndoManager()),
           duplicateAppExResourcesFolderValue           (settings, Ids::duplicateAppExResourcesFolder,           getUndoManager(), true),
-          iosDeviceFamilyValue                         (settings, Ids::iosDeviceFamily,                         getUndoManager(), "1,2"),
+          iosDeviceFamilyValue                         (settings, Ids::iosDeviceFamily,                         getUndoManager(), platformToUse == Platform::tvOS ? "3" : "1,2"),
           iPhoneScreenOrientationValue                 (settings, Ids::iPhoneScreenOrientation,                 getUndoManager(), getDefaultScreenOrientations(), ","),
           iPadScreenOrientationValue                   (settings, Ids::iPadScreenOrientation,                   getUndoManager(), getDefaultScreenOrientations(), ","),
           iconComposerIconValue                        (settings, Ids::iconComposerIcon,                        getUndoManager()),
@@ -270,10 +278,15 @@ public:
           useLegacyBuildSystemValue                    (settings, Ids::useLegacyBuildSystem,                    getUndoManager()),
           buildNumber                                  (settings, Ids::buildNumber,                             getUndoManager())
     {
-        if (iOS)
+        if (isiOS())
         {
             name = getDisplayNameiOS();
             targetLocationValue.setDefault (getDefaultBuildsRootFolder() + getTargetFolderNameiOS());
+        }
+        else if (isTVOS())
+        {
+            name = getDisplayNameTVOS();
+            targetLocationValue.setDefault (getDefaultBuildsRootFolder() + getTargetFolderNameTVOS());
         }
         else
         {
@@ -289,8 +302,10 @@ public:
 
     static XcodeProjectExporter* createForSettings (Project& projectToUse, const ValueTree& settingsToUse)
     {
-        if (settingsToUse.hasType (getValueTreeTypeNameMac()))  return new XcodeProjectExporter (projectToUse, settingsToUse, false);
-        if (settingsToUse.hasType (getValueTreeTypeNameiOS()))  return new XcodeProjectExporter (projectToUse, settingsToUse, true);
+        if (settingsToUse.hasType (getValueTreeTypeNameMac()))  return new XcodeProjectExporter (projectToUse, settingsToUse, Platform::macOS);
+        if (settingsToUse.hasType (getValueTreeTypeNameiOS()))  return new XcodeProjectExporter (projectToUse, settingsToUse, Platform::iOS);
+        if (settingsToUse.hasType (getValueTreeTypeNameTVOS()))
+            return new XcodeProjectExporter (projectToUse, settingsToUse, Platform::tvOS);
 
         return nullptr;
     }
@@ -341,8 +356,8 @@ public:
 
     String getCustomLaunchStoryboardString() const          { return customLaunchStoryboardValue.get(); }
 
-    bool shouldAddStoryboardToProject() const               { return getCustomLaunchStoryboardString().isNotEmpty()
-                                                                  || (! customXcassetsFolderContainsLaunchImage()); }
+    bool shouldAddStoryboardToProject() const               { return isiOS() && (getCustomLaunchStoryboardString().isNotEmpty()
+                                                                  || (! customXcassetsFolderContainsLaunchImage())); }
 
     bool isHardenedRuntimeEnabled() const                   { return hardenedRuntimeValue.get(); }
     Array<var> getHardenedRuntimeOptions() const            { return *hardenedRuntimeOptionsValue.get().getArray(); }
@@ -373,10 +388,10 @@ public:
 
     Array<var> getValidArchs() const                        { return *validArchsValue.get().getArray(); }
 
-    bool isMicrophonePermissionEnabled() const              { return microphonePermissionNeededValue.get(); }
+    bool isMicrophonePermissionEnabled() const              { return ! isTVOS() && microphonePermissionNeededValue.get(); }
     String getMicrophonePermissionsTextString() const       { return microphonePermissionsTextValue.get(); }
 
-    bool isCameraPermissionEnabled() const                  { return cameraPermissionNeededValue.get(); }
+    bool isCameraPermissionEnabled() const                  { return ! isTVOS() && cameraPermissionNeededValue.get(); }
     String getCameraPermissionTextString() const            { return cameraPermissionTextValue.get(); }
 
     bool isBluetoothPermissionEnabled() const               { return bluetoothPermissionNeededValue.get(); }
@@ -392,7 +407,7 @@ public:
     bool isContentSharingEnabled() const                    { return iosContentSharingValue.get(); }
     bool isBackgroundAudioEnabled() const                   { return iosBackgroundAudioValue.get(); }
     bool isBackgroundBleEnabled() const                     { return iosBackgroundBleValue.get(); }
-    bool isPushNotificationsEnabled() const                 { return iosPushNotificationsValue.get(); }
+    bool isPushNotificationsEnabled() const                 { return ! isTVOS() && iosPushNotificationsValue.get(); }
     bool isAppGroupsEnabled() const                         { return iosAppGroupsValue.get(); }
     bool isiCloudPermissionsEnabled() const                 { return iCloudPermissionsValue.get(); }
     bool isNetworkingMulticastEnabled() const               { return networkingMulticastValue.get(); }
@@ -433,12 +448,24 @@ public:
     bool isAndroid() const override                         { return false; }
     bool isWindows() const override                         { return false; }
     bool isLinux() const override                           { return false; }
-    bool isOSX() const override                             { return ! iOS; }
-    bool isiOS() const override                             { return iOS; }
+    bool isOSX() const override                             { return platform == Platform::macOS; }
+    bool isiOS() const override                             { return platform == Platform::iOS; }
+    bool isTVOS() const override                            { return platform == Platform::tvOS; }
 
     Identifier getExporterIdentifier() const override
     {
-        return iOS ? getValueTreeTypeNameiOS() : getValueTreeTypeNameMac();
+        switch (platform)
+        {
+        case Platform::macOS:
+            return getValueTreeTypeNameMac();
+        case Platform::iOS:
+            return getValueTreeTypeNameiOS();
+        case Platform::tvOS:
+            return getValueTreeTypeNameTVOS();
+        }
+
+        jassertfalse;
+        return {};
     }
 
     bool supportsPrecompiledHeaders() const override        { return true; }
@@ -454,6 +481,7 @@ public:
         switch (type)
         {
             case Target::AudioUnitv3PlugIn:
+                return ! isTVOS();
             case Target::StandalonePlugIn:
             case Target::GUIApp:
             case Target::StaticLibrary:
@@ -470,7 +498,7 @@ public:
             case Target::LV2PlugIn:
             case Target::LV2Helper:
             case Target::VST3Helper:
-                return ! iOS;
+                return isOSX();
             case Target::unspecified:
                 break;
         }
@@ -507,14 +535,21 @@ public:
     {
         createIconComposerProperties (props);
 
-        if (iOS)
+        if (isiOS() || isTVOS())
         {
-            props.add (new TextPropertyComponent (customXcassetsFolderValue, "Custom Xcassets Folder", 128, false),
-                       "If this field is not empty, your Xcode project will use the custom xcassets folder specified here "
-                       "for the app icons, and will ignore the Icon files specified above. If the provided xcassets folder "
-                       "contains a launchimage it will be used, unless a custom storyboard is specified.");
+            const auto customXcassetsDescription = isTVOS()
+                ? "If this field is not empty, your Xcode project will use the custom xcassets folder specified here "
+                  "for the layered app icons and Top Shelf images, and will ignore the Icon files specified above. "
+                  "The folder must contain the required tvOS Brand Assets."
+                : "If this field is not empty, your Xcode project will use the custom xcassets folder specified here "
+                  "for the app icons, and will ignore the Icon files specified above. If the provided xcassets folder "
+                  "contains a launchimage it will be used, unless a custom storyboard is specified.";
 
-            props.add (new TextPropertyComponent (customLaunchStoryboardValue, "Custom Launch Storyboard", 256, false),
+            props.add (new TextPropertyComponent (customXcassetsFolderValue, "Custom Xcassets Folder", 128, false),
+                       customXcassetsDescription);
+
+            if (isiOS())
+                props.add (new TextPropertyComponent (customLaunchStoryboardValue, "Custom Launch Storyboard", 256, false),
                        "If this field is not empty then the specified launch storyboard file will be added to the project as an Xcode "
                        "resource and will be used for the app's launch screen, otherwise a default blank launch storyboard will be used. "
                        "The file path should be relative to the project folder.");
@@ -523,7 +558,8 @@ public:
         props.add (new TextPropertyComponent (customXcodeResourceFoldersValue, "Custom Xcode Resource Folders", 8192, true),
                    "You can specify a list of custom resource folders here (separated by newlines or whitespace). "
                    "References to these folders will then be added to the Xcode resources. "
-                   "This way you can specify them for OS X and iOS separately, and modify the content of the resource folders "
+                   "This way you can specify them for macOS, iOS, and tvOS "
+                   "separately, and modify the content of the resource folders "
                    "without re-saving the Projucer project.");
 
         if (getProject().isAudioPluginProject())
@@ -535,7 +571,7 @@ public:
                    "If this field is empty, the project's version will be used as the build number. "
                    "For more details about the difference between the project version and build version, see developer.apple.com/library/archive/technotes/tn2420/_index.html");
 
-        if (iOS)
+        if (isiOS())
         {
             props.add (new ChoicePropertyComponent (iosDeviceFamilyValue, "Device Family",
                                                     { "iPhone", "iPad", "Universal" },
@@ -763,21 +799,24 @@ public:
                                                                        hardeningValues));
         }
 
-        props.add (new ChoicePropertyComponent (microphonePermissionNeededValue, "Microphone Access"),
-                   "Enable this to allow your app to use the microphone. "
-                   "The user of your app will be prompted to grant microphone access permissions.");
+        if (! isTVOS())
+        {
+            props.add (new ChoicePropertyComponent (microphonePermissionNeededValue, "Microphone Access"),
+                       "Enable this to allow your app to use the microphone. "
+                       "The user of your app will be prompted to grant microphone access permissions.");
 
-        props.add (new TextPropertyComponentWithEnablement (microphonePermissionsTextValue, microphonePermissionNeededValue,
-                                                            "Microphone Access Text", 1024, false),
-                   "A short description of why your app requires microphone access.");
+            props.add (new TextPropertyComponentWithEnablement (microphonePermissionsTextValue, microphonePermissionNeededValue,
+                                                                "Microphone Access Text", 1024, false),
+                       "A short description of why your app requires microphone access.");
 
-        props.add (new ChoicePropertyComponent (cameraPermissionNeededValue, "Camera Access"),
-                   "Enable this to allow your app to use the camera. "
-                   "The user of your app will be prompted to grant camera access permissions.");
+            props.add (new ChoicePropertyComponent (cameraPermissionNeededValue, "Camera Access"),
+                       "Enable this to allow your app to use the camera. "
+                       "The user of your app will be prompted to grant camera access permissions.");
 
-        props.add (new TextPropertyComponentWithEnablement (cameraPermissionTextValue, cameraPermissionNeededValue,
-                                                            "Camera Access Text", 1024, false),
-                   "A short description of why your app requires camera access.");
+            props.add (new TextPropertyComponentWithEnablement (cameraPermissionTextValue, cameraPermissionNeededValue,
+                                                                "Camera Access Text", 1024, false),
+                       "A short description of why your app requires camera access.");
+        }
 
         props.add (new ChoicePropertyComponent (localNetworkPermissionNeededValue, "Local Network Access"),
                    "Enable this to allow your app to use the local network. "
@@ -795,7 +834,7 @@ public:
                                                             "Bluetooth Access Text", 1024, false),
                    "A short description of why your app requires Bluetooth access.");
 
-        if (! iOS)
+        if (isOSX())
         {
             props.add (new ChoicePropertyComponent (sendAppleEventsPermissionNeededValue, "Send Apple Events"),
                        "Enable this to allow your app to send Apple events. "
@@ -810,23 +849,27 @@ public:
                    "Enable this to grant your app the capability for in-app purchases. "
                    "This option requires that you specify a valid Development Team ID.");
 
-        if (iOS)
+        if (isiOS())
         {
             props.add (new ChoicePropertyComponent (iosContentSharingValue, "Content Sharing"),
                        "Enable this to allow your app to share content with other apps.");
+        }
 
+        if (isiOS() || isTVOS())
+        {
             props.add (new ChoicePropertyComponent (iosBackgroundAudioValue, "Audio Background Capability"),
                        "Enable this to grant your app the capability to access audio when in background mode. "
                        "This permission is required if your app creates a MIDI input or output device.");
 
-            props.add (new ChoicePropertyComponent (iosBackgroundBleValue, "Bluetooth MIDI Background Capability"),
+            if (isiOS())
+                props.add (new ChoicePropertyComponent (iosBackgroundBleValue, "Bluetooth MIDI Background Capability"),
                        "Enable this to grant your app the capability to connect to Bluetooth LE devices when in background mode.");
 
             props.add (new ChoicePropertyComponent (iosAppGroupsValue, "App Groups Capability"),
                        "Enable this to grant your app the capability to share resources between apps using the same app group ID.");
 
             props.add (new ChoicePropertyComponent (iCloudPermissionsValue, "iCloud Permissions"),
-                       "Enable this to grant your app the capability to use native file load/save browser windows on iOS.");
+                       "Enable this to grant your app access to iCloud storage.");
 
         }
 
@@ -834,7 +877,8 @@ public:
                    "Your app must have this entitlement to send or receive IP multicast or broadcast. "
                    "You will also need permission from Apple to use this entitlement.");
 
-        props.add (new ChoicePropertyComponent (iosPushNotificationsValue, "Push Notifications Capability"),
+        if (! isTVOS())
+            props.add (new ChoicePropertyComponent (iosPushNotificationsValue, "Push Notifications Capability"),
                    "Enable this to grant your app the capability to receive push notifications.");
 
         props.add (new TextPropertyComponent (customPListValue, "Custom PList", 8192, true),
@@ -898,7 +942,7 @@ public:
                    "This is a ten-character string (for example \"S7B6T5XJ2Q\") that can be found under the \"Organisational Unit\" "
                    "field of your developer certificate in Keychain Access or in the membership page of your account on developer.apple.com.");
 
-        if (iOS)
+        if (isiOS() || isTVOS())
             props.add (new TextPropertyComponentWithEnablement (iosAppGroupsIDValue, iosAppGroupsValue, "App Group ID", 256, false),
                        "The App Group ID to be used for allowing multiple apps to access a shared resource folder. Multiple IDs can be "
                        "added separated by a semicolon. The App Groups Capability setting must be enabled for this setting to have any effect.");
@@ -973,7 +1017,7 @@ public:
 
     void updateDeprecatedSettings() override
     {
-        if (iOS)
+        if (isiOS())
             updateOldOrientationSettings();
     }
 
@@ -1022,14 +1066,15 @@ protected:
                                           private ValueTree::Listener
     {
     public:
-        XcodeBuildConfiguration (Project& p, const ValueTree& t, const bool isIOS, const ProjectExporter& e)
-            : BuildConfiguration (p, t, e),
-              iOS (isIOS),
+        XcodeBuildConfiguration (Project& p, const ValueTree& t, Platform platformToUse, const ProjectExporter& e)
+            : BuildConfiguration (p, t, e), platform (platformToUse),
               macOSBaseSDK                 (config, Ids::macOSBaseSDK,                 getUndoManager()),
               macOSDeploymentTarget        (config, Ids::macOSDeploymentTarget,        getUndoManager(), "10.13"),
               macOSArchitecture            (config, Ids::osxArchitecture,              getUndoManager(), macOSArch_Default),
               iosBaseSDK                   (config, Ids::iosBaseSDK,                   getUndoManager()),
               iosDeploymentTarget          (config, Ids::iosDeploymentTarget,          getUndoManager(), "12.0"),
+              tvOSBaseSDK                  (config, Ids::tvOSBaseSDK,                  getUndoManager()),
+              tvOSDeploymentTarget         (config, Ids::tvOSDeploymentTarget,         getUndoManager(), "17.0"),
               customXcodeFlags             (config, Ids::customXcodeFlags,             getUndoManager()),
               plistPreprocessorDefinitions (config, Ids::plistPreprocessorDefinitions, getUndoManager()),
               codeSignIdentity             (config, Ids::codeSigningIdentity,          getUndoManager()),
@@ -1064,13 +1109,21 @@ protected:
                                         "If this is left empty then the default will be used."
                                         "\nThe minimum supported version is ");
 
-            if (iOS)
+            if (platform == Platform::iOS)
             {
                 props.add (new TextPropertyComponent (iosBaseSDK, "iOS Base SDK", 8, false),
                            "The version of the iOS SDK to link against." + sdkInfoString + "14.4.");
 
                 props.add (new TextPropertyComponent (iosDeploymentTarget, "iOS Deployment Target", 8, false),
                            "The minimum version of iOS to target." + sdkInfoString + "12.0.");
+            }
+            else if (platform == Platform::tvOS)
+            {
+                props.add (new TextPropertyComponent (tvOSBaseSDK, "tvOS Base SDK", 8, false),
+                           "The version of the tvOS SDK to link against." + sdkInfoString + "17.0.");
+
+                props.add (new TextPropertyComponent (tvOSDeploymentTarget, "tvOS Deployment Target", 8, false),
+                           "The minimum version of tvOS to target." + sdkInfoString + "17.0.");
             }
             else
             {
@@ -1129,6 +1182,14 @@ protected:
 
         String getiOSBaseSDKString() const                      { return iosBaseSDK.get(); }
         String getiOSDeploymentTargetString() const             { return iosDeploymentTarget.get(); }
+        String getTvOSBaseSDKString() const
+        {
+            return tvOSBaseSDK.get();
+        }
+        String getTvOSDeploymentTargetString() const
+        {
+            return tvOSDeploymentTarget.get();
+        }
 
         bool isPluginBinaryCopyStepEnabled() const              { return pluginBinaryCopyStepEnabled.get(); }
         String getVSTBinaryLocationString() const               { return vstBinaryLocation.get(); }
@@ -1140,9 +1201,10 @@ protected:
 
     private:
         //==============================================================================
-        bool iOS;
+        Platform platform;
 
         ValueTreePropertyWithDefault macOSBaseSDK, macOSDeploymentTarget, macOSArchitecture, iosBaseSDK, iosDeploymentTarget,
+                                     tvOSBaseSDK, tvOSDeploymentTarget,
                                      customXcodeFlags, plistPreprocessorDefinitions, codeSignIdentity,
                                      fastMathEnabled, stripLocalSymbolsEnabled, pluginBinaryCopyStepEnabled,
                                      vstBinaryLocation, vst3BinaryLocation, auBinaryLocation,
@@ -1242,7 +1304,7 @@ protected:
 
     BuildConfiguration::Ptr createBuildConfig (const ValueTree& v) const override
     {
-        return *new XcodeBuildConfiguration (project, v, iOS, *this);
+        return *new XcodeBuildConfiguration (project, v, platform, *this);
     }
 
 public:
@@ -1282,8 +1344,11 @@ public:
         if (auto composerBundle = getIconComposerIconBundle())
             return composerBundle->getFileNameWithoutExtension();
 
-        if (iOS)
+        if (isiOS())
             return "AppIcon";
+
+        if (isTVOS())
+            return "App Icon & Top Shelf Image";
 
         return fallback;
     }
@@ -1598,16 +1663,16 @@ public:
 
             std::map<String, bool> capabilities;
 
-            capabilities["ApplicationGroups.iOS"] = owner.iOS && owner.isAppGroupsEnabled();
+            capabilities["ApplicationGroups.iOS"] = (owner.isiOS() || owner.isTVOS()) && owner.isAppGroupsEnabled();
             capabilities["InAppPurchase"]         = owner.isInAppPurchasesEnabled();
-            capabilities["InterAppAudio"]         = owner.iOS && ((type == Target::StandalonePlugIn
+            capabilities["InterAppAudio"]         = owner.isiOS() && ((type == Target::StandalonePlugIn
                                                                    && owner.getProject().shouldEnableIAA())
                                                                   || owner.getProject().isAUPluginHost());
             capabilities["Push"]                  = owner.isPushNotificationsEnabled();
             capabilities["Sandbox"]               = shouldUseAppSandbox();
             capabilities["HardenedRuntime"]       = shouldUseHardenedRuntime();
 
-            if (owner.iOS && owner.isiCloudPermissionsEnabled())
+            if ((owner.isiOS() || owner.isTVOS()) && owner.isiCloudPermissionsEnabled())
                 capabilities["com.apple.iCloud"] = true;
 
             StringArray capabilitiesStrings;
@@ -1663,7 +1728,7 @@ public:
              || shouldUseAppSandbox()
              || shouldUseHardenedRuntime()
              || owner.isNetworkingMulticastEnabled()
-             || (owner.isiOS() && owner.isiCloudPermissionsEnabled())
+             || ((owner.isiOS() || owner.isTVOS()) && owner.isiCloudPermissionsEnabled())
              || (owner.isiOS() && owner.getProject().isAUPluginHost()))
                 return true;
 
@@ -1710,7 +1775,7 @@ public:
             if (owner.isInAppPurchasesEnabled())
                 defines.set ("JUCE_IN_APP_PURCHASES", "1");
 
-            if (owner.iOS && owner.isContentSharingEnabled())
+            if (owner.isiOS() && owner.isContentSharingEnabled())
                 defines.set ("JUCE_CONTENT_SHARING", "1");
 
             if (owner.isPushNotificationsEnabled())
@@ -1745,12 +1810,25 @@ public:
         {
             StringPairArray s;
 
-            if (type == AggregateTarget && ! owner.isiOS())
+            if (type == AggregateTarget)
             {
                 // the aggregate target needs to have the deployment target set for
                 // pre-/post-build scripts
-                s.set ("MACOSX_DEPLOYMENT_TARGET", config.getMacOSDeploymentTargetString());
+                if (owner.isOSX())
+                {
+                    s.set ("MACOSX_DEPLOYMENT_TARGET", config.getMacOSDeploymentTargetString());
                 s.set ("SDKROOT", "macosx" + config.getMacOSBaseSDKString());
+                }
+                else if (owner.isiOS())
+                {
+                    s.set ("IPHONEOS_DEPLOYMENT_TARGET", config.getiOSDeploymentTargetString());
+                    s.set ("SDKROOT", "iphoneos" + config.getiOSBaseSDKString());
+                }
+                else
+                {
+                    s.set ("TVOS_DEPLOYMENT_TARGET", config.getTvOSDeploymentTargetString());
+                    s.set ("SDKROOT", "appletvos" + config.getTvOSBaseSDKString());
+                }
 
                 return s;
             }
@@ -1769,7 +1847,7 @@ public:
             s.set ("PRODUCT_NAME", productName);
             s.set ("PRODUCT_BUNDLE_IDENTIFIER", getBundleIdentifier());
 
-            auto arch = (! owner.isiOS() && type == Target::AudioUnitv3PlugIn) ? macOSArch_64Bit
+            auto arch = (owner.isOSX() && type == Target::AudioUnitv3PlugIn) ? macOSArch_64Bit
                                                                                : config.getMacOSArchitectureString();
 
             const auto archString = [&]() -> const char*
@@ -1785,7 +1863,7 @@ public:
             if (archString != nullptr)
                 s.set ("ARCHS", archString);
 
-            if (! owner.isiOS())
+            if (owner.isOSX())
             {
                 const auto validArchs = owner.getValidArchs();
 
@@ -1823,7 +1901,7 @@ public:
 
             auto frameworksToSkip = [this]() -> String
             {
-                const String openGLFramework (owner.iOS ? "OpenGLES" : "OpenGL");
+                const String openGLFramework ((owner.isiOS() || owner.isTVOS()) ? "OpenGLES" : "OpenGL");
 
                 if (owner.xcodeFrameworks.contains (openGLFramework))
                     return openGLFramework;
@@ -1954,14 +2032,14 @@ public:
             String gccVersion ("com.apple.compilers.llvm.clang.1_0");
 
             if (auto appIconName = owner.getAppIconNameOrElse (""); appIconName.isNotEmpty())
-                s.set ("ASSETCATALOG_COMPILER_APPICON_NAME", appIconName);
+                s.set ("ASSETCATALOG_COMPILER_APPICON_NAME", addQuotesIfRequired (appIconName));
 
-            if (owner.iOS)
+            if (owner.isiOS())
             {
                 if (! owner.shouldAddStoryboardToProject())
                     s.set ("ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME", "LaunchImage");
             }
-            else
+            else if (! owner.isTVOS())
             {
                 s.set ("MACOSX_DEPLOYMENT_TARGET", config.getMacOSDeploymentTargetString());
             }
@@ -2118,7 +2196,7 @@ public:
                 case AAXPlugIn:         return config.isPluginBinaryCopyStepEnabled() ? config.getAAXBinaryLocationString() : String();
                 case UnityPlugIn:       return config.isPluginBinaryCopyStepEnabled() ? config.getUnityPluginBinaryLocationString() : String();
                 case LV2PlugIn:         return config.isPluginBinaryCopyStepEnabled() ? config.getLV2PluginBinaryLocationString() : String();
-                case SharedCodeTarget:  return owner.isiOS() ? "@executable_path/Frameworks" : "@executable_path/../Frameworks";
+                case SharedCodeTarget:  return (owner.isiOS() || owner.isTVOS()) ? "@executable_path/Frameworks" : "@executable_path/../Frameworks";
                 case StaticLibrary:
                 case LV2Helper:
                 case VST3Helper:
@@ -2138,7 +2216,7 @@ public:
             flags.add ("$(inherited)");
 
             if (getTargetFileType() == pluginBundle)
-                flags.add (owner.isiOS() ? "-bitcode_bundle" : "-bundle");
+                flags.add ((owner.isiOS() || owner.isTVOS()) ? "-bitcode_bundle" : "-bundle");
 
             if (type != Target::SharedCodeTarget && type != Target::LV2Helper && type != Target::VST3Helper)
             {
@@ -2179,7 +2257,8 @@ public:
             options.bundleIdentifier                 = getBundleIdentifier();
             options.applicationCategory              = owner.getApplicationCategoryString();
             options.plistToMerge                     = owner.getPListToMergeString();
-            options.iOS                              = owner.iOS;
+            options.iOS                              = owner.isiOS();
+            options.tvOS = owner.isTVOS();
             options.microphonePermissionEnabled      = owner.isMicrophonePermissionEnabled();
             options.microphonePermissionText         = owner.getMicrophonePermissionsTextString();
             options.cameraPermissionEnabled          = owner.isCameraPermissionEnabled();
@@ -2366,7 +2445,9 @@ private:
     {
         if (hasInvalidPostBuildScript())
         {
-            String alertWindowText = iOS ? "Your Xcode (iOS) Exporter settings use an invalid post-build script. Click 'Update' to remove it."
+            String alertWindowText =
+                ! isOSX()
+                    ? "Your " + name + " Exporter settings use an invalid post-build script. Click 'Update' to remove it."
                                          : "Your Xcode (macOS) Exporter settings use a pre-JUCE 4.2 post-build script to move the plug-in binaries to their plug-in install folders.\n\n"
                                            "Since JUCE 4.2, this is instead done using \"AU/VST/VST2/AAX Binary Location\" in the Xcode (OS X) configuration settings.\n\n"
                                            "Click 'Update' to remove the script (otherwise your plug-in may not compile correctly).";
@@ -2432,11 +2513,11 @@ private:
         addCustomResourceFolders();
         addPlistFileReferences();
 
-        if (iOS && ! projectType.isStaticLibrary())
+        if ((isiOS() || isTVOS()) && ! projectType.isStaticLibrary())
         {
             addXcassets();
 
-            if (shouldAddStoryboardToProject())
+            if (isiOS() && shouldAddStoryboardToProject())
             {
                 auto customLaunchStoryboard = getCustomLaunchStoryboardString();
 
@@ -2788,7 +2869,8 @@ private:
         const auto signTarget = [&]
         {
             const auto script = ScriptBuilder{}
-                .echo ("Signing Identity:\t${EXPANDED_CODE_SIGN_IDENTITY_NAME:-${CODE_SIGN_IDENTITY}}")
+                .echo ("Signing Identity:\t${EXPANDED_CODE_SIGN_IDENTITY_NAME:-${CODE_"
+                                           "SIGN_IDENTITY}}")
                 .insertLine()
                 .set ("entitlementsFile", "${TARGET_TEMP_DIR}/${FULL_PRODUCT_NAME}.xcent")
                 .insertLine()
@@ -2869,8 +2951,8 @@ private:
         {
             runPostBuildScript();
 
-            // The rest gets handled by Xcode for iOS builds
-            if (isiOS())
+            // The rest gets handled by Xcode for embedded Apple builds
+            if (isiOS() || isTVOS())
                 return;
 
             stripTarget();
@@ -3159,7 +3241,7 @@ private:
     {
         const auto icons = getIcons();
 
-        if (! build_tools::asArray (icons).isEmpty())
+        if (! isTVOS() && ! build_tools::asArray (icons).isEmpty())
         {
             iconFile = getTargetFolder().getChildFile (getAppIconNameOrElse ("AppIcon") + ".icns");
             build_tools::writeMacIcon (icons, iconFile);
@@ -3254,7 +3336,7 @@ private:
     String getCodeSigningIdentity (const XcodeBuildConfiguration& config) const
     {
         if (isUsingDefaultSigningIdentity (config))
-            return isiOS() ? "iPhone Developer" : "Mac Developer";
+            return (isiOS() || isTVOS()) ? "iPhone Developer" : "Mac Developer";
 
         if (const auto codeSigningIdentity = config.getCodeSignIdentityString(); codeSigningIdentity.isNotEmpty())
             return codeSigningIdentity;
@@ -3320,11 +3402,17 @@ private:
 
         addCodeSigningIdentity (config, s);
 
-        if (iOS)
+        if (isiOS())
         {
             s.set ("SDKROOT", "iphoneos" + config.getiOSBaseSDKString());
             s.set ("TARGETED_DEVICE_FAMILY", getDeviceFamilyString().quoted());
             s.set ("IPHONEOS_DEPLOYMENT_TARGET", config.getiOSDeploymentTargetString());
+        }
+        else if (isTVOS())
+        {
+            s.set ("SDKROOT", "appletvos" + config.getTvOSBaseSDKString());
+            s.set ("TARGETED_DEVICE_FAMILY", "3");
+            s.set ("TVOS_DEPLOYMENT_TARGET", config.getTvOSDeploymentTargetString());
         }
         else
         {
@@ -3371,12 +3459,12 @@ private:
             if (isInAppPurchasesEnabled())
                 xcodeFrameworks.addIfNotAlreadyThere ("StoreKit");
 
-            if (iOS)
+            if (isiOS() || isTVOS())
             {
                 if (isPushNotificationsEnabled())
                     xcodeFrameworks.addIfNotAlreadyThere ("UserNotifications");
 
-                if (project.getEnabledModules().isModuleEnabled ("juce_video")
+                if (isiOS() && project.getEnabledModules().isModuleEnabled ("juce_video")
                     && project.isConfigFlagEnabled ("JUCE_USE_CAMERA", false))
                 {
                     xcodeFrameworks.addIfNotAlreadyThere ("ImageIO");
@@ -3918,6 +4006,7 @@ private:
 
         options.type                            = target.type;
         options.isiOS                           = isiOS();
+        options.isTVOS = isTVOS();
         options.isAudioPluginProject            = project.isAudioPluginProject();
         options.shouldEnableIAA                 = project.shouldEnableIAA();
         options.isAUPluginHost                  = project.isAUPluginHost();
@@ -4290,10 +4379,19 @@ private:
 
     void addDefaultXcassetsFolders() const
     {
-        const auto assetsPath = build_tools::createXcassetsFolderFromIcons (getIcons(),
-                                                                            getTargetFolder(),
-                                                                            project.getProjectFilenameRootString(),
-                                                                            getAppIconNameOrElse ("AppIcon"));
+        const auto assetsPath = std::invoke ([this]
+        {
+            if (isTVOS())
+                return build_tools::createTvOSXcassetsFolderFromIcons (getIcons(),
+                                                                       getTargetFolder(),
+                                                                       project.getProjectFilenameRootString());
+
+            return build_tools::createXcassetsFolderFromIcons (getIcons(),
+                                                                getTargetFolder(),
+                                                                project.getProjectFilenameRootString(),
+                                                                getAppIconNameOrElse ("AppIcon"));
+        });
+
         addFileReference (assetsPath.toUnixStyle());
         resourceIDs.add (addBuildFile (FileOptions().withRelativePath (assetsPath)));
         resourceFileRefs.add (createFileRefID (assetsPath));
@@ -4344,7 +4442,7 @@ private:
     //==============================================================================
     void updateOldOrientationSettings()
     {
-        jassert (iOS);
+        jassert (isiOS());
 
         StringArray orientationSettingStrings { getSetting (Ids::iPhoneScreenOrientation).getValue().toString(),
                                                 getSetting (Ids::iPadScreenOrientation).getValue().toString() };
@@ -4424,7 +4522,7 @@ private:
     mutable File menuNibFile, iconFile;
     mutable StringArray buildProducts;
 
-    const bool iOS;
+    const Platform platform;
 
     ValueTreePropertyWithDefault applicationCategoryValue,
                                  customPListValue, pListPrefixHeaderValue, pListPreprocessValue,

@@ -37,9 +37,9 @@
 #undef T
 
 //==============================================================================
-#if JUCE_MAC || JUCE_IOS
+#if JUCE_APPLE
 
- #if JUCE_IOS
+ #if JUCE_IOS || JUCE_TVOS
   #if JUCE_MODULE_AVAILABLE_juce_opengl
    #define GLES_SILENCE_DEPRECATION 1
   #endif

@@ -54,6 +54,7 @@
   dependencies:       juce_audio_basics, juce_events
   OSXFrameworks:      CoreAudio CoreMIDI AudioToolbox
   iOSFrameworks:      CoreAudio CoreMIDI AudioToolbox AVFoundation
+  tvOSFrameworks:     CoreAudio AudioToolbox AVFoundation
   linuxPackages:      alsa
 
  END_JUCE_MODULE_DECLARATION
@@ -251,6 +252,6 @@ namespace juce
 #include "sources/juce_AudioTransportSource.h"
 #include "audio_io/juce_AudioDeviceManager.h"
 
-#if JUCE_IOS
- #include "native/juce_Audio_ios.h"
+#if JUCE_IOS || JUCE_TVOS
+ #include "native/juce_Audio_uikit.h"
 #endif

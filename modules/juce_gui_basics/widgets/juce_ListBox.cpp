@@ -970,7 +970,8 @@ bool ListBox::keyPressed (const KeyPress& key)
         else
             selectRow (totalItems - 1);
     }
-    else if (key.isKeyCode (KeyPress::returnKey) && isRowSelected (lastRowSelected))
+    else if ((key.isKeyCode (KeyPress::returnKey) || key.isKeyCode (KeyPress::selectKey))
+             && isRowSelected (lastRowSelected))
     {
         if (model != nullptr)
             model->returnKeyPressed (lastRowSelected);
@@ -1002,7 +1003,8 @@ bool ListBox::keyStateChanged (const bool isKeyDown)
                 || KeyPress::isKeyCurrentlyDown (KeyPress::pageDownKey)
                 || KeyPress::isKeyCurrentlyDown (KeyPress::homeKey)
                 || KeyPress::isKeyCurrentlyDown (KeyPress::endKey)
-                || KeyPress::isKeyCurrentlyDown (KeyPress::returnKey));
+                || KeyPress::isKeyCurrentlyDown (KeyPress::returnKey)
+                || KeyPress::isKeyCurrentlyDown (KeyPress::selectKey));
 }
 
 void ListBox::mouseWheelMove (const MouseEvent& e, const MouseWheelDetails& wheel)

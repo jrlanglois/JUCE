@@ -68,7 +68,7 @@ ScopedMessageBox ContentSharer::shareDataScoped (const MemoryBlock& mb,
     return detail::ConcreteScopedContentSharerImpl::show (std::move (impl), std::move (callback));
 }
 
-#if ! (JUCE_CONTENT_SHARING && (JUCE_IOS || JUCE_ANDROID))
+#if ! (JUCE_CONTENT_SHARING && (JUCE_IOS || JUCE_TVOS || JUCE_ANDROID))
 auto detail::ScopedContentSharerInterface::shareFiles (const Array<URL>&, Component*) -> std::unique_ptr<ScopedContentSharerInterface>
 {
     return std::make_unique<detail::ScopedContentSharerInterface>();

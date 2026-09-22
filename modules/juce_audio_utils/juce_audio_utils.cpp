@@ -88,6 +88,9 @@
   #include "native/juce_AudioCDBurner_mac.mm"
  #endif
 
+#elif JUCE_TVOS
+ #include "native/juce_BluetoothMidiDevicePairingDialogue_tvos.cpp"
+
 #elif JUCE_IOS
  #include "native/juce_BluetoothMidiDevicePairingDialogue_ios.mm"
 

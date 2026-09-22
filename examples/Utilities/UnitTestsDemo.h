@@ -40,7 +40,7 @@
                    juce_opengl, juce_osc, juce_product_unlocking, juce_video,
                    juce_midi_ci, juce_audio_processors_headless
  exporters:        xcode_mac, vs2022, vs2026, linux_make, androidstudio,
-                   xcode_iphone
+                   xcode_iphone, xcode_tvos
 
  moduleFlags:      JUCE_STRICT_REFCOUNTEDPOINTER=1,JUCE_PLUGINHOST_VST3=1,JUCE_PLUGINHOST_LV2=1
  defines:          JUCE_UNIT_TESTS=1

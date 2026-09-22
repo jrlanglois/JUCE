@@ -76,6 +76,11 @@
  #define JUCE_WEB_BROWSER 1
 #endif
 
+#if JUCE_TVOS
+ #undef JUCE_WEB_BROWSER
+ #define JUCE_WEB_BROWSER 0
+#endif
+
 /** Config: JUCE_USE_WIN_WEBVIEW2_WITH_STATIC_LINKING
     Enables the use of the Microsoft Edge (Chromium) WebView2 browser on Windows.
 
@@ -124,7 +129,7 @@
     for that macro for more details.
 */
 #ifndef JUCE_ENABLE_LIVE_CONSTANT_EDITOR
- #if JUCE_DEBUG && ! (JUCE_IOS || JUCE_ANDROID)
+ #if JUCE_DEBUG && ! (JUCE_IOS || JUCE_TVOS || JUCE_ANDROID)
   #define JUCE_ENABLE_LIVE_CONSTANT_EDITOR 1
  #endif
 #endif

@@ -52,7 +52,7 @@ public:
     Span<const Direct2DPixelDataPage> getPages (ComSmartPtr<ID2D1Device1> x) const { return impl->getPages (x); }
    #endif
 
-   #if JUCE_MAC || JUCE_IOS
+   #if JUCE_APPLE
     CGContextRef getCGContext() const { return impl->getCGContext(); }
     CFUniquePtr<CGImageRef> getCGImage (CGColorSpaceRef x) const { return impl->getCGImage (x); }
    #endif
@@ -67,7 +67,7 @@ private:
         virtual Span<const Direct2DPixelDataPage> getPages (ComSmartPtr<ID2D1Device1>) const = 0;
        #endif
 
-       #if JUCE_MAC || JUCE_IOS
+       #if JUCE_APPLE
         virtual CGContextRef getCGContext() const = 0;
         virtual CFUniquePtr<CGImageRef> getCGImage (CGColorSpaceRef x) const = 0;
        #endif
@@ -86,7 +86,7 @@ private:
         Span<const Direct2DPixelDataPage> getPages (ComSmartPtr<ID2D1Device1> x) const override { return impl.getPages (x); }
        #endif
 
-       #if JUCE_MAC || JUCE_IOS
+       #if JUCE_APPLE
         CGContextRef getCGContext() const override { return impl.getCGContext(); }
         CFUniquePtr<CGImageRef> getCGImage (CGColorSpaceRef x) const override { return impl.getCGImage (x); }
        #endif

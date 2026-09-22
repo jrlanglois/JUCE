@@ -344,7 +344,11 @@ struct iOSAudioIODevice::Pimpl final : public AsyncUpdater
         // We need to activate the audio session here to obtain the available sample rates and buffer sizes,
         // but if we don't set a category first then background audio will always be stopped. This category
         // may be changed later.
+       #if JUCE_TVOS
+        setAudioSessionCategory (AVAudioSessionCategoryPlayback);
+       #else
         setAudioSessionCategory (AVAudioSessionCategoryPlayAndRecord);
+       #endif
 
         setAudioSessionActive (true);
         updateHardwareInfo();
@@ -371,14 +375,17 @@ struct iOSAudioIODevice::Pimpl final : public AsyncUpdater
 
         if (category == AVAudioSessionCategoryPlayAndRecord)
         {
-           #if JUCE_IOS_API_VERSION_CAN_BE_BUILT (26, 0)
+           #if JUCE_TVOS || JUCE_IOS_API_VERSION_CAN_BE_BUILT (26, 0)
             constexpr auto bluetoothOption = AVAudioSessionCategoryOptionAllowBluetoothHFP;
            #else
             constexpr auto bluetoothOption = AVAudioSessionCategoryOptionAllowBluetooth;
            #endif
 
-            options |= AVAudioSessionCategoryOptionDefaultToSpeaker
-                     | AVAudioSessionCategoryOptionAllowAirPlay
+           #if JUCE_IOS
+            options |= AVAudioSessionCategoryOptionDefaultToSpeaker;
+           #endif
+
+            options |= AVAudioSessionCategoryOptionAllowAirPlay
                      | AVAudioSessionCategoryOptionAllowBluetoothA2DP
                      | bluetoothOption;
         }
@@ -393,7 +400,7 @@ struct iOSAudioIODevice::Pimpl final : public AsyncUpdater
         JUCE_NSERROR_CHECK ([[AVAudioSession sharedInstance] setActive: enabled
                                                                  error: &error]);
 
-        if (@available (iOS 18, *))
+        if (@available (iOS 18, tvOS 18, *))
         {
             if (enabled)
             {
@@ -418,8 +425,8 @@ struct iOSAudioIODevice::Pimpl final : public AsyncUpdater
         {
             // Older iOS versions (iOS 12) seem to require that the requested buffer size is a bit
             // larger than the desired buffer size.
-            // This breaks on iOS 18, which needs the buffer duration to be as precise as possible.
-            if (@available (iOS 18, *))
+            // This breaks on iOS and tvOS 18, which need the buffer duration to be as precise as possible.
+            if (@available (iOS 18, tvOS 18, *))
                 return 0;
 
             return 1;
@@ -431,10 +438,10 @@ struct iOSAudioIODevice::Pimpl final : public AsyncUpdater
 
         JUCE_NSERROR_CHECK ([session setPreferredIOBufferDuration: bufferDuration error: &error]);
 
-        // iOS requires additional effort to observe the actual buffer size
+        // iOS and tvOS require additional effort to observe the actual buffer size
         // change however, it seems the buffer size change will always work
         // so instead we just assume the change will apply eventually
-        if (@available (iOS 18, *))
+        if (@available (iOS 18, tvOS 18, *))
             return newBufferSize;
 
         return getBufferSize (currentSampleRate);
@@ -449,7 +456,7 @@ struct iOSAudioIODevice::Pimpl final : public AsyncUpdater
             constexpr auto suggestedMin = 64;
             constexpr auto suggestedMax = 4096;
 
-            if (@available (iOS 18, *))
+            if (@available (iOS 18, tvOS 18, *))
                 return std::tuple (suggestedMin, suggestedMax);
 
             const auto min = tryBufferSize (sampleRate, suggestedMin);
@@ -539,15 +546,15 @@ struct iOSAudioIODevice::Pimpl final : public AsyncUpdater
     {
         const auto session = [AVAudioSession sharedInstance];
 
-        // On iOS 18 the AVAudioSession sample rate is not always accurate but
-        // probing the sample rate via an AudioQueue seems to work reliably
-        if (@available (iOS 18, *))
+        // On iOS and tvOS 18 the AVAudioSession sample rate is not always accurate, but
+        // probing it via an AudioQueue seems to work reliably.
+        if (@available (iOS 18, tvOS 18, *))
         {
             // We could verify that things seem to work as expected again
             // from 18.7.3 and up, so avoid creating an AudioQueue. We
             // have no way of testing the minor versions 18.7.0 to 18.7.2,
             // as currently no simulator is available for 18.7.
-            if (@available (iOS 18.7.3, *))
+            if (@available (iOS 18.7.3, tvOS 18.7.3, *))
                 return session.sampleRate;
 
             return getSampleRateFromAudioQueue().value_or (session.sampleRate);
@@ -691,6 +698,11 @@ struct iOSAudioIODevice::Pimpl final : public AsyncUpdater
 
         requestedInputChannels  = inputChannelsWanted;
         requestedOutputChannels = outputChannelsWanted;
+
+       #if JUCE_TVOS
+        requestedInputChannels.clear();
+       #endif
+
         targetSampleRate = sampleRateWanted;
         targetBufferSize = bufferSizeWanted > 0 ? bufferSizeWanted : defaultBufferSize;
 
@@ -1323,6 +1335,7 @@ struct iOSAudioIODevice::Pimpl final : public AsyncUpdater
     // to make it loud. Needed because by default when using an input + output, the output is kept quiet.
     static void fixAudioRouteIfSetToReceiver()
     {
+       #if JUCE_IOS
         auto session = [AVAudioSession sharedInstance];
         auto route = session.currentRoute;
 
@@ -1335,6 +1348,7 @@ struct iOSAudioIODevice::Pimpl final : public AsyncUpdater
                 setAudioSessionActive (true);
             }
         }
+       #endif
     }
 
     void restart()
@@ -1437,7 +1451,7 @@ struct iOSAudioIODevice::Pimpl final : public AsyncUpdater
             IOChannelConfig (const bool isInput, const BigInteger requiredChannels)
                 : hardwareChannelNames (getHardwareChannelNames (isInput)),
                   numHardwareChannels (hardwareChannelNames.size()),
-                  areChannelsAccessible ((! isInput) || [AVAudioSession sharedInstance].isInputAvailable),
+                  areChannelsAccessible (areHardwareChannelsAccessible (isInput)),
                   activeChannels (limitRequiredChannelsToHardware (numHardwareChannels, requiredChannels)),
                   numActiveChannels (activeChannels.countNumberOfSetBits()),
                   activeChannelIndices (getActiveChannelIndices (activeChannels)),
@@ -1479,6 +1493,15 @@ struct iOSAudioIODevice::Pimpl final : public AsyncUpdater
             const Array<int> activeChannelIndices, inactiveChannelIndices;
 
         private:
+            static bool areHardwareChannelsAccessible (bool isInput)
+            {
+               #if JUCE_TVOS
+                return ! isInput;
+               #else
+                return ! isInput || [AVAudioSession sharedInstance].isInputAvailable;
+               #endif
+            }
+
             static StringArray getHardwareChannelNames (const bool isInput)
             {
                 StringArray result;
@@ -1662,7 +1685,14 @@ int iOSAudioIODevice::getCurrentBitDepth()                          { return 16;
 BigInteger iOSAudioIODevice::getActiveInputChannels() const         { return pimpl->channelData.inputs->activeChannels; }
 BigInteger iOSAudioIODevice::getActiveOutputChannels() const        { return pimpl->channelData.outputs->activeChannels; }
 
-int iOSAudioIODevice::getInputLatencyInSamples()                    { return roundToInt (pimpl->sampleRate * [AVAudioSession sharedInstance].inputLatency); }
+int iOSAudioIODevice::getInputLatencyInSamples()
+{
+   #if JUCE_TVOS
+    return 0;
+   #else
+    return roundToInt (pimpl->sampleRate * [AVAudioSession sharedInstance].inputLatency);
+   #endif
+}
 int iOSAudioIODevice::getOutputLatencyInSamples()                   { return roundToInt (pimpl->sampleRate * [AVAudioSession sharedInstance].outputLatency); }
 int iOSAudioIODevice::getXRunCount() const noexcept                 { return pimpl->xrun; }
 AudioWorkgroup iOSAudioIODevice::getWorkgroup() const               { return pimpl->workgroup; }
@@ -1690,10 +1720,50 @@ iOSAudioIODeviceType::~iOSAudioIODeviceType()
 
 // The list of devices is updated automatically
 void iOSAudioIODeviceType::scanForDevices() {}
-StringArray iOSAudioIODeviceType::getDeviceNames (bool) const             { return { iOSAudioDeviceName }; }
-int iOSAudioIODeviceType::getDefaultDeviceIndex (bool) const              { return 0; }
-int iOSAudioIODeviceType::getIndexOfDevice (AudioIODevice*, bool) const   { return 0; }
-bool iOSAudioIODeviceType::hasSeparateInputsAndOutputs() const            { return false; }
+StringArray iOSAudioIODeviceType::getDeviceNames (bool wantInputNames) const
+{
+   #if JUCE_TVOS
+    if (wantInputNames)
+        return {};
+   #else
+    ignoreUnused (wantInputNames);
+   #endif
+
+    return { iOSAudioDeviceName };
+}
+
+int iOSAudioIODeviceType::getDefaultDeviceIndex (bool forInput) const
+{
+   #if JUCE_TVOS
+    if (forInput)
+        return -1;
+   #else
+    ignoreUnused (forInput);
+   #endif
+
+    return 0;
+}
+
+int iOSAudioIODeviceType::getIndexOfDevice (AudioIODevice*, bool asInput) const
+{
+   #if JUCE_TVOS
+    if (asInput)
+        return -1;
+   #else
+    ignoreUnused (asInput);
+   #endif
+
+    return 0;
+}
+
+bool iOSAudioIODeviceType::hasSeparateInputsAndOutputs() const
+{
+   #if JUCE_TVOS
+    return true;
+   #else
+    return false;
+   #endif
+}
 
 AudioIODevice* iOSAudioIODeviceType::createDevice (const String& outputDeviceName, const String& inputDeviceName)
 {

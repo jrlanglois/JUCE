@@ -330,7 +330,7 @@ PluginHostType::HostType PluginHostType::getHostType()
         return Renoise;
     }
 
-   #elif JUCE_IOS
+   #elif JUCE_IOS || JUCE_TVOS
    #elif JUCE_ANDROID
    #else
     #error

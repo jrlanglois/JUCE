@@ -157,6 +157,7 @@ public:
     virtual bool isLinux() const   = 0;
     virtual bool isOSX() const     = 0;
     virtual bool isiOS() const     = 0;
+    virtual bool isTVOS() const    { return false; }
 
     virtual String getNewLineString() const = 0;
     virtual String getDescription()  { return {}; }
@@ -184,7 +185,7 @@ public:
     bool mayCompileOnCurrentOS() const
     {
        #if JUCE_MAC
-        return isOSX() || isAndroid() || isiOS();
+        return isOSX() || isAndroid() || isiOS() || isTVOS();
        #elif JUCE_WINDOWS
         return isWindows() || isAndroid();
        #elif JUCE_LINUX

@@ -169,6 +169,13 @@ int writeiOSAssets (juce::ArgumentList&& argumentList)
     return 0;
 }
 
+int writeTvOSAssets (juce::ArgumentList&& argumentList)
+{
+    const auto parsed = parseIconArguments (std::move (argumentList), IconNameSpecified::no);
+    juce::build_tools::createTvOSXcassetsFolderFromIcons (parsed.icons, parsed.output.getParentDirectory(), parsed.output.getFileName());
+    return 0;
+}
+
 int writeWinIcon (juce::ArgumentList&& argumentList)
 {
     const auto parsed = parseIconArguments (std::move (argumentList), IconNameSpecified::no);
@@ -260,6 +267,7 @@ juce::build_tools::PlistOptions parsePlistOptions (const juce::File& file,
     updateField ("EXECUTABLE_NAME",                      result.executableName);
     updateField ("PLIST_TO_MERGE",                       result.plistToMerge);
     updateField ("IS_IOS",                               result.iOS);
+    updateField ("IS_TVOS",                              result.tvOS);
     updateField ("MICROPHONE_PERMISSION_ENABLED",        result.microphonePermissionEnabled);
     updateField ("MICROPHONE_PERMISSION_TEXT",           result.microphonePermissionText);
     updateField ("CAMERA_PERMISSION_ENABLED",            result.cameraPermissionEnabled);
@@ -358,6 +366,7 @@ juce::build_tools::EntitlementOptions parseEntitlementsOptions (const juce::File
     juce::build_tools::EntitlementOptions result;
 
     updateField ("IS_IOS",                          result.isiOS);
+    updateField ("IS_TVOS",                         result.isTVOS);
     updateField ("IS_PLUGIN",                       result.isAudioPluginProject);
     updateField ("IS_AU_PLUGIN_HOST",               result.isAUPluginHost);
     updateField ("ICLOUD_PERMISSIONS_ENABLED",      result.isiCloudPermissionsEnabled);
@@ -584,7 +593,8 @@ int main (int argc, char** argv)
             { "pkginfo",         writePkgInfo },
             { "plist",           writePlist },
             { "rcfile",          writeRcFile },
-            { "version",         printJUCEVersion },
+            { "tvosassets",       writeTvOSAssets },
+            { "version",          printJUCEVersion },
             { "winicon",         writeWinIcon }
         };
 

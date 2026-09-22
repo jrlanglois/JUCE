@@ -100,13 +100,10 @@ public:
 
         handleCreatePlugin();
 
-        auto inChannels = (channelConfiguration.size() > 0 ? channelConfiguration[0].numIns
-                                                           : processor->getMainBusNumInputChannels());
-
         if (preferredSetupOptions != nullptr)
             options.reset (new AudioDeviceManager::AudioDeviceSetup (*preferredSetupOptions));
 
-        auto audioInputRequired = (inChannels > 0);
+        const auto audioInputRequired = getNumInputChannels() > 0;
 
         if (audioInputRequired && RuntimePermissions::isRequired (RuntimePermissions::recordAudio)
             && ! RuntimePermissions::isGranted (RuntimePermissions::recordAudio))
@@ -149,11 +146,15 @@ public:
 
     int getNumInputChannels() const
     {
+       #if JUCE_TVOS
+        return 0;
+       #else
         if (processor == nullptr)
             return 0;
 
         return (channelConfiguration.size() > 0 ? channelConfiguration[0].numIns
                                                 : processor->getMainBusNumInputChannels());
+       #endif
     }
 
     int getNumOutputChannels() const
@@ -301,6 +302,10 @@ public:
         if (auto* bus = processor->getBus (false, 0))
             maxNumOutputs = jmax (0, bus->getDefaultLayout().size());
 
+       #if JUCE_TVOS
+        maxNumInputs = 0;
+       #endif
+
         auto content = std::make_unique<SettingsComponent> (*this, deviceManager, maxNumInputs, maxNumOutputs);
         content->setSize (500, 550);
         content->setToRecommendedSize();
@@ -324,7 +329,7 @@ public:
 
             settings->setValue ("audioSetup", xml.get());
 
-           #if ! (JUCE_IOS || JUCE_ANDROID)
+           #if ! (JUCE_IOS || JUCE_TVOS || JUCE_ANDROID)
             settings->setValue ("shouldMuteInput", (bool) shouldMuteInput.getValue());
            #endif
         }
@@ -340,7 +345,7 @@ public:
         {
             savedState = settings->getXmlValue ("audioSetup");
 
-           #if ! (JUCE_IOS || JUCE_ANDROID)
+           #if ! (JUCE_IOS || JUCE_TVOS || JUCE_ANDROID)
             shouldMuteInput.setValue (settings->getBoolValue ("shouldMuteInput", true));
            #endif
         }
@@ -656,7 +661,7 @@ public:
     {
         setConstrainer (&decoratorConstrainer);
 
-       #if JUCE_IOS || JUCE_ANDROID
+       #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
         setTitleBarHeight (0);
        #else
         setTitleBarButtonsRequired (DocumentWindow::minimiseButton | DocumentWindow::closeButton, false);
@@ -666,7 +671,7 @@ public:
         optionsButton.setTriggeredOnMouseDown (true);
        #endif
 
-       #if JUCE_IOS || JUCE_ANDROID
+       #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
         setFullScreen (true);
         updateContent();
        #else
@@ -746,7 +751,7 @@ public:
 
     ~StandaloneFilterWindow() override
     {
-       #if (! JUCE_IOS) && (! JUCE_ANDROID)
+       #if (! JUCE_IOS) && (! JUCE_TVOS) && (! JUCE_ANDROID)
         if (auto* props = pluginHolder->settings.get())
         {
             props->setValue ("windowX", getX());
@@ -820,7 +825,7 @@ private:
         auto* content = new MainContentComponent (*this);
         decoratorConstrainer.setMainContentComponent (content);
 
-       #if JUCE_IOS || JUCE_ANDROID
+       #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
         constexpr auto resizeAutomatically = false;
        #else
         constexpr auto resizeAutomatically = true;
@@ -923,7 +928,7 @@ private:
 
             NotificationArea (Button::Listener* settingsButtonListener)
                 : notification ("notification", "Audio input is muted to avoid feedback loop"),
-                 #if JUCE_IOS || JUCE_ANDROID
+                 #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
                   settingsButton ("Unmute Input")
                  #else
                   settingsButton ("Settings...")
@@ -968,7 +973,7 @@ private:
             shouldShowNotification = newInputMutedValue;
             notification.setVisible (shouldShowNotification);
 
-           #if JUCE_IOS || JUCE_ANDROID
+           #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
             handleResized();
            #else
             if (editor != nullptr)
@@ -983,7 +988,7 @@ private:
         void valueChanged (Value& value) override     { inputMutedChanged (value.getValue()); }
         void buttonClicked (Button*) override
         {
-           #if JUCE_IOS || JUCE_ANDROID
+           #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
             owner.pluginHolder->getMuteInputValue().setValue (false);
            #else
             owner.pluginHolder->showAudioSettingsDialog();

@@ -90,14 +90,13 @@
 #include "native/juce_ScopedLowPowerModeDisabler.cpp"
 
 //==============================================================================
-#if JUCE_MAC || JUCE_IOS
-
+#if JUCE_APPLE
  #include "native/juce_MessageQueue_mac.h"
 
  #if JUCE_MAC
   #include "native/juce_MessageManager_mac.mm"
  #else
-  #include "native/juce_MessageManager_ios.mm"
+  #include "native/juce_MessageManager_uikit.mm"
  #endif
 
 #elif JUCE_WINDOWS

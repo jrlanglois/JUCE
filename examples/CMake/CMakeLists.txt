@@ -20,5 +20,9 @@
 # ==============================================================================
 
 add_subdirectory(AudioPlugin)
-add_subdirectory(ConsoleApp)
+
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+    add_subdirectory(ConsoleApp)
+endif()
+
 add_subdirectory(GuiApp)

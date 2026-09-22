@@ -60,7 +60,7 @@ void AudioIODeviceType::callDeviceChangeListeners()
  AudioIODeviceType* AudioIODeviceType::createAudioIODeviceType_CoreAudio()  { return nullptr; }
 #endif
 
-#if JUCE_IOS
+#if JUCE_IOS || JUCE_TVOS
  AudioIODeviceType* AudioIODeviceType::createAudioIODeviceType_iOSAudio()   { return new iOSAudioIODeviceType(); }
 #else
  AudioIODeviceType* AudioIODeviceType::createAudioIODeviceType_iOSAudio()   { return nullptr; }

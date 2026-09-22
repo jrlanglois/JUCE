@@ -35,7 +35,7 @@
 namespace juce
 {
 
-#if JUCE_USE_CAMERA || DOXYGEN
+#if JUCE_USE_CAMERA || JUCE_TVOS || DOXYGEN
 
 //==============================================================================
 /**

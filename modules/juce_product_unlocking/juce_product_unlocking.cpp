@@ -51,15 +51,22 @@
 
 #include "juce_product_unlocking.h"
 
-#if JUCE_IOS || JUCE_MAC
+#if JUCE_APPLE
  #import <StoreKit/StoreKit.h>
 #endif
 
 #if JUCE_IN_APP_PURCHASES
  #if JUCE_ANDROID
   #include "native/juce_InAppPurchases_android.cpp"
- #elif JUCE_IOS || JUCE_MAC
-  #include "native/juce_InAppPurchases_ios.cpp"
+ #elif JUCE_APPLE
+  #if JUCE_TVOS
+   JUCE_BEGIN_IGNORE_DEPRECATION_WARNINGS
+  #endif
+
+  #include "native/juce_InAppPurchases_uikit.cpp"
+  #if JUCE_TVOS
+   JUCE_END_IGNORE_DEPRECATION_WARNINGS
+  #endif
  #endif
 
  #include "in_app_purchases/juce_InAppPurchases.cpp"

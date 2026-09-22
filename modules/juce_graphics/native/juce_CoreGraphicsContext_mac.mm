@@ -1141,11 +1141,11 @@ Image juce_loadWithCoreImage (InputStream& input)
     if (memBlockHolder->block.isEmpty())
         return {};
 
-   #if JUCE_IOS
+   #if JUCE_IOS || JUCE_TVOS
     JUCE_AUTORELEASEPOOL
    #endif
     {
-      #if JUCE_IOS
+      #if JUCE_IOS || JUCE_TVOS
         if (UIImage* uiImage = [UIImage imageWithData: [NSData dataWithBytesNoCopy: memBlockHolder->block.getData()
                                                                             length: memBlockHolder->block.getSize()
                                                                       freeWhenDone: NO]])
@@ -1225,8 +1225,8 @@ CGContextRef juce_getImageContext (const Image& image)
     return {};
 }
 
-#if JUCE_IOS
- Image juce_createImageFromUIImage (UIImage* img)
+#if JUCE_IOS || JUCE_TVOS
+Image juce_createImageFromUIImage (UIImage* img)
  {
      CGImageRef image = [img CGImage];
 

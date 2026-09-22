@@ -49,6 +49,7 @@ namespace juce::build_tools
         String plistToMerge;
 
         bool iOS                                = false;
+        bool tvOS                               = false;
 
         bool microphonePermissionEnabled        = false;
         String microphonePermissionText;

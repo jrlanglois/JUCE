@@ -440,7 +440,7 @@ FFT::EngineImpl<FFTFallback> fftFallback;
 
 //==============================================================================
 //==============================================================================
-#if (JUCE_MAC || JUCE_IOS) && JUCE_USE_VDSP_FRAMEWORK
+#if JUCE_APPLE && JUCE_USE_VDSP_FRAMEWORK
 struct AppleFFT final : public FFT::Instance
 {
     static constexpr int priority = 5;

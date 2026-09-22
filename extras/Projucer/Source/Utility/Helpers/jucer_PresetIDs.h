@@ -139,6 +139,8 @@ namespace Ids
     DECLARE_ID (osxArchitecture);
     DECLARE_ID (iosBaseSDK);
     DECLARE_ID (iosDeploymentTarget);
+    DECLARE_ID (tvOSBaseSDK);
+    DECLARE_ID (tvOSDeploymentTarget);
     DECLARE_ID (xcodeSubprojects);
     DECLARE_ID (extraFrameworks);
     DECLARE_ID (frameworkSearchPaths);

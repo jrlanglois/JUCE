@@ -73,6 +73,8 @@ then the filename can be suffixed with one of the following (case insensitive) s
     _linux          <- compiled for Linux and FreeBSD platforms only
     _android        <- compiled for Android platforms only
     _ios            <- compiled for iOS platforms only
+    _tvos           <- compiled for tvOS platforms only
+    _uikit          <- compiled for iOS and tvOS platforms only
 
 e.g.
 
@@ -80,21 +82,23 @@ e.g.
     juce_mymodule/juce_mymodule_2.cpp         <- compiled for all platforms
     juce_mymodule/juce_mymodule_mac.cpp       <- compiled for macOS and OSX platforms only
     juce_mymodule/juce_mymodule_windows.cpp   <- compiled for Windows platforms only
+    juce_mymodule/juce_mymodule_tvos.cpp      <- compiled for tvOS platforms only
+    juce_mymodule/juce_mymodule_uikit.cpp     <- compiled for iOS and tvOS platforms only
 
 Often this isn't necessary, as in most cases you can easily add checks inside the files
 to do different things depending on the platform, but this may be handy just to avoid
 clutter in user projects where files aren't needed.
 
 To simplify the use of obj-C++ there's also a special-case rule: If the folder contains
-both a .mm and a .cpp file whose names are otherwise identical, then on macOS/iOS the .mm
-will be used and the cpp ignored. (And vice-versa for other platforms, of course).
+both a .mm and a .cpp file whose names are otherwise identical, then on macOS/iOS/tvOS the
+.mm will be used and the cpp ignored. (And vice-versa for other platforms, of course).
 
 
 ### Precompiled libraries
 
 Precompiled libraries can be included in a module by placing them in a libs/ subdirectory.
 The following directories are automatically added to the library search paths, and libraries
-placed in these directories can be linked with projects via the OSXLibs, iOSLibs,
+placed in these directories can be linked with projects via the OSXLibs, iOSLibs, tvOSLibs,
 windowsLibs, and linuxLibs keywords in the module declaration (see the following section).
 
 - OS X
@@ -118,6 +122,13 @@ windowsLibs, and linuxLibs keywords in the module declaration (see the following
   - libs/iOS - to support multiple architectures, you may place libraries built as universal
     binaries at this location. For backwards compatibility, the Projucer will also include the
     directories libs/iOS/{arch}, where {arch} is the architecture you are targeting in Xcode
+    ("arm64" or "x86_64", for example). When building with CMake, only libraries built as universal
+    binaries are supported and the arch subfolders are ignored.
+
+- tvOS
+  - libs/tvOS - to support multiple architectures, you may place libraries built as universal
+    binaries at this location. For backwards compatibility, the Projucer will also include the
+    directories libs/tvOS/{arch}, where {arch} is the architecture you are targeting in Xcode
     ("arm64" or "x86_64", for example). When building with CMake, only libraries built as universal
     binaries are supported and the arch subfolders are ignored.
 
@@ -194,6 +205,14 @@ Possible values:
   - (Optional) A list (space or comma-separated) of weak linked iOS frameworks that are needed
     by this module
 
+- tvOSFrameworks
+  - (Optional) A list (space or comma-separated) of tvOS frameworks that are needed by this module,
+    such as the tvOS-exclusive TVUIKit framework
+
+- WeaktvOSFrameworks
+  - (Optional) A list (space or comma-separated) of weak linked tvOS frameworks that are needed
+    by this module
+
 - linuxPackages
   - (Optional) A list (space or comma-separated) pkg-config packages that should be used to pass
     compiler (CFLAGS) and linker (LDFLAGS) flags
@@ -209,6 +228,10 @@ Possible values:
 - iOSLibs
   - (Optional) A list (space or comma-separated) of static or dynamic libs that should be linked in an
     iOS build (these are passed to the linker via the -l flag)
+
+- tvOSLibs
+  - (Optional) A list (space or comma-separated) of static or dynamic libs that should be linked in a
+    tvOS build (these are passed to the linker via the -l flag)
 
 - windowsLibs
   - (Optional) A list (space or comma-separated) of static or dynamic libs that should be linked in a
@@ -229,6 +252,7 @@ Here's an example block:
      dependencies:     juce_audio_basics, juce_audio_formats, juce_events
      OSXFrameworks:    CoreAudio CoreMIDI DiscRecording
      iOSFrameworks:    CoreAudio CoreMIDI AudioToolbox AVFoundation
+     tvOSFrameworks:   CoreAudio AudioToolbox AVFoundation
      linuxLibs:        asound
 
     END_JUCE_MODULE_DECLARATION

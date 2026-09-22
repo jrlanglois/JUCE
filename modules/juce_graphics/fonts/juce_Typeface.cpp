@@ -359,7 +359,7 @@ struct TypefaceNativeOptions
     std::shared_ptr<VariableAxisRegistry> existingRegistry{};
 };
 
-#if JUCE_MAC || JUCE_IOS
+#if JUCE_APPLE
 struct TypefaceCTFontUtils
 {
     TypefaceCTFontUtils() = delete;
@@ -535,7 +535,7 @@ public:
             hb_font_set_ptem (subFont.get(), p);
             hb_font_set_scale (subFont.get(), HbScale::juceToHb (p * h), HbScale::juceToHb (p));
 
-           #if JUCE_MAC || JUCE_IOS
+           #if JUCE_APPLE
             TypefaceCTFontUtils::overrideCTFontAdvances (subFont.get(), hb_coretext_font_get_ct_font (subFont.get()));
            #endif
 

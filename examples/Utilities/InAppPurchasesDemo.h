@@ -39,7 +39,7 @@
                    juce_cryptography, juce_data_structures, juce_events,
                    juce_graphics, juce_gui_basics, juce_gui_extra,
                    juce_product_unlocking, juce_audio_processors_headless
- exporters:        xcode_mac, xcode_iphone, androidstudio
+ exporters:        xcode_mac, xcode_iphone, xcode_tvos, androidstudio
 
  moduleFlags:      JUCE_STRICT_REFCOUNTEDPOINTER=1
                    JUCE_IN_APP_PURCHASES=1

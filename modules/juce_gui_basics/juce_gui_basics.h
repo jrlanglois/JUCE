@@ -56,6 +56,8 @@
   WeakOSXFrameworks:  Metal MetalKit
   iOSFrameworks:      CoreServices UIKit
   WeakiOSFrameworks:  Metal MetalKit UniformTypeIdentifiers UserNotifications
+  tvOSFrameworks:     CoreServices GameController UIKit
+  WeaktvOSFrameworks: Metal MetalKit UniformTypeIdentifiers
 
  END_JUCE_MODULE_DECLARATION
 

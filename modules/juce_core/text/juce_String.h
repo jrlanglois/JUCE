@@ -32,8 +32,8 @@
   ==============================================================================
 */
 
-#if JUCE_MAC || JUCE_IOS
- /** @cond */
+#if JUCE_APPLE
+/** @cond */
  // Annoyingly we can only forward-declare a typedef by forward-declaring the
  // aliased type
  #if __has_attribute(objc_bridge)
@@ -1348,7 +1348,7 @@ public:
     void swapWith (String& other) noexcept;
 
     //==============================================================================
-   #if JUCE_MAC || JUCE_IOS || DOXYGEN
+   #if JUCE_APPLE || DOXYGEN
     /** OSX ONLY - Creates a String from an OSX CFString. */
     static String fromCFString (CFStringRef cfString);
 

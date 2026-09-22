@@ -28,22 +28,28 @@
 #include "../../../Assets/AudioLiveScrollingDisplay.h"
 
 //==============================================================================
-#if JUCE_MAC || JUCE_WINDOWS || JUCE_IOS || JUCE_ANDROID
+#if JUCE_MAC || JUCE_WINDOWS || JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
  #include "../../../GUI/AccessibilityDemo.h"
 #endif
 #include "../../../GUI/AnimationAppDemo.h"
 #include "../../../GUI/AnimationEasingDemo.h"
 #include "../../../GUI/AnimatorsDemo.h"
-#include "../../../GUI/BouncingBallWavetableDemo.h"
+#if ! JUCE_TVOS
+ #include "../../../GUI/BouncingBallWavetableDemo.h"
+#endif
 #if JUCE_USE_CAMERA && ! (JUCE_LINUX || JUCE_BSD)
  #include "../../../GUI/CameraDemo.h"
 #endif
 #if ! JUCE_ANDROID
  #include "../../../GUI/CodeEditorDemo.h"
 #endif
-#include "../../../GUI/ComponentDemo.h"
+#if ! JUCE_TVOS
+ #include "../../../GUI/ComponentDemo.h"
+#endif
 #include "../../../GUI/ComponentTransformsDemo.h"
-#include "../../../GUI/DialogsDemo.h"
+#if ! JUCE_TVOS
+ #include "../../../GUI/DialogsDemo.h"
+#endif
 #include "../../../GUI/FlexBoxDemo.h"
 #include "../../../GUI/FontsDemo.h"
 #include "../../../GUI/FontFeaturesDemo.h"
@@ -56,7 +62,9 @@
 #include "../../../GUI/LookAndFeelDemo.h"
 #include "../../../GUI/MDIDemo.h"
 #include "../../../GUI/MenusDemo.h"
-#include "../../../GUI/MultiTouchDemo.h"
+#if ! JUCE_TVOS
+ #include "../../../GUI/MultiTouchDemo.h"
+#endif
 #if JUCE_OPENGL
  #include "../../../GUI/OpenGLAppDemo.h"
  #include "../../../GUI/OpenGLDemo.h"
@@ -66,30 +74,38 @@
 #if ! (JUCE_LINUX || JUCE_BSD)
  #include "../../../GUI/VideoDemo.h"
 #endif
-#include "../../../GUI/WebBrowserDemo.h"
+#if JUCE_WEB_BROWSER
+ #include "../../../GUI/WebBrowserDemo.h"
+#endif
 #include "../../../GUI/WidgetsDemo.h"
 #include "../../../GUI/WindowsDemo.h"
 #include "../../../GUI/ComponentDiagnosticsDemo.h"
 
 void registerDemos_Two() noexcept
 {
-   #if JUCE_MAC || JUCE_WINDOWS || JUCE_IOS || JUCE_ANDROID
+   #if JUCE_MAC || JUCE_WINDOWS || JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
     REGISTER_DEMO (AccessibilityDemo,         GUI, false)
    #endif
     REGISTER_DEMO (AnimationAppDemo,          GUI, false)
     REGISTER_DEMO (AnimationEasingDemo,       GUI, false)
     REGISTER_DEMO (AnimatorsDemo,             GUI, false)
+   #if ! JUCE_TVOS
     REGISTER_DEMO (BouncingBallWavetableDemo, GUI, false)
+   #endif
    #if JUCE_USE_CAMERA && ! (JUCE_LINUX || JUCE_BSD)
     REGISTER_DEMO (CameraDemo,                GUI, true)
    #endif
    #if ! JUCE_ANDROID
     REGISTER_DEMO (CodeEditorDemo,            GUI, false)
    #endif
+   #if ! JUCE_TVOS
     REGISTER_DEMO (ComponentDemo,             GUI, false)
+   #endif
     REGISTER_DEMO (ComponentDiagnosticsDemo,  GUI, false)
     REGISTER_DEMO (ComponentTransformsDemo,   GUI, false)
+   #if ! JUCE_TVOS
     REGISTER_DEMO (DialogsDemo,               GUI, false)
+   #endif
     REGISTER_DEMO (FlexBoxDemo,               GUI, false)
     REGISTER_DEMO (FontsDemo,                 GUI, false)
     REGISTER_DEMO (FontFeaturesDemo,          GUI, false)
@@ -102,7 +118,9 @@ void registerDemos_Two() noexcept
     REGISTER_DEMO (LookAndFeelDemo,           GUI, false)
     REGISTER_DEMO (MDIDemo,                   GUI, false)
     REGISTER_DEMO (MenusDemo,                 GUI, false)
+   #if ! JUCE_TVOS
     REGISTER_DEMO (MultiTouchDemo,            GUI, false)
+   #endif
    #if JUCE_OPENGL
     REGISTER_DEMO (OpenGLAppDemo,             GUI, true)
     REGISTER_DEMO (OpenGLDemo2D,              GUI, true)

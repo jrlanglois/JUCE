@@ -77,6 +77,54 @@ jobs:
       triggerer: &triggerer ${{ inputs.triggerer && inputs.triggerer || github.event.sender.login }}
       cpp-std: ${{ inputs.cpp-std }}
     secrets: inherit
+  tvos:
+    if: ${{ !cancelled() && needs.build.result == 'success' && inputs.nightly-targets == '[]' }}
+    needs: [build]
+    name: tvOS
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - name: Select tvOS simulator
+        run: |
+          udid="$(
+            xcrun simctl list devices available --json |
+              python3 -c 'import json, sys; devices = json.load(sys.stdin)["devices"]; runtimes = sorted((key for key in devices if ".tvOS-" in key), key=lambda key: tuple(map(int, key.rsplit("tvOS-", 1)[1].split("-"))), reverse=True); candidates = [device for runtime in runtimes for device in devices[runtime] if device.get("isAvailable", True)]; print(candidates[0]["udid"] if candidates else "")'
+          )"
+
+          if [[ -z "$udid" ]]; then
+            echo "No available tvOS simulator was found" >&2
+            exit 1
+          fi
+
+          echo "TVOS_SIMULATOR_UDID=$udid" >> "$GITHUB_ENV"
+      - name: Configure
+        run: >-
+          cmake -S . -B build-tvos -GXcode
+          -DCMAKE_SYSTEM_NAME=tvOS
+          -DCMAKE_OSX_SYSROOT=appletvsimulator
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0
+          -DJUCE_BUILD_EXAMPLES=ON
+      - name: Build
+        run: |
+          xcodebuild \
+            -project build-tvos/JUCE.xcodeproj \
+            -scheme DemoRunner \
+            -configuration Debug \
+            -sdk appletvsimulator \
+            -destination "id=${TVOS_SIMULATOR_UDID}" \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=NO \
+            build
+
+          xcodebuild \
+            -project build-tvos/JUCE.xcodeproj \
+            -scheme AudioPluginDemo_Standalone \
+            -configuration Debug \
+            -sdk appletvsimulator \
+            -destination "id=${TVOS_SIMULATOR_UDID}" \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=NO \
+            build
   nightly:
     if: ${{ inputs.nightly-targets != '[]' }}
     name: .
@@ -88,7 +136,7 @@ jobs:
     secrets: inherit
   deploy:
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(fromJSON('["success", "skipped"]'), needs.build.result) && contains(fromJSON('["master", "develop", "wayland"]'), github.ref_name) && inputs.cpp-std == '' && inputs.nightly-targets == '[]' }}
-    needs: [setup, build]
+    needs: [setup, build, tvos]
     name: Deploy
     uses: juce-framework/JUCE-utils/.github/workflows/deploy.yml@master
     secrets: inherit
@@ -109,7 +157,7 @@ jobs:
     secrets: inherit
   set-commit-status:
     if: ${{ always() && (inputs.nightly-targets == '[]') && (inputs.cpp-std == '') }}
-    needs: [setup, build, deploy, submit-sbom, docs]
+    needs: [setup, build, tvos, deploy, submit-sbom, docs]
     name: Set CI commit status
     runs-on: ubuntu-latest
     env:
@@ -125,7 +173,7 @@ jobs:
           targetUrl: ${{ env.target_url }}
   notify:
     if: ${{ always() && !contains(needs.*.result, 'cancelled') }}
-    needs: [setup, build, nightly, deploy, docs, submit-sbom]
+    needs: [setup, build, tvos, nightly, deploy, docs, submit-sbom]
     name: Notify
     uses: juce-framework/JUCE-utils/.github/workflows/notify.yml@master
     with:

@@ -55,6 +55,10 @@
 #endif
 
 #include "juce_gui_extra.h"
+#if JUCE_TVOS
+ #undef JUCE_PUSH_NOTIFICATIONS
+ #define JUCE_PUSH_NOTIFICATIONS 0
+#endif
 
 //==============================================================================
 #if JUCE_MAC
@@ -74,14 +78,14 @@
  #endif
 
 //==============================================================================
-#elif JUCE_IOS
+#elif JUCE_IOS || JUCE_TVOS
  #if JUCE_WEB_BROWSER
   #import <WebKit/WebKit.h>
  #endif
 
  #if JUCE_PUSH_NOTIFICATIONS
   #import <UserNotifications/UserNotifications.h>
-  #include "native/juce_PushNotifications_ios.cpp"
+  #include "native/juce_PushNotifications_uikit.cpp"
  #endif
 
 //==============================================================================
@@ -168,7 +172,7 @@
 #include "misc/juce_WebControlRelays.cpp"
 
 //==============================================================================
-#if JUCE_MAC || JUCE_IOS
+#if JUCE_APPLE
 
  #if JUCE_MAC
   #include "native/juce_NSViewFrameWatcher_mac.h"
@@ -176,8 +180,8 @@
   #include "native/juce_AppleRemote_mac.mm"
  #endif
 
- #if JUCE_IOS
-  #include "native/juce_UIViewComponent_ios.mm"
+ #if JUCE_IOS || JUCE_TVOS
+  #include "native/juce_UIViewComponent_uikit.mm"
  #endif
 
  #if JUCE_WEB_BROWSER

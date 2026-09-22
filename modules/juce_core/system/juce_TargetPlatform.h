@@ -40,7 +40,8 @@
 
     Macros that will be set here are:
 
-    - One of JUCE_WINDOWS, JUCE_MAC JUCE_LINUX, JUCE_IOS, JUCE_ANDROID, etc.
+    - One of JUCE_WINDOWS, JUCE_MAC, JUCE_LINUX, JUCE_IOS, JUCE_TVOS, JUCE_ANDROID, etc.
+    - JUCE_APPLE when targeting an Apple platform.
     - Either JUCE_32BIT or JUCE_64BIT, depending on the architecture.
     - Either JUCE_LITTLE_ENDIAN or JUCE_BIG_ENDIAN.
     - Either JUCE_INTEL or JUCE_ARM
@@ -79,11 +80,14 @@
 #elif defined (LINUX) || defined (__linux__)
   #define       JUCE_LINUX 1
 #elif defined (__APPLE_CPP__) || defined (__APPLE_CC__)
+  #define       JUCE_APPLE 1
   #define CF_EXCLUDE_CSTD_HEADERS 1
   #include <TargetConditionals.h> // (needed to find out what platform we're using)
   #include <AvailabilityMacros.h>
 
-  #if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
+  #if TARGET_OS_TV
+    #define     JUCE_TVOS 1
+  #elif TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
     #define     JUCE_IPHONE 1
     #define     JUCE_IOS 1
   #else
@@ -124,7 +128,7 @@
 #endif
 
 //==============================================================================
-#if JUCE_MAC || JUCE_IOS
+#if JUCE_APPLE
 
 // Expands to true if the API of the specified version is available at build time, false otherwise
 #define JUCE_MAC_API_VERSION_CAN_BE_BUILT(major, minor) \
@@ -134,6 +138,10 @@
 #define JUCE_IOS_API_VERSION_CAN_BE_BUILT(major, minor) \
     ((major) * 10000 + (minor) * 100 <= __IPHONE_OS_VERSION_MAX_ALLOWED)
 
+// Expands to true if the API of the specified version is available at build time, false otherwise
+#define JUCE_TVOS_API_VERSION_CAN_BE_BUILT(major, minor) \
+    ((major) * 10000 + (minor) * 100 <= __TV_OS_VERSION_MAX_ALLOWED)
+
 // Expands to true if the deployment target is greater or equal to the specified version, false otherwise
 #define JUCE_MAC_API_VERSION_MIN_REQUIRED_AT_LEAST(major, minor) \
     ((major) * 10000 + (minor) * 100 <= __MAC_OS_X_VERSION_MIN_REQUIRED)
@@ -141,6 +149,10 @@
 // Expands to true if the deployment target is greater or equal to the specified version, false otherwise
 #define JUCE_IOS_API_VERSION_MIN_REQUIRED_AT_LEAST(major, minor) \
     ((major) * 10000 + (minor) * 100 <= __IPHONE_OS_VERSION_MIN_REQUIRED)
+
+// Expands to true if the deployment target is greater or equal to the specified version, false otherwise
+#define JUCE_TVOS_API_VERSION_MIN_REQUIRED_AT_LEAST(major, minor) \
+    ((major) * 10000 + (minor) * 100 <= __TV_OS_VERSION_MIN_REQUIRED)
 
 #if defined (DEBUG) || defined (_DEBUG) || ! (defined (NDEBUG) || defined (_NDEBUG))
     #define JUCE_DEBUG 1
@@ -175,6 +187,12 @@
       #error "The macOS 11.1 SDK (Xcode 12.4+) is required to build JUCE apps. You can create apps that run on macOS 10.11+ by changing the deployment target."
     #elif ! JUCE_MAC_API_VERSION_MIN_REQUIRED_AT_LEAST (10, 11)
       #error "Building for OSX 10.10 and earlier is no longer supported!"
+    #endif
+  #elif JUCE_TVOS
+    #if ! JUCE_TVOS_API_VERSION_CAN_BE_BUILT (17, 0)
+      #error "The tvOS 17.0 SDK is required to build JUCE apps."
+    #elif ! JUCE_TVOS_API_VERSION_MIN_REQUIRED_AT_LEAST (17, 0)
+      #error "Building for tvOS 16 and earlier is no longer supported!"
     #endif
   #endif
 #endif

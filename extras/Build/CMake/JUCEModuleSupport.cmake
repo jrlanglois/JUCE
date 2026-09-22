@@ -193,6 +193,8 @@ function(_juce_should_build_module_source filename output_var)
         "linux\;Linux|.*BSD"
         "mac\;Darwin"
         "osx\;Darwin"
+        "tvos\;tvOS"
+        "uikit\;iOS|tvOS"
         "windows\;Windows")
 
     set(result TRUE)
@@ -271,6 +273,11 @@ endfunction()
 function(_juce_get_platform_plugin_kinds out)
     set(result Standalone)
 
+    if(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+        set(${out} ${result} PARENT_SCOPE)
+        return()
+    endif()
+
     if(APPLE AND (CMAKE_GENERATOR STREQUAL "Xcode"))
         list(APPEND result AUv3)
     endif()
@@ -279,7 +286,9 @@ function(_juce_get_platform_plugin_kinds out)
         list(APPEND result AU)
     endif()
 
-    if(NOT CMAKE_SYSTEM_NAME STREQUAL "iOS" AND NOT CMAKE_SYSTEM_NAME STREQUAL "Android")
+    if(NOT CMAKE_SYSTEM_NAME STREQUAL "iOS"
+       AND NOT CMAKE_SYSTEM_NAME STREQUAL "tvOS"
+       AND NOT CMAKE_SYSTEM_NAME STREQUAL "Android")
         list(APPEND result VST LV2)
         if(NOT (CMAKE_SYSTEM_NAME MATCHES ".*BSD"))
             list(APPEND result Unity VST3)
@@ -411,6 +420,8 @@ function(_juce_add_module_staticlib_paths module_target module_path)
         _juce_add_library_path(${module_target} "${module_path}/libs/MacOSX")
     elseif(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         _juce_add_library_path(${module_target} "${module_path}/libs/iOS")
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+        _juce_add_library_path(${module_target} "${module_path}/libs/tvOS")
     elseif((CMAKE_SYSTEM_NAME STREQUAL "Linux") OR (CMAKE_SYSTEM_NAME MATCHES ".*BSD"))
         _juce_add_library_path(${module_target} "${module_path}/libs/Linux/${JUCE_TARGET_ARCHITECTURE}")
     elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
@@ -629,6 +640,22 @@ function(juce_add_module module_path)
         endforeach()
 
         _juce_link_libs_from_metadata("${module_name}" "${metadata_dict}" iOSLibs)
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+        _juce_get_metadata("${metadata_dict}" tvOSFrameworks module_tvosframeworks)
+
+        _juce_remove_empty_list_elements(module_tvosframeworks)
+        foreach(module_framework IN LISTS module_tvosframeworks)
+            _juce_link_frameworks("${module_name}" INTERFACE "${module_framework}")
+        endforeach()
+
+        _juce_get_metadata("${metadata_dict}" WeaktvOSFrameworks module_weaktvosframeworks)
+
+        _juce_remove_empty_list_elements(module_weaktvosframeworks)
+        foreach(module_framework IN LISTS module_weaktvosframeworks)
+            _juce_link_frameworks("${module_name}" INTERFACE WEAK "${module_framework}")
+        endforeach()
+
+        _juce_link_libs_from_metadata("${module_name}" "${metadata_dict}" tvOSLibs)
     elseif((CMAKE_SYSTEM_NAME STREQUAL "Linux") OR (CMAKE_SYSTEM_NAME MATCHES ".*BSD"))
         _juce_get_metadata("${metadata_dict}" linuxPackages module_linuxpackages)
 

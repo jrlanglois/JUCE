@@ -466,7 +466,7 @@ bool ComboBox::keyPressed (const KeyPress& key)
         return true;
     }
 
-    if (key == KeyPress::returnKey)
+    if (key == KeyPress::returnKey || key == KeyPress::selectKey)
     {
         showPopupIfNotActive();
         return true;

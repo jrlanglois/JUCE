@@ -312,7 +312,7 @@ private:
     friend void juce_inAppPurchaseCompleted (void*);
    #endif
 
-   #if JUCE_ANDROID || JUCE_IOS || JUCE_MAC
+   #if JUCE_ANDROID || JUCE_APPLE
     struct Pimpl;
     friend struct Pimpl;
 

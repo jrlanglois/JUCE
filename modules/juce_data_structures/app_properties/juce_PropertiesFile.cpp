@@ -44,6 +44,20 @@ namespace PropertyFileConstants
     constexpr static const char* const valueTag       = "VALUE";
     constexpr static const char* const nameAttribute  = "name";
     constexpr static const char* const valueAttribute = "val";
+
+#if JUCE_TVOS
+    constexpr static const int64 maximumFileSize = 500 * 1024;
+
+    static bool isTooLargeForTvOS (int64 size)
+    {
+        if (size <= maximumFileSize)
+            return false;
+
+        // tvOS terminates apps whose preferences grow too large.
+        jassertfalse;
+        return true;
+    }
+#endif
 }
 
 //==============================================================================
@@ -62,7 +76,19 @@ File PropertiesFile::Options::getDefaultFile() const
     // mustn't have illegal characters in this name
     jassert (applicationName == File::createLegalFileName (applicationName));
 
-   #if JUCE_MAC || JUCE_IOS
+   #if JUCE_TVOS
+    if (commonToAllUsers)
+    {
+        jassertfalse;
+        return {};
+    }
+
+    auto dir = File::getSpecialLocation (File::userApplicationDataDirectory);
+
+    if (folderName.isNotEmpty())
+        dir = dir.getChildFile (folderName);
+
+   #elif JUCE_APPLE
     File dir (commonToAllUsers ?  "/Library/"
                                : "~/Library/");
 
@@ -141,6 +167,14 @@ bool PropertiesFile::reload()
 
     if (pl != nullptr && ! pl->isLocked())
         return false; // locking failure
+
+   #if JUCE_TVOS
+    if (file.existsAsFile() && PropertyFileConstants::isTooLargeForTvOS (file.getSize()))
+    {
+        loadedOk = false;
+        return false;
+    }
+   #endif
 
     loadedOk = (! file.exists()) || loadAsBinary() || loadAsXml();
     return loadedOk;
@@ -235,7 +269,19 @@ bool PropertiesFile::saveAsXml()
     if (pl != nullptr && ! pl->isLocked())
         return false; // locking failure
 
-    if (doc.writeTo (file, {}))
+   #if JUCE_TVOS
+    MemoryOutputStream output;
+    doc.writeTo (output, {});
+
+    if (PropertyFileConstants::isTooLargeForTvOS ((int64) output.getDataSize()))
+        return false;
+
+    const auto writeSucceeded = file.replaceWithData (output.getData(), output.getDataSize());
+   #else
+    const auto writeSucceeded = doc.writeTo (file, {});
+   #endif
+
+    if (writeSucceeded)
     {
         needsWriting = false;
         return true;
@@ -321,6 +367,11 @@ bool PropertiesFile::saveAsBinary()
                 return false;
         }
     }
+
+   #if JUCE_TVOS
+    if (PropertyFileConstants::isTooLargeForTvOS (tempFile.getFile().getSize()))
+        return false;
+   #endif
 
     if (! tempFile.overwriteTargetFileWithTemporary())
         return false;

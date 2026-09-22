@@ -54,6 +54,11 @@
 
 #include "juce_gui_basics.h"
 
+#if JUCE_TVOS
+ #undef JUCE_PUSH_NOTIFICATIONS
+ #define JUCE_PUSH_NOTIFICATIONS 0
+#endif
+
 #include <cctype>
 
 //==============================================================================
@@ -74,11 +79,13 @@
   #import <ScreenCaptureKit/ScreenCaptureKit.h>
  #endif
 
-#elif JUCE_IOS
- #import <UserNotifications/UserNotifications.h>
+#elif JUCE_IOS || JUCE_TVOS
  #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
  #import <MetalKit/MetalKit.h>
- #import <UIKit/UIActivityViewController.h>
+ #if JUCE_IOS
+  #import <UserNotifications/UserNotifications.h>
+  #import <UIKit/UIActivityViewController.h>
+ #endif
 
 //==============================================================================
 #elif JUCE_WINDOWS
@@ -155,29 +162,39 @@
 #include "detail/juce_FocusRestorer.h"
 
 //==============================================================================
-#if JUCE_IOS || JUCE_WINDOWS || JUCE_LINUX || JUCE_BSD
+#if JUCE_IOS || JUCE_TVOS || JUCE_WINDOWS || JUCE_LINUX || JUCE_BSD
  #include "native/juce_MultiTouchMapper.h"
 #endif
 
-#if JUCE_ANDROID || JUCE_WINDOWS || JUCE_IOS || JUCE_UNIT_TESTS
+#if JUCE_ANDROID || JUCE_WINDOWS || JUCE_IOS || JUCE_TVOS || JUCE_UNIT_TESTS
  #include "native/accessibility/juce_AccessibilityTextHelpers.h"
 #endif
 
-#if JUCE_MAC || JUCE_IOS
+#if JUCE_APPLE
  #include "native/accessibility/juce_AccessibilitySharedCode_mac.mm"
  #include "native/juce_CGMetalLayerRenderer_mac.h"
 
- #if JUCE_IOS
-  #include "native/juce_UIViewComponentPeer_ios.mm"
-  #include "native/accessibility/juce_Accessibility_ios.mm"
-  #include "native/juce_WindowUtils_ios.mm"
-  #include "native/juce_Windowing_ios.mm"
-  #include "native/juce_NativeMessageBox_ios.mm"
-  #include "native/juce_NativeModalWrapperComponent_ios.h"
-  #include "native/juce_FileChooser_ios.mm"
+ #if JUCE_IOS || JUCE_TVOS
+  #include "native/juce_UIViewComponentPeer_uikit.mm"
+  #include "native/accessibility/juce_Accessibility_uikit.mm"
+  #include "native/juce_WindowUtils_uikit.mm"
+  #include "native/juce_Windowing_uikit.mm"
+  #include "native/juce_NativeMessageBox_uikit.mm"
+  #include "native/juce_NativeModalWrapperComponent_uikit.h"
 
-  #if JUCE_CONTENT_SHARING
-   #include "native/juce_ContentSharer_ios.cpp"
+  #if JUCE_IOS
+   #include "native/juce_FileChooser_ios.mm"
+
+   #if JUCE_CONTENT_SHARING
+    #include "native/juce_ContentSharer_ios.cpp"
+   #endif
+
+  #else
+   #include "native/juce_FileChooser_tvos.mm"
+
+   #if JUCE_CONTENT_SHARING
+    #include "native/juce_ContentSharer_tvos.cpp"
+   #endif
   #endif
 
  #else

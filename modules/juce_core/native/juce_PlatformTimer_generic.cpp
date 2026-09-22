@@ -125,7 +125,7 @@ private:
 
         void run()
         {
-           #if JUCE_MAC || JUCE_IOS
+           #if JUCE_APPLE
             tryToUpgradeCurrentThreadToRealtime (Thread::RealtimeOptions{}.withPeriodMs (intervalMs));
            #endif
 
