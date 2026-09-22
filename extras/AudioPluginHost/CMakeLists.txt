@@ -30,12 +30,18 @@
 #
 # ==============================================================================
 
+set(juce_audio_plugin_host_au TRUE)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+    set(juce_audio_plugin_host_au FALSE)
+endif()
+
 juce_add_gui_app(AudioPluginHost
     BUNDLE_ID                       com.juce.pluginhost
     ICON_BIG                        "${CMAKE_CURRENT_SOURCE_DIR}/Source/JUCEAppIcon.png"
     ICON_COMPOSER_BUNDLE            "${CMAKE_CURRENT_SOURCE_DIR}/Source/AppIcon.icon"
     MICROPHONE_PERMISSION_ENABLED   TRUE
-    PLUGINHOST_AU                   TRUE
+    PLUGINHOST_AU                   ${juce_audio_plugin_host_au}
     NEEDS_WEB_BROWSER               FALSE
     NEEDS_CURL                      FALSE)
 
@@ -61,12 +67,8 @@ juce_add_binary_data(AudioPluginHostData SOURCES
 target_compile_definitions(AudioPluginHost PRIVATE
     JUCE_ALSA=1
     JUCE_ASIO=1
-    JUCE_CONTENT_SHARING=1
     JUCE_DIRECTSOUND=1
     JUCE_DISABLE_CAUTIOUS_PARAMETER_ID_CHECKING=1
-    JUCE_PLUGINHOST_LADSPA=1
-    JUCE_PLUGINHOST_LV2=1
-    JUCE_PLUGINHOST_VST3=1
     JUCE_PLUGINHOST_VST=0
     JUCE_PLUGINHOST_ARA=0
     JUCE_USE_CAMERA=0
@@ -83,6 +85,14 @@ target_compile_definitions(AudioPluginHost PRIVATE
     # Add -Wl,-ld_classic to the OTHER_LDFLAGS build setting if you need to
     # deploy to older versions of macOS/iOS.
     JUCE_SILENCE_XCODE_15_LINKER_WARNING=1)
+
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+    target_compile_definitions(AudioPluginHost PRIVATE
+        JUCE_CONTENT_SHARING=1
+        JUCE_PLUGINHOST_LADSPA=1
+        JUCE_PLUGINHOST_LV2=1
+        JUCE_PLUGINHOST_VST3=1)
+endif()
 
 target_link_libraries(AudioPluginHost PRIVATE
     AudioPluginHostData

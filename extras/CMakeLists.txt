@@ -35,5 +35,9 @@ add_subdirectory(AudioPerformanceTest)
 add_subdirectory(AudioPluginHost)
 add_subdirectory(BinaryBuilder)
 add_subdirectory(NetworkGraphicsDemo)
-add_subdirectory(Projucer)
+
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+    add_subdirectory(Projucer)
+endif()
+
 add_subdirectory(UnitTestRunner)
