@@ -54,6 +54,7 @@
   dependencies:
   OSXFrameworks:      Cocoa Foundation IOKit Security
   iOSFrameworks:      Foundation
+  tvOSFrameworks:     Foundation
   linuxLibs:          rt dl pthread
 
  END_JUCE_MODULE_DECLARATION
@@ -382,7 +383,7 @@ JUCE_END_IGNORE_WARNINGS_MSVC
 #include "detail/juce_LruCache.h"
 #include "detail/juce_IncrementRef.h"
 
-#if JUCE_CORE_INCLUDE_OBJC_HELPERS && (JUCE_MAC || JUCE_IOS)
+#if JUCE_CORE_INCLUDE_OBJC_HELPERS && JUCE_APPLE
  #include "native/juce_CFHelpers_mac.h"
  #include "native/juce_ObjCHelpers_mac.h"
 #endif

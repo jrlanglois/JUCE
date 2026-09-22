@@ -75,8 +75,8 @@ bool JUCE_CALLTYPE Process::openEmailWithAttachments ([[maybe_unused]] const Str
                                                       [[maybe_unused]] const String& bodyText,
                                                       [[maybe_unused]] const StringArray& filesToAttach)
 {
-  #if JUCE_IOS
-    //xxx probably need to use MFMailComposeViewController
+  #if JUCE_IOS || JUCE_TVOS
+    // xxx probably need to use MFMailComposeViewController
     jassertfalse;
     return false;
   #else

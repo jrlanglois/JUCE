@@ -150,7 +150,7 @@ void LibraryModule::addLibsToExporter (ProjectExporter& exporter) const
     {
         auto& xcodeExporter = dynamic_cast<XcodeProjectExporter&> (exporter);
 
-        if (project.isAUPluginHost())
+        if (project.isAUPluginHost() && ! xcodeExporter.isTVOS())
         {
             xcodeExporter.xcodeFrameworks.add ("CoreAudioKit");
 
@@ -158,13 +158,21 @@ void LibraryModule::addLibsToExporter (ProjectExporter& exporter) const
                 xcodeExporter.xcodeFrameworks.add ("AudioUnit");
         }
 
-        auto frameworks = moduleInfo[xcodeExporter.isOSX() ? "OSXFrameworks" : "iOSFrameworks"].toString();
+        const auto getMetadataKey = [&xcodeExporter] (const char* macOSKey, const char* iOSKey, const char* tvOSKey)
+        {
+            if (xcodeExporter.isOSX())
+                return macOSKey;
+
+            return xcodeExporter.isiOS() ? iOSKey : tvOSKey;
+        };
+
+        auto frameworks = moduleInfo[getMetadataKey ("OSXFrameworks", "iOSFrameworks", "tvOSFrameworks")].toString();
         xcodeExporter.xcodeFrameworks.addTokens (frameworks, ", ", {});
 
-        auto weakFrameworks = moduleInfo[xcodeExporter.isOSX() ? "WeakOSXFrameworks" : "WeakiOSFrameworks"].toString();
+        auto weakFrameworks = moduleInfo[getMetadataKey ("WeakOSXFrameworks", "WeakiOSFrameworks", "WeaktvOSFrameworks")].toString();
         xcodeExporter.xcodeWeakFrameworks.addTokens (weakFrameworks, ", ", {});
 
-        parseAndAddLibsToList (xcodeExporter.xcodeLibs, moduleInfo[exporter.isOSX() ? "OSXLibs" : "iOSLibs"].toString());
+        parseAndAddLibsToList (xcodeExporter.xcodeLibs, moduleInfo[getMetadataKey ("OSXLibs", "iOSLibs", "tvOSLibs")].toString());
     }
     else if (exporter.isLinux())
     {
@@ -289,6 +297,8 @@ bool LibraryModule::CompileUnit::isNeededForExporter (ProjectExporter& exporter)
                                                                  { "_linux",   exporter.isLinux() },
                                                                  { "_mac",     exporter.isOSX() },
                                                                  { "_osx",     exporter.isOSX() },
+                                                                 { "_tvos",    exporter.isTVOS() },
+                                                                 { "_uikit",   exporter.isiOS() || exporter.isTVOS() },
                                                                  { "_windows", exporter.isWindows() } };
 
     for (const auto& [suffix, shouldBuild] : shouldBuildForSuffix)

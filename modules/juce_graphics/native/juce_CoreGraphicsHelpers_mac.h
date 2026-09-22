@@ -106,8 +106,8 @@ namespace
 CGImageRef juce_createCoreGraphicsImage (const Image&, CGColorSpaceRef);
 CGContextRef juce_getImageContext (const Image&);
 
-#if JUCE_IOS
- Image juce_createImageFromUIImage (UIImage*);
+#if JUCE_IOS || JUCE_TVOS
+Image juce_createImageFromUIImage (UIImage*);
 #endif
 
 #if JUCE_MAC

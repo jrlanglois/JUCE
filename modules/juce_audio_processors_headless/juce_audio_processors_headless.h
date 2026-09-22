@@ -54,6 +54,7 @@
   dependencies:       juce_audio_basics juce_events
   OSXFrameworks:      CoreAudio CoreMIDI AudioToolbox
   iOSFrameworks:      AudioToolbox
+  tvOSFrameworks:     AudioToolbox
 
  END_JUCE_MODULE_DECLARATION
 
@@ -118,6 +119,21 @@
     the tag releases/2.1.0.
 */
 #ifndef JUCE_PLUGINHOST_ARA
+ #define JUCE_PLUGINHOST_ARA 0
+#endif
+
+#if JUCE_TVOS
+ #undef JUCE_PLUGINHOST_VST
+ #undef JUCE_PLUGINHOST_VST3
+ #undef JUCE_PLUGINHOST_AU
+ #undef JUCE_PLUGINHOST_LADSPA
+ #undef JUCE_PLUGINHOST_LV2
+ #undef JUCE_PLUGINHOST_ARA
+ #define JUCE_PLUGINHOST_VST 0
+ #define JUCE_PLUGINHOST_VST3 0
+ #define JUCE_PLUGINHOST_AU 0
+ #define JUCE_PLUGINHOST_LADSPA 0
+ #define JUCE_PLUGINHOST_LV2 0
  #define JUCE_PLUGINHOST_ARA 0
 #endif
 

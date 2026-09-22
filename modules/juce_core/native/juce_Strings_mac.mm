@@ -66,7 +66,7 @@ CFStringRef String::toCFString() const
 
 String String::convertToPrecomposedUnicode() const
 {
-   #if JUCE_IOS
+   #if JUCE_IOS || JUCE_TVOS
     JUCE_AUTORELEASEPOOL
     {
         return nsStringToJuce ([juceStringToNS (*this) precomposedStringWithCanonicalMapping]);

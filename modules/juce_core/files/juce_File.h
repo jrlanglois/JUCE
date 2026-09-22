@@ -36,8 +36,8 @@ namespace juce
 {
 
 /** @cond */
-#if JUCE_MAC || JUCE_IOS
- using OSType = unsigned int;
+#if JUCE_APPLE
+using OSType = unsigned int;
 #endif
 /** @endcond */
 
@@ -1113,7 +1113,7 @@ public:
    #endif
 
     //==============================================================================
-   #if JUCE_MAC || JUCE_IOS || DOXYGEN
+   #if JUCE_APPLE || DOXYGEN
     /** OSX ONLY - Finds the OSType of a file from the its resources. */
     OSType getMacOSType() const;
 
@@ -1126,7 +1126,7 @@ public:
     void addToDock() const;
    #endif
 
-   #if JUCE_MAC || JUCE_IOS
+   #if JUCE_APPLE
     /** Returns the path to the container shared by all apps with the provided app group ID.
 
         You *must* pass one of the app group IDs listed in your app's entitlements file.

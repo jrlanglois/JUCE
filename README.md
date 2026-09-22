@@ -4,8 +4,8 @@ JUCE is an open-source cross-platform C++ application framework for creating
 desktop and mobile applications, including VST, VST3, AU, AUv3, AAX and LV2
 audio plug-ins and plug-in hosts. JUCE can be easily integrated with existing
 projects via CMake, or can be used as a project generation tool via the
-[Projucer](#the-projucer), which supports exporting projects for Xcode (macOS
-and iOS), Visual Studio, Android Studio, and Linux Makefiles as well as
+[Projucer](#the-projucer), which supports exporting projects for Xcode (macOS,
+iOS, and tvOS), Visual Studio, Android Studio, and Linux Makefiles as well as
 containing a source code editor.
 
 ## Getting Started
@@ -96,6 +96,7 @@ repository.
 
 - __C++ Standard__: 17 (20 when building with JUCE_USE_WINDOWS_MIDI_SERVICES enabled)
 - __macOS/iOS__: Xcode 12.4 (Intel macOS 10.15.4, Apple Silicon macOS 11.0)
+- __tvOS__: Xcode 15.0
 - __Windows__: Visual Studio 2019 (Windows 10 version 1607)
 - __Linux__: g++ 7.0 or Clang 6.0 (for a full list of dependencies, see
 [here](/docs/Linux%20Dependencies.md)).
@@ -107,6 +108,7 @@ repository.
 - __Windows__: Windows 10 version 1607 (x86_64, x86, Arm64, Arm64EC)
 - __Linux__: Mainstream Linux distributions (x86_64, Arm64/aarch64, (32 bit Arm systems like armv7 should work but are not regularly tested))
 - __iOS__: iOS 12 (Arm64, Arm64e, x86_64 (Simulator))
+- __tvOS__: tvOS 17 (Arm64, x86_64 (Simulator))
 - __Android__: Android 7 - Nougat (API Level 24) (arm64-v8a, armeabi-v7a, x86_64, x86)
 
 ## Contributing

@@ -40,8 +40,8 @@ namespace juce
     live in juce_posix_SharedCode.h!
 */
 
-#if JUCE_IOS
- bool isIOSAppActive = true;
+#if JUCE_IOS || JUCE_TVOS
+bool isIOSAppActive = true;
 #endif
 
 static auto getNativeQOS (Thread::Priority priority)

@@ -347,7 +347,7 @@ public:
             }
            #endif
 
-           #if JUCE_MAC || JUCE_IOS
+           #if JUCE_APPLE
             CGContextRef getCGContext() const
             {
                 return self->sourceImage->getNativeExtensions().getCGContext();
@@ -455,7 +455,7 @@ auto ImagePixelData::getNativeExtensions() -> NativeExtensions
         Span<const Direct2DPixelDataPage> getPages (ComSmartPtr<ID2D1Device1>) const { return {}; }
        #endif
 
-       #if JUCE_MAC || JUCE_IOS
+       #if JUCE_APPLE
         CGContextRef getCGContext() const { return {}; }
         CFUniquePtr<CGImageRef> getCGImage (CGColorSpaceRef) const { return {}; }
        #endif

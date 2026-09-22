@@ -175,7 +175,7 @@ public:
         if (cfData == nullptr)
             return {};
 
-       #if JUCE_IOS
+       #if JUCE_IOS || JUCE_TVOS
         // Workaround for a an obscure iOS bug which can cause the app to dead-lock
         // when loading custom type faces. See: http://www.openradar.me/18778790 and
         // http://stackoverflow.com/questions/40242370/app-hangs-in-simulator
@@ -395,7 +395,7 @@ StringArray Font::findAllTypefaceStylesImpl (const String& family)
 
 struct DefaultFontNames
 {
-   #if JUCE_IOS
+   #if JUCE_IOS || JUCE_TVOS
     String defaultSans  { "Helvetica" },
            defaultSerif { "Times New Roman" },
            defaultFixed { "Courier New" };

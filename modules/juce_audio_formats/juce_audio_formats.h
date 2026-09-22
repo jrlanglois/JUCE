@@ -54,6 +54,7 @@
   dependencies:       juce_audio_basics
   OSXFrameworks:      CoreAudio CoreMIDI QuartzCore AudioToolbox
   iOSFrameworks:      AudioToolbox QuartzCore
+  tvOSFrameworks:     AudioToolbox QuartzCore
 
  END_JUCE_MODULE_DECLARATION
 

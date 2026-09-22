@@ -56,7 +56,7 @@ struct InAppPurchases::Pimpl
         String getContentVersion() const override  { return nsStringToJuce (download.contentVersion); }
         Status getStatus()         const override  { return SKDownloadStateToDownloadStatus (download.state); }
 
-      #if JUCE_IOS
+      #if JUCE_IOS || JUCE_TVOS
         int64 getContentLength()   const override  { return download.contentLength; }
       #else
         int64 getContentLength() const override
@@ -196,22 +196,42 @@ struct InAppPurchases::Pimpl
     //==============================================================================
     void startDownloads (const Array<Download*>& downloads)
     {
+       #if JUCE_TVOS
+        ignoreUnused (downloads);
+        jassertfalse;
+       #else
         [[SKPaymentQueue defaultQueue] startDownloads: downloadsToSKDownloads (removeInvalidDownloads (downloads))];
+       #endif
     }
 
     void pauseDownloads (const Array<Download*>& downloads)
     {
+       #if JUCE_TVOS
+        ignoreUnused (downloads);
+        jassertfalse;
+       #else
         [[SKPaymentQueue defaultQueue] pauseDownloads: downloadsToSKDownloads (removeInvalidDownloads (downloads))];
+       #endif
     }
 
     void resumeDownloads (const Array<Download*>& downloads)
     {
+       #if JUCE_TVOS
+        ignoreUnused (downloads);
+        jassertfalse;
+       #else
         [[SKPaymentQueue defaultQueue] resumeDownloads: downloadsToSKDownloads (removeInvalidDownloads (downloads))];
+       #endif
     }
 
     void cancelDownloads (const Array<Download*>& downloads)
     {
+       #if JUCE_TVOS
+        ignoreUnused (downloads);
+        jassertfalse;
+       #else
         [[SKPaymentQueue defaultQueue] cancelDownloads: downloadsToSKDownloads (removeInvalidDownloads (downloads))];
+       #endif
     }
 
     //==============================================================================
@@ -283,13 +303,16 @@ struct InAppPurchases::Pimpl
 
         Array<Download*> downloads;
 
+       #if JUCE_TVOS
+        [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
+       #else
         // If transaction failed or there are no downloads, finish the transaction immediately, otherwise
         // finish the transaction only after all downloads are finished.
         if (transaction.transactionState == SKPaymentTransactionStateFailed
-             || transaction.downloads == nil
-             || [transaction.downloads count] == 0)
+            || transaction.downloads == nil
+            || [transaction.downloads count] == 0)
         {
-            [[SKPaymentQueue defaultQueue]  finishTransaction: transaction];
+            [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
         }
         else
         {
@@ -311,6 +334,7 @@ struct InAppPurchases::Pimpl
             for (auto* download : pdt->downloads)
                 downloads.add (download);
         }
+       #endif
 
         if (transaction.transactionState == SKPaymentTransactionStateRestored)
             restoredPurchases.add ({ purchase, downloads });

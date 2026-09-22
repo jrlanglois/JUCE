@@ -297,7 +297,7 @@ public:
     using CreateInstanceFunction = JUCEApplicationBase* (*)();
     static CreateInstanceFunction createInstance;
 
-   #if JUCE_IOS
+   #if JUCE_IOS || JUCE_TVOS
     static void* iOSCustomDelegate;
    #endif
 

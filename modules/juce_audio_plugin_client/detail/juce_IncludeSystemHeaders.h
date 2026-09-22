@@ -49,11 +49,11 @@
  #include <float.h>
  #include <sys/time.h>
  #include <arpa/inet.h>
-#elif JUCE_MAC || JUCE_IOS
+#elif JUCE_APPLE
  #ifdef __OBJC__
   #if JUCE_MAC
    #include <Cocoa/Cocoa.h>
-  #elif JUCE_IOS
+  #elif JUCE_IOS || JUCE_TVOS
    #include <UIKit/UIKit.h>
   #else
    #error

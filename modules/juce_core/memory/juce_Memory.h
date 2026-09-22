@@ -138,7 +138,7 @@ inline const Type* addBytesToPointer (const Type* basePointer, IntegerType bytes
 }
 
 //==============================================================================
-#if JUCE_MAC || JUCE_IOS || DOXYGEN
+#if JUCE_APPLE || DOXYGEN
 
  /** A handy C++ wrapper that creates and deletes an NSAutoreleasePool object using RAII.
      You should use the JUCE_AUTORELEASEPOOL macro to create a local auto-release pool on the stack.

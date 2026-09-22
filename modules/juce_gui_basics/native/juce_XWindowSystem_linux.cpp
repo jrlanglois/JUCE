@@ -523,6 +523,8 @@ const int KeyPress::playKey               = ((int) 0xffeeff00)       | Keys::ext
 const int KeyPress::stopKey               = ((int) 0xffeeff01)       | Keys::extendedKeyModifier;
 const int KeyPress::fastForwardKey        = ((int) 0xffeeff02)       | Keys::extendedKeyModifier;
 const int KeyPress::rewindKey             = ((int) 0xffeeff03)       | Keys::extendedKeyModifier;
+const int KeyPress::selectKey             = ((int) 0xffeeff04)       | Keys::extendedKeyModifier;
+const int KeyPress::menuKey               = ((int) 0xffeeff05)       | Keys::extendedKeyModifier;
 
 static void updateKeyStates (int keycode, bool press) noexcept
 {

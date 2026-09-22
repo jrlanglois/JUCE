@@ -35,7 +35,7 @@
 namespace juce
 {
 
-#if JUCE_MAC || JUCE_IOS || DOXYGEN
+#if JUCE_APPLE || DOXYGEN
 
 //==============================================================================
 /**

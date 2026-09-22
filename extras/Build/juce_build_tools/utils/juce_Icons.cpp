@@ -401,7 +401,7 @@ namespace juce::build_tools
         }
     }
 
-    static String getiOSAssetContents (var images)
+    static String getAssetContents (const String& propertyName, var contents)
     {
         DynamicObject::Ptr v (new DynamicObject());
 
@@ -409,10 +409,16 @@ namespace juce::build_tools
         info.getDynamicObject()->setProperty ("version", 1);
         info.getDynamicObject()->setProperty ("author", "xcode");
 
-        v->setProperty ("images", images);
+        if (propertyName.isNotEmpty())
+            v->setProperty (Identifier { propertyName }, contents);
         v->setProperty ("info", info);
 
         return JSON::toString (var (v.get()));
+    }
+
+    static String getiOSAssetContents (var images)
+    {
+        return getAssetContents ("images", images);
     }
 
     //==============================================================================
@@ -511,6 +517,195 @@ namespace juce::build_tools
         return { assets, targetFolder, RelativePath::buildTargetFolder };
     }
 
+    struct TvOSImageType
+    {
+        const char* idiom;
+        const char* filename;
+        const char* scale;
+        int width;
+        int height;
+    };
+
+    static constexpr TvOSImageType tvOSAppIconTypes[]
+    {
+        { "tv", "AppIcon400x240.png", "1x", 400, 240 },
+        { "tv", "AppIcon800x480.png", "2x", 800, 480 }
+    };
+
+    static constexpr TvOSImageType tvOSAppStoreIconTypes[]
+    {
+        { "tv", "AppIcon1280x768.png", nullptr, 1280, 768 }
+    };
+
+    static constexpr TvOSImageType tvOSTopShelfTypes[]
+    {
+        { "tv",           "TopShelf1920x720.png",  "1x", 1920, 720 },
+        { "tv",           "TopShelf3840x1440.png", "2x", 3840, 1440 },
+        { "tv-marketing", "TopShelf1920x720.png",  "1x", 1920, 720 },
+        { "tv-marketing", "TopShelf3840x1440.png", "2x", 3840, 1440 }
+    };
+
+    static constexpr TvOSImageType tvOSTopShelfWideTypes[]
+    {
+        { "tv",           "TopShelfWide2320x720.png",  "1x", 2320, 720 },
+        { "tv",           "TopShelfWide4640x1440.png", "2x", 4640, 1440 },
+        { "tv-marketing", "TopShelfWide2320x720.png",  "1x", 2320, 720 },
+        { "tv-marketing", "TopShelfWide4640x1440.png", "2x", 4640, 1440 }
+    };
+
+    template <size_t NumTypes>
+    static String getTvOSImagesetContents (const TvOSImageType (&types)[NumTypes])
+    {
+        var images;
+
+        for (const auto& type : types)
+        {
+            DynamicObject::Ptr image (new DynamicObject());
+            image->setProperty ("idiom", type.idiom);
+            image->setProperty ("filename", type.filename);
+
+            if (type.scale != nullptr)
+                image->setProperty ("scale", type.scale);
+
+            images.append (var (image.get()));
+        }
+
+        return getAssetContents ("images", images);
+    }
+
+    static String getTvOSImageStackContents()
+    {
+        var layers;
+
+        for (const auto* name : { "Front.imagestacklayer", "Middle.imagestacklayer", "Back.imagestacklayer" })
+        {
+            DynamicObject::Ptr layer (new DynamicObject());
+            layer->setProperty ("filename", name);
+            layers.append (var (layer.get()));
+        }
+
+        return getAssetContents ("layers", layers);
+    }
+
+    static String getTvOSBrandAssetsContents()
+    {
+        struct Asset
+        {
+            const char* size;
+            const char* filename;
+            const char* role;
+        };
+
+        static constexpr Asset assetsToAdd[]{ { "1280x768", "App Icon - App Store.imagestack", "primary-app-icon" },
+                                              { "400x240", "App Icon.imagestack", "primary-app-icon" },
+                                              { "2320x720", "Top Shelf Image Wide.imageset", "top-shelf-image-wide" },
+                                              { "1920x720", "Top Shelf Image.imageset", "top-shelf-image" } };
+
+        var assets;
+
+        for (const auto& assetToAdd : assetsToAdd)
+        {
+            DynamicObject::Ptr asset (new DynamicObject());
+            asset->setProperty ("size", assetToAdd.size);
+            asset->setProperty ("idiom", "tv");
+            asset->setProperty ("filename", assetToAdd.filename);
+            asset->setProperty ("role", assetToAdd.role);
+            assets.append (var (asset.get()));
+        }
+
+        return getAssetContents ("assets", assets);
+    }
+
+    static Image createTvOSAssetImage (const Drawable& drawable, int width, int height)
+    {
+        Image image (Image::RGB, width, height, false, SoftwareImageType());
+        Graphics graphics (image);
+        graphics.fillAll (Colours::white);
+        drawable.drawWithin (graphics, image.getBounds().toFloat(), RectanglePlacement::centred, 1.0f);
+        return image;
+    }
+
+    static void writePng (const Image& image, const File& output)
+    {
+        MemoryOutputStream pngData;
+        PNGImageFormat pngFormat;
+        pngFormat.writeImageToStream (image, pngData);
+        overwriteFileIfDifferentOrThrow (output, pngData);
+    }
+
+    template <size_t NumTypes>
+    static void createTvOSImageFiles (const Drawable& drawable,
+                                      const File& imageset,
+                                      const TvOSImageType (&types)[NumTypes])
+    {
+        StringArray filesWritten;
+
+        for (const auto& type : types)
+        {
+            if (filesWritten.contains (type.filename))
+                continue;
+
+            writePng (createTvOSAssetImage (drawable, type.width, type.height),
+                      imageset.getChildFile (type.filename));
+            filesWritten.add (type.filename);
+        }
+    }
+
+    template <size_t NumTypes>
+    static void createTvOSImageStack (const Drawable& drawable,
+                                      const File& stack,
+                                      const TvOSImageType (&types)[NumTypes])
+    {
+        overwriteFileIfDifferentOrThrow (stack.getChildFile ("Contents.json"), getTvOSImageStackContents());
+
+        for (const auto* layerName : { "Front.imagestacklayer", "Middle.imagestacklayer", "Back.imagestacklayer" })
+        {
+            const auto layer = stack.getChildFile (layerName);
+            const auto content = layer.getChildFile ("Content.imageset");
+
+            overwriteFileIfDifferentOrThrow (layer.getChildFile ("Contents.json"), getAssetContents ({}, {}));
+            overwriteFileIfDifferentOrThrow (content.getChildFile ("Contents.json"), getTvOSImagesetContents (types));
+            createTvOSImageFiles (drawable, content, types);
+        }
+    }
+
+    RelativePath createTvOSXcassetsFolderFromIcons (const Icons& icons,
+                                                    const File& targetFolder,
+                                                    String projectFilenameRootString)
+    {
+        const auto assets = targetFolder.getChildFile (projectFilenameRootString).getChildFile ("Images.xcassets");
+        const auto brandAssets = assets.getChildFile ("App Icon & Top Shelf Image.brandassets");
+
+        overwriteFileIfDifferentOrThrow (assets.getChildFile ("Contents.json"), getAssetContents ({}, {}));
+
+        const auto* imageToUse = icons.getBig() != nullptr ? icons.getBig() : icons.getSmall();
+
+        if (imageToUse == nullptr)
+        {
+            brandAssets.deleteRecursively();
+            return { assets, targetFolder, RelativePath::buildTargetFolder };
+        }
+
+        overwriteFileIfDifferentOrThrow (brandAssets.getChildFile ("Contents.json"), getTvOSBrandAssetsContents());
+
+        createTvOSImageStack (*imageToUse,
+                              brandAssets.getChildFile ("App Icon.imagestack"),
+                              tvOSAppIconTypes);
+        createTvOSImageStack (*imageToUse,
+                              brandAssets.getChildFile ("App Icon - App Store.imagestack"),
+                              tvOSAppStoreIconTypes);
+
+        const auto topShelf = brandAssets.getChildFile ("Top Shelf Image.imageset");
+        overwriteFileIfDifferentOrThrow (topShelf.getChildFile ("Contents.json"), getTvOSImagesetContents (tvOSTopShelfTypes));
+        createTvOSImageFiles (*imageToUse, topShelf, tvOSTopShelfTypes);
+
+        const auto topShelfWide = brandAssets.getChildFile ("Top Shelf Image Wide.imageset");
+        overwriteFileIfDifferentOrThrow (topShelfWide.getChildFile ("Contents.json"), getTvOSImagesetContents (tvOSTopShelfWideTypes));
+        createTvOSImageFiles (*imageToUse, topShelfWide, tvOSTopShelfWideTypes);
+
+        return { assets, targetFolder, RelativePath::buildTargetFolder };
+    }
+
     //==============================================================================
     //==============================================================================
    #if JUCE_UNIT_TESTS
@@ -560,6 +755,44 @@ namespace juce::build_tools
 
                 expect (dynamic_cast<const DrawableImage*> (icons.getBig()) != nullptr,
                         "Raster data is loaded as a DrawableImage");
+            }
+
+            beginTest ("Generate tvOS brand assets from an icon");
+            {
+                TemporaryFile targetDirectory ("tvos-assets");
+                TemporaryFile iconFile ("tvos-icon");
+
+                expect (targetDirectory.getFile().createDirectory());
+
+                {
+                    auto stream = iconFile.getFile().createOutputStream();
+                    expect (stream != nullptr);
+                    stream->write (png, std::size (png));
+                }
+
+                const auto icons = Icons::fromFilesSmallAndBig ({}, iconFile.getFile());
+                createTvOSXcassetsFolderFromIcons (icons, targetDirectory.getFile(), "TestProject");
+
+                const auto assets = targetDirectory.getFile().getChildFile ("TestProject")
+                                                             .getChildFile ("Images.xcassets");
+                const auto brandAssets = assets.getChildFile ("App Icon & Top Shelf Image.brandassets");
+                const auto frontLayer = brandAssets.getChildFile ("App Icon.imagestack")
+                                                   .getChildFile ("Front.imagestacklayer")
+                                                   .getChildFile ("Content.imageset");
+
+                expect (assets.getChildFile ("Contents.json").existsAsFile());
+                expect (brandAssets.getChildFile ("Contents.json").existsAsFile());
+                expect (frontLayer.getChildFile ("AppIcon400x240.png").existsAsFile());
+
+                const auto generatedIcon = ImageFileFormat::loadFrom (frontLayer.getChildFile ("AppIcon400x240.png"));
+                expectEquals (generatedIcon.getWidth(), 400);
+                expectEquals (generatedIcon.getHeight(), 240);
+
+                beginTest ("Remove tvOS brand assets when no icon is supplied");
+                createTvOSXcassetsFolderFromIcons ({}, targetDirectory.getFile(), "TestProject");
+
+                expect (assets.getChildFile ("Contents.json").existsAsFile());
+                expect (! brandAssets.exists());
             }
         }
 

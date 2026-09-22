@@ -64,4 +64,8 @@ namespace juce::build_tools
                                                 String projectFilenameRootString,
                                                 String iconName);
 
+    RelativePath createTvOSXcassetsFolderFromIcons (const Icons& icons,
+                                                    const File& targetFolder,
+                                                    String projectFilenameRootString);
+
 } // namespace juce::build_tools

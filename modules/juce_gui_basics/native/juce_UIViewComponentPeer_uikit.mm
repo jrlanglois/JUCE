@@ -37,6 +37,10 @@
  #undef JUCE_COREGRAPHICS_RENDER_WITH_MULTIPLE_PAINT_CALLS
 #endif
 
+#if JUCE_TVOS
+ #import <GameController/GameController.h>
+#endif
+
 namespace juce
 {
 
@@ -51,13 +55,13 @@ struct WindowSceneTracker
 public:
     WindowSceneTracker() = default;
 
-    void setWindowScene (UIWindowScene* x) API_AVAILABLE (ios (13.0))
+    void setWindowScene (UIWindowScene* x) API_AVAILABLE (ios (13.0), tvos (13.0))
     {
         windowScene = x;
         listeners.call ([] (auto& l) { l.windowSceneChanged(); });
     }
 
-    UIWindowScene* getWindowScene() const API_AVAILABLE (ios (13.0))
+    UIWindowScene* getWindowScene() const API_AVAILABLE (ios (13.0), tvos (13.0))
     {
         return static_cast<UIWindowScene*> (windowScene);
     }
@@ -141,11 +145,12 @@ static KeysCurrentlyDown keysCurrentlyDown;
 static UIViewComponentPeer* currentlyFocusedPeer = nullptr;
 } // namespace iOSGlobals
 
+#if JUCE_IOS
 static UIInterfaceOrientation getWindowOrientation()
 {
     UIApplication* sharedApplication = [UIApplication sharedApplication];
 
-    if (@available (iOS 13.0, *))
+    if (@available (iOS 13.0, tvOS 13.0, *))
     {
         for (UIScene* scene in [sharedApplication connectedScenes])
             if ([scene isKindOfClass: [UIWindowScene class]])
@@ -202,6 +207,7 @@ struct Orientations
         return allowed;
     }
 };
+#endif
 
 enum class MouseEventFlags
 {
@@ -216,6 +222,7 @@ enum class MouseEventFlags
 
 using namespace juce;
 
+#if JUCE_IOS
 @interface JuceUITextPosition : UITextPosition
 {
 @public
@@ -315,6 +322,7 @@ using namespace juce;
 - (BOOL) isVertical    { return NO; }
 
 @end
+#endif
 
 //==============================================================================
 struct CADisplayLinkDeleter
@@ -326,6 +334,18 @@ struct CADisplayLinkDeleter
     }
 };
 
+#if JUCE_TVOS
+@interface JuceTextView : UITextField <UITextFieldDelegate>
+{
+@public
+    UIViewComponentPeer* owner;
+}
+
+- (instancetype) initWithOwner: (UIViewComponentPeer*) owner;
+- (void) synchroniseWithTextInputTarget;
+
+@end
+#else
 @interface JuceTextView : UIView <UITextInput>
 {
 @public
@@ -336,13 +356,22 @@ struct CADisplayLinkDeleter
 - (instancetype) initWithOwner: (UIViewComponentPeer*) owner;
 
 @end
+#endif
 
 @interface JuceUIView : UIView<CALayerDelegate>
 {
 @public
     UIViewComponentPeer* owner;
     std::unique_ptr<CADisplayLink, CADisplayLinkDeleter> displayLink;
+    bool menuKeyWasConsumed;
 }
+
+#if JUCE_TVOS
+- (void) controllerDidConnect: (NSNotification*) notification;
+- (void) controllerDidDisconnect: (NSNotification*) notification;
+- (void) configureController: (GCController*) controller;
+- (void) clearController: (GCController*) controller;
+#endif
 
 @end
 
@@ -353,16 +382,23 @@ struct CADisplayLinkDeleter
 
 - (JuceUIViewController*) init;
 
+#if JUCE_IOS
 - (UIInterfaceOrientationMask) supportedInterfaceOrientations;
-- (void) viewWillTransitionToSize: (CGSize) size withTransitionCoordinator: (id<UIViewControllerTransitionCoordinator>) coordinator;
 - (BOOL) prefersStatusBarHidden;
+- (BOOL) prefersHomeIndicatorAutoHidden;
 - (UIStatusBarStyle) preferredStatusBarStyle;
+- (void) viewWillTransitionToSize: (CGSize) size withTransitionCoordinator: (id<UIViewControllerTransitionCoordinator>) coordinator;
+#endif
 
 - (void) viewDidLoad;
 - (void) viewWillAppear: (BOOL) animated;
 - (void) viewDidAppear: (BOOL) animated;
+
 - (void) viewWillLayoutSubviews;
 - (void) viewDidLayoutSubviews;
+#if JUCE_TVOS
+- (NSArray<id<UIFocusEnvironment>>*) preferredFocusEnvironments;
+#endif
 @end
 
 //==============================================================================
@@ -412,8 +448,8 @@ public:
     Rectangle<int> getBounds (bool global) const;
     Point<float> localToGlobal (Point<float> relativePosition) override;
     Point<float> globalToLocal (Point<float> screenPosition) override;
-    using ComponentPeer::localToGlobal;
     using ComponentPeer::globalToLocal;
+    using ComponentPeer::localToGlobal;
     void setAlpha (float newAlpha) override;
     void setMinimised (bool) override                         {}
     bool isMinimised() const override                         { return false; }
@@ -448,8 +484,17 @@ public:
 
     void handleTouches (UIEvent*, MouseEventFlags);
 
+   #if JUCE_IOS
     API_AVAILABLE (ios (13.0)) void onHover (UIHoverGestureRecognizer*, MouseInputSource::InputSourceType);
     void onScroll (UIPanGestureRecognizer*);
+   #endif
+
+   #if JUCE_TVOS
+    void handleIndirectTouch (UITouch*, UIEvent*);
+    void moveVirtualCursor (Point<float>);
+    void moveKeyboardFocus (UIFocusHeading);
+    bool hasFocusableComponent();
+   #endif
 
     Range<int> getMarkedTextRange() const
     {
@@ -494,8 +539,17 @@ public:
     int startOfMarkedTextInTextInputTarget = 0;
     bool fullScreen = false, insideDrawRect = false;
     NSUniquePtr<JuceTextView> hiddenTextInput { [[JuceTextView alloc] initWithOwner: this] };
+   #if JUCE_IOS
     NSUniquePtr<JuceTextInputTokenizer> tokenizer { [[JuceTextInputTokenizer alloc] initWithPeer: this] };
+   #endif
     SharedResourcePointer<WindowSceneTracker> windowSceneTracker;
+
+   #if JUCE_TVOS
+    Point<float> virtualCursorPosition;
+    Point<float> previousIndirectTouchPosition;
+    UITouch* activeIndirectTouch = nil;
+    bool hasInitialisedVirtualCursor = false;
+   #endif
 
     static int64 getMouseTime (NSTimeInterval timestamp) noexcept
     {
@@ -541,7 +595,9 @@ public:
 private:
     void appStyleChanged() override
     {
+       #if JUCE_IOS
         [controller setNeedsStatusBarAppearanceUpdate];
+       #endif
     }
 
     void updateSceneForWindow()
@@ -551,7 +607,7 @@ private:
 
         const auto sceneDidChange = std::invoke ([&]
         {
-            if (@available (iOS 13, *))
+            if (@available (iOS 13, tvOS 13, *))
             {
                 auto* currentScene = window != nil ? [window windowScene] : nil;
                 return windowSceneTracker->getWindowScene() != currentScene;
@@ -570,7 +626,7 @@ private:
 
         auto* newWindow = std::invoke ([&]() -> JuceUIWindow*
         {
-            if (@available (iOS 13, *))
+            if (@available (iOS 13, tvOS 13, *))
             {
                 if (auto* scene = windowSceneTracker->getWindowScene())
                     return [[JuceUIWindow alloc] initWithWindowScene: scene];
@@ -593,7 +649,7 @@ private:
         {
             [(JuceUIWindow*) window setOwner: nullptr];
 
-            if (@available (iOS 13, *))
+            if (@available (iOS 13, tvOS 13, *))
                 window.windowScene = nil;
 
             window.rootViewController = nil;
@@ -658,6 +714,7 @@ static void sendScreenBoundsUpdate (JuceUIViewController* c)
         peer->updateScreenBounds();
 }
 
+#if JUCE_IOS
 static bool isKioskModeView (JuceUIViewController* c)
 {
     if (auto* peer = getViewPeer (c))
@@ -665,6 +722,7 @@ static bool isKioskModeView (JuceUIViewController* c)
 
     return false;
 }
+#endif
 
 MultiTouchMapper<UITouch*> UIViewComponentPeer::currentTouches;
 
@@ -681,6 +739,7 @@ MultiTouchMapper<UITouch*> UIViewComponentPeer::currentTouches;
     return self;
 }
 
+#if JUCE_IOS
 - (UIInterfaceOrientationMask) supportedInterfaceOrientations
 {
     return Orientations::getSupportedOrientations();
@@ -710,7 +769,7 @@ MultiTouchMapper<UITouch*> UIViewComponentPeer::currentTouches;
 
 - (UIStatusBarStyle) preferredStatusBarStyle
 {
-    if (@available (iOS 13.0, *))
+    if (@available (iOS 13.0, tvOS 13.0, *))
     {
         if (auto* peer = getViewPeer (self))
         {
@@ -728,6 +787,7 @@ MultiTouchMapper<UITouch*> UIViewComponentPeer::currentTouches;
 
     return UIStatusBarStyleDefault;
 }
+#endif
 
 - (void) viewDidLoad
 {
@@ -757,6 +817,13 @@ MultiTouchMapper<UITouch*> UIViewComponentPeer::currentTouches;
     sendScreenBoundsUpdate (self);
 }
 
+#if JUCE_TVOS
+- (NSArray<id<UIFocusEnvironment>>*) preferredFocusEnvironments
+{
+    return [self view] != nil ? @[ [self view] ] : @[];
+}
+#endif
+
 @end
 
 @implementation JuceUIView
@@ -768,7 +835,7 @@ MultiTouchMapper<UITouch*> UIViewComponentPeer::currentTouches;
     owner = peer;
 
    #if JUCE_COREGRAPHICS_RENDER_WITH_MULTIPLE_PAINT_CALLS
-    if (@available (iOS 13.0, *))
+    if (@available (iOS 13.0, tvOS 13.0, *))
     {
         auto* layer = (CAMetalLayer*) [self layer];
         layer.device = MTLCreateSystemDefaultDevice();
@@ -794,6 +861,7 @@ MultiTouchMapper<UITouch*> UIViewComponentPeer::currentTouches;
 
     [self addSubview: owner->hiddenTextInput.get()];
 
+   #if JUCE_IOS
     if (@available (iOS 13.4, *))
     {
         {
@@ -819,12 +887,39 @@ MultiTouchMapper<UITouch*> UIViewComponentPeer::currentTouches;
         [panRecognizer setMaximumNumberOfTouches: 0];
         [self addGestureRecognizer: panRecognizer];
     }
+   #endif
+
+   #if JUCE_TVOS
+    [[NSNotificationCenter defaultCenter] addObserver: self
+                                             selector: @selector (controllerDidConnect:)
+                                                 name: GCControllerDidConnectNotification
+                                               object: nil];
+    [[NSNotificationCenter defaultCenter] addObserver: self
+                                             selector: @selector (controllerDidDisconnect:)
+                                                 name: GCControllerDidDisconnectNotification
+                                               object: nil];
+
+    for (GCController* controllerToConfigure in [GCController controllers])
+        [self configureController: controllerToConfigure];
+   #endif
 
     return self;
 }
 
 - (void) dealloc
 {
+   #if JUCE_TVOS
+    [[NSNotificationCenter defaultCenter] removeObserver: self
+                                                    name: GCControllerDidConnectNotification
+                                                  object: nil];
+    [[NSNotificationCenter defaultCenter] removeObserver: self
+                                                    name: GCControllerDidDisconnectNotification
+                                                  object: nil];
+
+    for (GCController* configuredController in [GCController controllers])
+        [self clearController: configuredController];
+   #endif
+
     [owner->hiddenTextInput.get() removeFromSuperview];
     displayLink = nullptr;
 
@@ -835,7 +930,7 @@ MultiTouchMapper<UITouch*> UIViewComponentPeer::currentTouches;
 + (Class) layerClass
 {
    #if JUCE_COREGRAPHICS_RENDER_WITH_MULTIPLE_PAINT_CALLS
-    if (@available (iOS 13, *))
+    if (@available (iOS 13, tvOS 13, *))
         return [CAMetalLayer class];
    #endif
 
@@ -923,6 +1018,7 @@ MultiTouchMapper<UITouch*> UIViewComponentPeer::currentTouches;
     [self touchesEnded: touches withEvent: event];
 }
 
+#if JUCE_IOS
 - (void) onPenHover: (UIHoverGestureRecognizer*) gesture API_AVAILABLE (ios (13))
 {
     if (owner != nullptr)
@@ -940,6 +1036,52 @@ MultiTouchMapper<UITouch*> UIViewComponentPeer::currentTouches;
     if (owner != nullptr)
         owner->onScroll (gesture);
 }
+#endif
+
+#if JUCE_TVOS
+- (void) controllerDidConnect: (NSNotification*) notification
+{
+    [self configureController: (GCController*) [notification object]];
+}
+
+- (void) controllerDidDisconnect: (NSNotification*) notification
+{
+    [self clearController: (GCController*) [notification object]];
+}
+
+- (void) clearController: (GCController*) controllerToClear
+{
+    controllerToClear.extendedGamepad.leftThumbstick.valueChangedHandler = nil;
+    controllerToClear.microGamepad.dpad.valueChangedHandler = nil;
+}
+
+- (void) configureController: (GCController*) controllerToConfigure
+{
+    controllerToConfigure.handlerQueue = dispatch_get_main_queue();
+    __block JuceUIView* targetView = self;
+
+    const auto moveCursor = ^(float x, float y)
+    {
+        if (targetView != nil && targetView->owner != nullptr)
+            targetView->owner->moveVirtualCursor ({ x * 18.0f, -y * 18.0f });
+    };
+
+    if (auto* gamepad = controllerToConfigure.extendedGamepad)
+    {
+        gamepad.leftThumbstick.valueChangedHandler = ^(GCControllerDirectionPad*, float x, float y)
+        {
+            moveCursor (x, y);
+        };
+    }
+    else if (auto* microGamepad = controllerToConfigure.microGamepad)
+    {
+        microGamepad.dpad.valueChangedHandler = ^(GCControllerDirectionPad*, float x, float y)
+        {
+            moveCursor (x, y);
+        };
+    }
+}
+#endif
 
 static std::optional<int> getKeyCodeForSpecialCharacterString (StringRef characters)
 {
@@ -956,7 +1098,7 @@ static std::optional<int> getKeyCodeForSpecialCharacterString (StringRef charact
             { nsStringToJuce (UIKeyInputPageDown),      KeyPress::pageDownKey },
         };
 
-        if (@available (iOS 13.4, *))
+        if (@available (iOS 13.4, tvOS 13.4, *))
         {
             result.insert ({ { nsStringToJuce (UIKeyInputHome),          KeyPress::homeKey },
                              { nsStringToJuce (UIKeyInputEnd),           KeyPress::endKey },
@@ -974,8 +1116,8 @@ static std::optional<int> getKeyCodeForSpecialCharacterString (StringRef charact
                              { nsStringToJuce (UIKeyInputF12),           KeyPress::F12Key } });
         }
 
-       #if JUCE_IOS_API_VERSION_CAN_BE_BUILT (15, 0)
-        if (@available (iOS 15.0, *))
+       #if JUCE_IOS_API_VERSION_CAN_BE_BUILT (15, 0) || JUCE_TVOS_API_VERSION_CAN_BE_BUILT (15, 0)
+        if (@available (iOS 15.0, tvOS 15.0, *))
         {
             result.insert ({ { nsStringToJuce (UIKeyInputDelete),        KeyPress::deleteKey } });
         }
@@ -1011,7 +1153,8 @@ static void updateModifiers (const UIKeyModifierFlags flags)
     ModifierKeys::currentModifiers = ModifierKeys::getCurrentModifiers().withOnlyMouseButtons().withFlags (juceFlags);
 }
 
-API_AVAILABLE (ios(13.4))
+#if JUCE_IOS
+API_AVAILABLE (ios (13.4))
 static void updateButtonMask (const UIEventButtonMask mask)
 {
     const auto convert = [&mask] (UIEventButtonMask f, int result) { return (mask & f) != 0 ? result : 0; };
@@ -1019,35 +1162,77 @@ static void updateButtonMask (const UIEventButtonMask mask)
                          | convert (UIEventButtonMaskSecondary, ModifierKeys::rightButtonModifier);
     ModifierKeys::currentModifiers = ModifierKeys::getCurrentModifiers().withoutMouseButtons().withFlags (juceFlags);
 }
+#endif
 
-API_AVAILABLE (ios(13.4))
+API_AVAILABLE (ios (13.4), tvos (13.4))
 static int getKeyCodeForKey (UIKey* key)
 {
     return getKeyCodeForCharacters ([key charactersIgnoringModifiers]);
 }
 
-API_AVAILABLE (ios(13.4))
-static bool attemptToConsumeKeys (JuceUIView* view, NSSet<UIPress*>* presses)
+API_AVAILABLE (ios (13.4), tvos (13.4))
+static std::optional<int> getKeyCodeForPress (UIPress* press)
+{
+    if (auto* key = [press key])
+        return getKeyCodeForKey (key);
+
+    switch ([press type])
+    {
+        case UIPressTypeUpArrow:     return KeyPress::upKey;
+        case UIPressTypeDownArrow:   return KeyPress::downKey;
+        case UIPressTypeLeftArrow:   return KeyPress::leftKey;
+        case UIPressTypeRightArrow:  return KeyPress::rightKey;
+        case UIPressTypeSelect:      return KeyPress::selectKey;
+        case UIPressTypeMenu:        return KeyPress::menuKey;
+        case UIPressTypePlayPause:   return KeyPress::playKey;
+
+       #if JUCE_TVOS
+        case UIPressTypePageUp:                 return KeyPress::pageUpKey;
+        case UIPressTypePageDown:               return KeyPress::pageDownKey;
+        #if JUCE_TVOS_API_VERSION_CAN_BE_BUILT (18, 1)
+        case UIPressTypeTVRemoteOneTwoThree:
+        case UIPressTypeTVRemoteFourColors:     return {};
+        #endif
+       #endif
+
+        default:                                return {};
+    }
+}
+
+API_AVAILABLE (ios (13.4), tvos (13.4))
+static bool attemptToConsumeKeys (JuceUIView* view, NSSet<UIPress*>* presses, bool& menuKeyWasConsumed)
 {
     auto used = false;
 
     for (UIPress* press in presses)
     {
-        if (auto* key = [press key])
+        if (const auto code = getKeyCodeForPress (press))
         {
-            const auto code = getKeyCodeForKey (key);
-            const auto handleCodepoint = [view, &used, code] (juce_wchar codepoint)
+            auto pressWasUsed = false;
+            const auto handleCodepoint = [view, &pressWasUsed, code] (juce_wchar codepoint)
             {
                 // These both need to fire; no short-circuiting!
-                used |= view->owner->handleKeyUpOrDown (true);
-                used |= view->owner->handleKeyPress (code, codepoint);
+                pressWasUsed |= view->owner->handleKeyUpOrDown (true);
+                pressWasUsed |= view->owner->handleKeyPress (*code, codepoint);
             };
 
-            if (getKeyCodeForSpecialCharacterString (nsStringToJuce ([key charactersIgnoringModifiers])).has_value())
-                handleCodepoint (0);
+            if (auto* key = [press key])
+            {
+                if (getKeyCodeForSpecialCharacterString (nsStringToJuce ([key charactersIgnoringModifiers])).has_value())
+                    handleCodepoint (0);
+                else
+                    for (const auto codepoint : nsStringToJuce ([key characters]))
+                        handleCodepoint (codepoint);
+            }
             else
-                for (const auto codepoint : nsStringToJuce ([key characters]))
-                    handleCodepoint (codepoint);
+            {
+                handleCodepoint (0);
+            }
+
+            if ([press type] == UIPressTypeMenu)
+                menuKeyWasConsumed |= pressWasUsed;
+
+            used |= pressWasUsed;
         }
     }
 
@@ -1058,26 +1243,41 @@ static bool attemptToConsumeKeys (JuceUIView* view, NSSet<UIPress*>* presses)
 {
     const auto handledEvent = [&]
     {
-        if (@available (iOS 13.4, *))
+        if (@available (iOS 13.4, tvOS 13.4, *))
         {
             auto isEscape = false;
+            auto isMenu = false;
+            auto wasMenuKeyConsumed = false;
 
             updateModifiers ([event modifierFlags]);
+           #if JUCE_IOS
             updateButtonMask ([event buttonMask]);
+           #endif
 
             for (UIPress* press in presses)
             {
-                if (auto* key = [press key])
+                if (const auto code = getKeyCodeForPress (press))
                 {
-                    const auto code = getKeyCodeForKey (key);
-                    isEscape |= code == KeyPress::escapeKey;
-                    iOSGlobals::keysCurrentlyDown.setDown (code, true);
+                    isEscape |= *code == KeyPress::escapeKey;
+                    isMenu |= *code == KeyPress::menuKey;
+                    iOSGlobals::keysCurrentlyDown.setDown (*code, true);
                 }
             }
 
-            return ((isEscape && owner->stringBeingComposed.isEmpty())
-                    || owner->findCurrentTextInputTarget() == nullptr)
-                   && attemptToConsumeKeys (self, presses);
+           #if JUCE_TVOS
+            const auto shouldConsumeMenu = isMenu;
+           #else
+            const auto shouldConsumeMenu = false;
+           #endif
+
+            const auto shouldConsume = shouldConsumeMenu
+                                    || (isEscape && owner->stringBeingComposed.isEmpty())
+                                    || owner->findCurrentTextInputTarget() == nullptr;
+            const auto wasConsumed = shouldConsume
+                                  && attemptToConsumeKeys (self, presses, wasMenuKeyConsumed);
+
+            self->menuKeyWasConsumed = wasMenuKeyConsumed;
+            return wasConsumed;
         }
 
         return false;
@@ -1090,14 +1290,16 @@ static bool attemptToConsumeKeys (JuceUIView* view, NSSet<UIPress*>* presses)
 /*  Returns true if we handled the event. */
 static bool doKeysUp (UIViewComponentPeer* owner, NSSet<UIPress*>* presses, UIPressesEvent* event)
 {
-    if (@available (iOS 13.4, *))
+    if (@available (iOS 13.4, tvOS 13.4, *))
     {
         updateModifiers ([event modifierFlags]);
+       #if JUCE_IOS
         updateButtonMask ([event buttonMask]);
+       #endif
 
         for (UIPress* press in presses)
-            if (auto* key = [press key])
-                iOSGlobals::keysCurrentlyDown.setDown (getKeyCodeForKey (key), false);
+            if (const auto code = getKeyCodeForPress (press))
+                iOSGlobals::keysCurrentlyDown.setDown (*code, false);
 
         return owner->findCurrentTextInputTarget() == nullptr && owner->handleKeyUpOrDown (false);
     }
@@ -1107,7 +1309,32 @@ static bool doKeysUp (UIViewComponentPeer* owner, NSSet<UIPress*>* presses, UIPr
 
 - (void) pressesEnded: (NSSet<UIPress*>*) presses withEvent: (UIPressesEvent*) event
 {
-    if (! doKeysUp (owner, presses, event))
+    const auto handled = doKeysUp (owner, presses, event);
+
+   #if JUCE_TVOS
+    auto hasMenuPress = false;
+
+    for (UIPress* press in presses)
+        hasMenuPress |= [press type] == UIPressTypeMenu;
+
+    if (hasMenuPress)
+    {
+        const auto consumed = menuKeyWasConsumed;
+        menuKeyWasConsumed = false;
+
+        if (consumed)
+            return;
+
+        if (auto* app = JUCEApplicationBase::getInstance())
+            if (app->backButtonPressed())
+                return;
+
+        [super pressesEnded: presses withEvent: event];
+        return;
+    }
+   #endif
+
+    if (! handled)
         [super pressesEnded: presses withEvent: event];
 }
 
@@ -1139,6 +1366,33 @@ static bool doKeysUp (UIViewComponentPeer* owner, NSSet<UIPress*>* presses, UIPr
     return owner != nullptr && owner->canBecomeKeyWindow();
 }
 
+#if JUCE_TVOS
+- (BOOL) canBecomeFocused
+{
+    return owner != nullptr && owner->hasFocusableComponent();
+}
+
+- (BOOL) shouldUpdateFocusInContext: (UIFocusUpdateContext*) context
+{
+    if ([context previouslyFocusedView] == self && [context focusHeading] != UIFocusHeadingNone && owner != nullptr)
+    {
+        owner->moveKeyboardFocus ([context focusHeading]);
+        return false;
+    }
+
+    return [super shouldUpdateFocusInContext: context];
+}
+
+- (void) didUpdateFocusInContext: (UIFocusUpdateContext*) context
+        withAnimationCoordinator: (UIFocusAnimationCoordinator*) coordinator
+{
+    [super didUpdateFocusInContext: context withAnimationCoordinator: coordinator];
+
+    if ([context nextFocusedView] == self && owner != nullptr)
+        owner->moveKeyboardFocus ([context focusHeading]);
+}
+#endif
+
 static void postTraitChangeNotification (UITraitCollection* previousTraitCollection)
 {
     const auto wasDarkModeActive = ([previousTraitCollection userInterfaceStyle] == UIUserInterfaceStyleDark);
@@ -1148,12 +1402,12 @@ static void postTraitChangeNotification (UITraitCollection* previousTraitCollect
                                                             object: nil];
 }
 
-#if ! JUCE_IOS_API_VERSION_MIN_REQUIRED_AT_LEAST (17, 0)
+#if ! (JUCE_IOS_API_VERSION_MIN_REQUIRED_AT_LEAST (17, 0) || JUCE_TVOS_API_VERSION_MIN_REQUIRED_AT_LEAST (17, 0))
 - (void) traitCollectionDidChange: (UITraitCollection*) previousTraitCollection
 {
     [super traitCollectionDidChange: previousTraitCollection];
 
-    if (@available (iOS 17, *))
+    if (@available (iOS 17, tvOS 17, *))
         {} // do nothing
     else
         postTraitChangeNotification (previousTraitCollection);
@@ -1203,6 +1457,99 @@ static void postTraitChangeNotification (UITraitCollection* previousTraitCollect
 
 @end
 
+#if JUCE_TVOS
+@implementation JuceTextView
+
+- (TextInputTarget*) getTextInputTarget
+{
+    return owner != nullptr ? owner->findCurrentTextInputTarget() : nullptr;
+}
+
+- (instancetype) initWithOwner: (UIViewComponentPeer*) ownerIn
+{
+    [super initWithFrame: CGRectMake (0.0, 0.0, 1.0, 1.0)];
+    owner = ownerIn;
+    self.delegate = self;
+    self.borderStyle = UITextBorderStyleNone;
+    self.backgroundColor = [UIColor clearColor];
+    self.textColor = [UIColor clearColor];
+    self.autocapitalizationType = UITextAutocapitalizationTypeNone;
+    self.autocorrectionType = UITextAutocorrectionTypeNo;
+    self.spellCheckingType = UITextSpellCheckingTypeNo;
+    self.accessibilityElementsHidden = YES;
+    return self;
+}
+
+- (void) synchroniseWithTextInputTarget
+{
+    auto* target = [self getTextInputTarget];
+
+    if (target == nullptr)
+        return;
+
+    self.text = juceStringToNS (target->getTextInRange ({ 0, target->getTotalNumChars() }));
+    self.keyboardType = UIViewComponentPeer::getUIKeyboardType (target->getKeyboardType());
+    self.secureTextEntry = target->getKeyboardType() == TextInputTarget::passwordKeyboard;
+
+    const auto range = target->getHighlightedRegion();
+    auto* begin = [self beginningOfDocument];
+    auto* start = [self positionFromPosition: begin offset: range.getStart()];
+    auto* end = [self positionFromPosition: begin offset: range.getEnd()];
+
+    if (start != nil && end != nil)
+        self.selectedTextRange = [self textRangeFromPosition: start toPosition: end];
+}
+
+- (BOOL) textField: (UITextField*) textField
+        shouldChangeCharactersInRange: (NSRange) range
+        replacementString: (NSString*) replacement
+{
+    ignoreUnused (textField);
+
+    if (auto* target = [self getTextInputTarget])
+    {
+        target->setHighlightedRegion (nsRangeToJuce (range));
+        target->insertTextAtCaret (nsStringToJuce (replacement));
+        [self synchroniseWithTextInputTarget];
+        return NO;
+    }
+
+    return NO;
+}
+
+- (void) textFieldDidChangeSelection: (UITextField*) textField
+{
+    auto* target = [self getTextInputTarget];
+    auto* selection = textField.selectedTextRange;
+
+    if (target == nullptr || selection == nil)
+        return;
+
+    const auto start = (int) [textField offsetFromPosition: textField.beginningOfDocument
+                                                toPosition: selection.start];
+    const auto end = (int) [textField offsetFromPosition: textField.beginningOfDocument
+                                              toPosition: selection.end];
+    target->setHighlightedRegion ({ start, end });
+}
+
+- (BOOL) textFieldShouldReturn: (UITextField*) textField
+{
+    ignoreUnused (textField);
+
+    if (owner == nullptr)
+        return NO;
+
+    iOSGlobals::keysCurrentlyDown.setDown (KeyPress::returnKey, true);
+    owner->handleKeyUpOrDown (true);
+    owner->handleKeyPress (KeyPress::returnKey, '\r');
+    iOSGlobals::keysCurrentlyDown.setDown (KeyPress::returnKey, false);
+    owner->handleKeyUpOrDown (false);
+    return NO;
+}
+
+@end
+
+#else
 /** see https://developer.apple.com/library/archive/documentation/StringsTextFonts/Conceptual/TextAndWebiPhoneOS/LowerLevelText-HandlingTechnologies/LowerLevelText-HandlingTechnologies.html */
 @implementation JuceTextView
 
@@ -1786,6 +2133,7 @@ static void postTraitChangeNotification (UITraitCollection* previousTraitCollect
 }
 
 @end
+#endif
 
 //==============================================================================
 //==============================================================================
@@ -1803,8 +2151,8 @@ Point<float> juce_lastMousePos;
 
 struct ChangeRegistrationTrait
 {
-   #if JUCE_IOS_API_VERSION_CAN_BE_BUILT (17, 0)
-    API_AVAILABLE (ios (17))
+   #if JUCE_IOS_API_VERSION_CAN_BE_BUILT (17, 0) || JUCE_TVOS_API_VERSION_CAN_BE_BUILT (17, 0)
+    API_AVAILABLE (ios (17), tvos (17))
     static void newFn (UIView* view)
     {
         [view registerForTraitChanges: @[UITraitUserInterfaceStyle.self]
@@ -1830,13 +2178,15 @@ UIViewComponentPeer::UIViewComponentPeer (Component& comp,
 
     view = [[JuceUIView alloc] initWithOwner: this withFrame: r];
 
+   #if JUCE_IOS
     view.multipleTouchEnabled = YES;
+   #endif
     view.hidden = true;
     view.opaque = component.isOpaque();
     view.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent: 0];
 
    #if JUCE_COREGRAPHICS_RENDER_WITH_MULTIPLE_PAINT_CALLS
-    if (@available (iOS 13, *))
+    if (@available (iOS 13, tvOS 13, *))
     {
         metalRenderer = CoreGraphicsMetalLayerRenderer::create();
         jassert (metalRenderer != nullptr);
@@ -1891,7 +2241,7 @@ UIViewComponentPeer::~UIViewComponentPeer()
     {
         [((JuceUIWindow*) window) setOwner: nil];
 
-        if (@available (iOS 13.0, *))
+        if (@available (iOS 13.0, tvOS 13.0, *))
             window.windowScene = nil;
 
         [window release];
@@ -2087,6 +2437,10 @@ void UIViewComponentPeer::setIcon (const Image& /*newIcon*/)
 //==============================================================================
 static MouseInputSource::InputSourceType getInputSourceType (UITouchType type)
 {
+   #if JUCE_TVOS
+    ignoreUnused (type);
+    return MouseInputSource::InputSourceType::mouse;
+   #else
     switch (type)
     {
         case UITouchTypeDirect:
@@ -2101,7 +2455,134 @@ static MouseInputSource::InputSourceType getInputSourceType (UITouchType type)
     }
 
     return {};
+   #endif
 }
+
+#if JUCE_TVOS
+void UIViewComponentPeer::moveVirtualCursor (Point<float> delta)
+{
+    const auto localBounds = component.getLocalBounds().toFloat();
+
+    if (! hasInitialisedVirtualCursor)
+    {
+        virtualCursorPosition = localBounds.getCentre();
+        hasInitialisedVirtualCursor = true;
+    }
+
+    virtualCursorPosition += delta;
+    virtualCursorPosition.x = jlimit (localBounds.getX(),
+                                      jmax (localBounds.getX(), localBounds.getRight() - 1.0f),
+                                      virtualCursorPosition.x);
+    virtualCursorPosition.y = jlimit (localBounds.getY(),
+                                      jmax (localBounds.getY(), localBounds.getBottom() - 1.0f),
+                                      virtualCursorPosition.y);
+
+    juce_lastMousePos = virtualCursorPosition + getBounds (true).getPosition().toFloat();
+
+    handleMouseEvent (MouseInputSource::InputSourceType::mouse,
+                      virtualCursorPosition,
+                      ModifierKeys::getCurrentModifiers(),
+                      MouseInputSource::defaultPressure,
+                      MouseInputSource::defaultOrientation,
+                      getMouseTime ([[NSProcessInfo processInfo] systemUptime]),
+                      {});
+}
+
+void UIViewComponentPeer::handleIndirectTouch (UITouch* touch, UIEvent* event)
+{
+    const auto touchPosition = convertToPointFloat ([touch locationInView: view]);
+
+    if ([touch phase] == UITouchPhaseBegan)
+    {
+        activeIndirectTouch = touch;
+        previousIndirectTouchPosition = touchPosition;
+
+        if (! hasInitialisedVirtualCursor)
+            moveVirtualCursor ({});
+
+        handleMouseEvent (MouseInputSource::InputSourceType::mouse,
+                          virtualCursorPosition,
+                          ModifierKeys::getCurrentModifiers().withoutMouseButtons(),
+                          MouseInputSource::defaultPressure,
+                          MouseInputSource::defaultOrientation,
+                          getMouseTime (event),
+                          {});
+        moveVirtualCursor ({});
+        return;
+    }
+
+    if (activeIndirectTouch != touch)
+        return;
+
+    if ([touch phase] == UITouchPhaseMoved)
+    {
+        const auto delta = (touchPosition - previousIndirectTouchPosition) * 2.0f;
+        previousIndirectTouchPosition = touchPosition;
+        moveVirtualCursor (delta);
+        return;
+    }
+
+    if ([touch phase] == UITouchPhaseEnded || [touch phase] == UITouchPhaseCancelled)
+    {
+        activeIndirectTouch = nil;
+        ModifierKeys::currentModifiers = ModifierKeys::getCurrentModifiers().withoutMouseButtons();
+        moveVirtualCursor ({});
+    }
+}
+
+bool UIViewComponentPeer::hasFocusableComponent()
+{
+    if (component.getWantsKeyboardFocus())
+        return true;
+
+    if (auto traverser = component.createKeyboardFocusTraverser())
+        return traverser->getDefaultComponent (&component) != nullptr;
+
+    return false;
+}
+
+void UIViewComponentPeer::moveKeyboardFocus (UIFocusHeading heading)
+{
+    auto traverser = component.createKeyboardFocusTraverser();
+
+    if (traverser == nullptr)
+        return;
+
+    auto* current = Component::getCurrentlyFocusedComponent();
+
+    if (current != &component && ! component.isParentOf (current))
+        current = nullptr;
+
+    if (current != nullptr && (heading == UIFocusHeadingNone || heading == UIFocusHeadingFirst))
+        return;
+
+    Component* next = nullptr;
+
+    if (current == nullptr)
+    {
+        next = traverser->getDefaultComponent (&component);
+    }
+    else if ((heading & (UIFocusHeadingLeft | UIFocusHeadingUp | UIFocusHeadingPrevious | UIFocusHeadingLast)) != 0)
+    {
+        next = traverser->getPreviousComponent (current);
+
+        if (next == nullptr && heading == UIFocusHeadingLast)
+        {
+            const auto components = traverser->getAllComponents (&component);
+
+            if (! components.empty())
+                next = components.back();
+        }
+    }
+    else
+    {
+        next = traverser->getNextComponent (current);
+    }
+
+    if (next != nullptr)
+        next->grabKeyboardFocus();
+}
+#endif
 
 void UIViewComponentPeer::handleTouches (UIEvent* event, MouseEventFlags mouseEventFlags)
 {
@@ -2113,6 +2594,7 @@ void UIViewComponentPeer::handleTouches (UIEvent* event, MouseEventFlags mouseEv
         return m == MouseEventFlags::up || m == MouseEventFlags::upAndCancel;
     };
 
+   #if JUCE_IOS
     if (@available (iOS 13.4, *))
     {
         updateModifiers ([event modifierFlags]);
@@ -2134,16 +2616,30 @@ void UIViewComponentPeer::handleTouches (UIEvent* event, MouseEventFlags mouseEv
                                             .withoutMouseButtons()
                                             .withFlags (newFlags);
     }
+   #else
+    updateModifiers ([event modifierFlags]);
+    ModifierKeys::currentModifiers = ModifierKeys::getCurrentModifiers().withoutMouseButtons();
+   #endif
 
     NSArray* touches = [[event touchesForView: view] allObjects];
 
     for (unsigned int i = 0; i < [touches count]; ++i)
     {
         UITouch* touch = [touches objectAtIndex: i];
+       #if JUCE_IOS
         auto maximumForce = (float) touch.maximumPossibleForce;
 
         if ([touch phase] == UITouchPhaseStationary && maximumForce <= 0)
             continue;
+       #endif
+
+       #if JUCE_TVOS
+        if ([touch type] == UITouchTypeIndirect)
+        {
+            handleIndirectTouch (touch, event);
+            continue;
+        }
+       #endif
 
         auto pos = convertToPointFloat ([touch locationInView: view]);
         juce_lastMousePos = pos + getBounds (true).getPosition().toFloat();
@@ -2192,9 +2688,13 @@ void UIViewComponentPeer::handleTouches (UIEvent* event, MouseEventFlags mouseEv
             modsToSend = ModifierKeys::currentModifiers = ModifierKeys::getCurrentModifiers().withoutMouseButtons();
         }
 
+       #if JUCE_IOS
         // Some devices return 0 or 1.0 if pressure is unknown, so we'll clip our value to a believable range
         auto pressure = maximumForce > 0 ? jlimit (0.0001f, 0.9999f, (float) touch.force / maximumForce)
                                          : MouseInputSource::defaultPressure;
+       #else
+        auto pressure = MouseInputSource::defaultPressure;
+       #endif
 
         handleMouseEvent (type,
                           pos,
@@ -2225,6 +2725,7 @@ void UIViewComponentPeer::handleTouches (UIEvent* event, MouseEventFlags mouseEv
     }
 }
 
+#if JUCE_IOS
 void UIViewComponentPeer::onHover (UIHoverGestureRecognizer* gesture, MouseInputSource::InputSourceType type)
 {
     if (ModifierKeys::getCurrentModifiers().isAnyMouseButtonDown())
@@ -2261,6 +2762,7 @@ void UIViewComponentPeer::onScroll (UIPanGestureRecognizer* gesture)
                       UIViewComponentPeer::getMouseTime ([[NSProcessInfo processInfo] systemUptime]),
                       details);
 }
+#endif
 
 //==============================================================================
 void UIViewComponentPeer::viewFocusGain()
@@ -2305,15 +2807,21 @@ void UIViewComponentPeer::grabFocus()
 
 void UIViewComponentPeer::textInputRequired (Point<int>, TextInputTarget&)
 {
+   #if JUCE_TVOS
+    [hiddenTextInput.get() synchroniseWithTextInputTarget];
+   #else
     // We need to reload the text input session so that the keyboard can change types if necessary.
     if ([hiddenTextInput.get() isFirstResponder])
         [hiddenTextInput.get() reloadInputViews];
-    else
+   #endif
+
+    if (![hiddenTextInput.get() isFirstResponder])
         [hiddenTextInput.get() becomeFirstResponder];
 }
 
 void UIViewComponentPeer::closeInputMethodContext()
 {
+   #if JUCE_IOS
     if (auto* input = hiddenTextInput.get())
     {
         if (auto* delegate = [input inputDelegate])
@@ -2322,6 +2830,7 @@ void UIViewComponentPeer::closeInputMethodContext()
             [delegate selectionDidChange:  input];
         }
     }
+   #endif
 }
 
 void UIViewComponentPeer::dismissPendingTextInput()
@@ -2381,8 +2890,10 @@ void Desktop::setKioskComponent (Component* kioskModeComp, bool enableOrDisable,
 
     if (auto* peer = kioskModeComp->getPeer())
     {
+       #if JUCE_IOS
         if (auto* uiViewPeer = dynamic_cast<UIViewComponentPeer*> (peer))
             [uiViewPeer->controller setNeedsStatusBarAppearanceUpdate];
+       #endif
 
         peer->setFullScreen (enableOrDisable);
     }
@@ -2390,7 +2901,8 @@ void Desktop::setKioskComponent (Component* kioskModeComp, bool enableOrDisable,
 
 void Desktop::allowedOrientationsChanged()
 {
-   #if JUCE_IOS_API_VERSION_CAN_BE_BUILT (16, 0)
+   #if JUCE_IOS
+    #if JUCE_IOS_API_VERSION_CAN_BE_BUILT (16, 0)
     if (@available (iOS 16.0, *))
     {
         UIApplication* sharedApplication = [UIApplication sharedApplication];
@@ -2428,7 +2940,7 @@ void Desktop::allowedOrientationsChanged()
 
         return;
     }
-   #endif
+    #endif
 
     // if the current orientation isn't allowed anymore then switch orientations
     if (! isOrientationEnabled (getCurrentOrientation()))
@@ -2445,9 +2957,10 @@ void Desktop::allowedOrientationsChanged()
         }();
 
         NSNumber* value = [NSNumber numberWithInt: (int) Orientations::convertFromJuce (newOrientation)];
-        [[UIDevice currentDevice] setValue:value forKey:@"orientation"];
+        [[UIDevice currentDevice] setValue: value forKey: @"orientation"];
         [value release];
     }
+   #endif
 }
 
 //==============================================================================
@@ -2544,5 +3057,7 @@ const int KeyPress::playKey               = 0x30000;
 const int KeyPress::stopKey               = 0x30001;
 const int KeyPress::fastForwardKey        = 0x30002;
 const int KeyPress::rewindKey             = 0x30003;
+const int KeyPress::selectKey             = 0x30004;
+const int KeyPress::menuKey               = 0x30005;
 
 } // namespace juce

@@ -45,6 +45,7 @@ namespace juce
     // This is an internal list of callbacks (but currently used between modules)
     Array<AppInactivityCallback*> appBecomingInactiveCallbacks;
 
+#if JUCE_IOS
     struct BadgeUpdateTrait
     {
        #if JUCE_IOS_API_VERSION_CAN_BE_BUILT (16, 0)
@@ -62,8 +63,9 @@ namespace juce
             JUCE_END_IGNORE_WARNINGS_GCC_LIKE
         }
     };
+#endif
 
-    /*  Each successful call to beginBackgroundTask must be balanced
+/*  Each successful call to beginBackgroundTask must be balanced
         by a call to endBackgroundTask.
     */
     class TaskHandle
@@ -108,7 +110,9 @@ namespace juce
         // This will need to become more sophisticated to enable support for multiple scenes
         static void sceneDidBecomeActive()
         {
+           #if JUCE_IOS
             ifelse_17_0<BadgeUpdateTrait> ([UIApplication sharedApplication]);
+           #endif
             isIOSAppActive = true;
         }
 
@@ -150,7 +154,7 @@ namespace juce
     };
 } // namespace juce
 
-API_AVAILABLE (ios (13.0))
+API_AVAILABLE (ios (13.0), tvos (13.0))
 @interface JuceAppSceneDelegate : NSObject<UIWindowSceneDelegate>
 {
     @public
@@ -199,6 +203,7 @@ API_AVAILABLE (ios (13.0))
     SceneUtils::sceneWillEnterForeground();
 }
 
+#if JUCE_IOS
 - (void)         windowScene: (UIWindowScene*) windowScene
     didUpdateCoordinateSpace: (id<UICoordinateSpace>) previousCoordinateSpace
         interfaceOrientation: (UIInterfaceOrientation) previousInterfaceOrientation
@@ -206,6 +211,7 @@ API_AVAILABLE (ios (13.0))
 {
     windowSceneTracker->setWindowScene (windowScene);
 }
+#endif
 @end
 
 #if JUCE_PUSH_NOTIFICATIONS
@@ -227,13 +233,15 @@ API_AVAILABLE (ios (13.0))
 - (void) applicationWillEnterForeground: (UIApplication*) application;
 - (void) applicationDidBecomeActive: (UIApplication*) application;
 - (void) applicationWillResignActive: (UIApplication*) application;
+#if JUCE_IOS
 - (void) application: (UIApplication*) application handleEventsForBackgroundURLSession: (NSString*) identifier
    completionHandler: (void (^)(void)) completionHandler;
+#endif
 - (void) applicationDidReceiveMemoryWarning: (UIApplication *) application;
 
 - (UISceneConfiguration*)      application: (UIApplication*) application
     configurationForConnectingSceneSession: (UISceneSession*) connectingSceneSession
-                                   options: (UISceneConnectionOptions*) options API_AVAILABLE (ios (13.0));
+                                   options: (UISceneConnectionOptions*) options API_AVAILABLE (ios (13.0), tvos (13.0));
 
 #if JUCE_PUSH_NOTIFICATIONS
 
@@ -326,6 +334,7 @@ API_AVAILABLE (ios (13.0))
     SceneUtils::sceneWillResignActive();
 }
 
+#if JUCE_IOS
 - (void) application: (UIApplication*) application handleEventsForBackgroundURLSession: (NSString*)identifier
    completionHandler: (void (^)(void))completionHandler
 {
@@ -333,6 +342,7 @@ API_AVAILABLE (ios (13.0))
     URL::DownloadTask::juce_iosURLSessionNotify (nsStringToJuce (identifier));
     completionHandler();
 }
+#endif
 
 - (void) applicationDidReceiveMemoryWarning: (UIApplication*) application
 {
@@ -560,13 +570,23 @@ Image detail::WindowingHelpers::createIconForFile (const File&)
 //==============================================================================
 void SystemClipboard::copyTextToClipboard (const String& text)
 {
+   #if JUCE_TVOS
+    ignoreUnused (text);
+    jassertfalse;
+   #else
     [[UIPasteboard generalPasteboard] setValue: juceStringToNS (text)
                              forPasteboardType: @"public.text"];
+   #endif
 }
 
 String SystemClipboard::getTextFromClipboard()
 {
+   #if JUCE_TVOS
+    jassertfalse;
+    return {};
+   #else
     return nsStringToJuce ([[UIPasteboard generalPasteboard] string]);
+   #endif
 }
 
 //==============================================================================
@@ -644,10 +664,14 @@ double Desktop::getDefaultMasterScale()
 
 Desktop::DisplayOrientation Desktop::getCurrentOrientation() const
 {
+   #if JUCE_TVOS
+    return upright;
+   #else
     UIInterfaceOrientation orientation = SystemStats::isRunningInAppExtensionSandbox() ? UIInterfaceOrientationPortrait
                                                                                        : getWindowOrientation();
 
     return Orientations::convertToJuce (orientation);
+   #endif
 }
 
 struct WindowInfo
@@ -693,7 +717,7 @@ static WindowInfo getWindowInfo (const Desktop& desktop)
 
     const auto createTemporaryWindow = []()
     {
-        if (@available (iOS 13, *))
+        if (@available (iOS 13, tvOS 13, *))
         {
             SharedResourcePointer<WindowSceneTracker> windowSceneTracker;
 
@@ -723,6 +747,7 @@ static BorderSize<int> getSafeAreaInsets (const Desktop& desktop)
 //==============================================================================
 void Displays::findDisplays (const Desktop& desktop)
 {
+   #if JUCE_IOS
     JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wundeclared-selector")
     static const auto keyboardShownSelector  = @selector (juceKeyboardShown:);
     static const auto keyboardHiddenSelector = @selector (juceKeyboardHidden:);
@@ -805,10 +830,13 @@ void Displays::findDisplays (const Desktop& desktop)
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OnScreenKeyboardChangeDetectorImpl)
     };
+   #endif
 
     JUCE_AUTORELEASEPOOL
     {
+       #if JUCE_IOS
         static OnScreenKeyboardChangeDetectorImpl keyboardChangeDetector;
+       #endif
 
         UIScreen* s = [UIScreen mainScreen];
 
@@ -818,8 +846,10 @@ void Displays::findDisplays (const Desktop& desktop)
         d.logicalBounds = convertToRectFloat ([s bounds]) / masterScale;
         d.userBounds = getRecommendedWindowBounds (desktop).toFloat() / masterScale;
         d.safeAreaInsets = getSafeAreaInsets (desktop);
+       #if JUCE_IOS
         const auto scaledInsets = keyboardChangeDetector.getInsets().multipliedBy (1.0 / (double) masterScale);
         d.keyboardInsets = detail::WindowingHelpers::roundToInt (scaledInsets);
+       #endif
         d.isMain = true;
         d.scale = masterScale * s.scale;
         d.dpi = 160 * d.scale;

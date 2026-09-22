@@ -54,6 +54,7 @@
   dependencies:       juce_events
   OSXFrameworks:      Cocoa QuartzCore
   iOSFrameworks:      CoreGraphics CoreImage CoreText QuartzCore
+  tvOSFrameworks:     CoreGraphics CoreImage CoreText QuartzCore
   linuxPackages:      freetype2 fontconfig
 
  END_JUCE_MODULE_DECLARATION
@@ -223,7 +224,7 @@ namespace juce
  #include "native/juce_RenderingHelpers.h"
 #endif
 
-#if JUCE_GRAPHICS_INCLUDE_COREGRAPHICS_HELPERS && (JUCE_MAC || JUCE_IOS)
+#if JUCE_GRAPHICS_INCLUDE_COREGRAPHICS_HELPERS && JUCE_APPLE
  #include "native/juce_CoreGraphicsHelpers_mac.h"
  #include "native/juce_CoreGraphicsContext_mac.h"
 #endif

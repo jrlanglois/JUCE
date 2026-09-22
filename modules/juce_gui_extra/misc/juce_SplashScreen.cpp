@@ -45,7 +45,7 @@ SplashScreen::SplashScreen (const String& title, const Image& image, bool useDro
 
     setOpaque (! backgroundImage.hasAlphaChannel());
 
-   #if JUCE_IOS || JUCE_ANDROID
+   #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
     const bool useFullScreen = true;
    #else
     const bool useFullScreen = false;

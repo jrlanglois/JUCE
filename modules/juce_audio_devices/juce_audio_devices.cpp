@@ -78,7 +78,7 @@
 #include "midi_io/juce_MidiDevices.cpp"
 
 //==============================================================================
-#if JUCE_MAC || JUCE_IOS
+#if JUCE_APPLE
  #include <juce_audio_basics/native/juce_CoreAudioTimeConversions_mac.h>
  #include <juce_audio_basics/native/juce_AudioWorkgroup_mac.h>
 #endif
@@ -94,16 +94,19 @@
 
  #include "native/juce_CoreAudio_mac.cpp"
 
-#elif JUCE_IOS
+#elif JUCE_IOS || JUCE_TVOS
  #import <AudioToolbox/AudioToolbox.h>
  #import <AVFoundation/AVFoundation.h>
- #import <CoreMIDI/CoreMIDI.h>
+
+ #if JUCE_IOS
+  #import <CoreMIDI/CoreMIDI.h>
+ #endif
 
  #if JUCE_MODULE_AVAILABLE_juce_graphics
   #include <juce_graphics/native/juce_CoreGraphicsHelpers_mac.h>
  #endif
 
- #include "native/juce_Audio_ios.cpp"
+ #include "native/juce_Audio_uikit.cpp"
 
 //==============================================================================
 #elif JUCE_WINDOWS
@@ -268,6 +271,8 @@ namespace juce
  #include "native/juce_Midi_android.cpp"
 #elif JUCE_MAC || JUCE_IOS
  #include "native/juce_CoreMidi_mac.mm"
+#elif JUCE_TVOS
+ #include "native/juce_Midi_tvos.cpp"
 #elif JUCE_WINDOWS
  #if JUCE_USE_WINDOWS_MIDI_SERVICES
   static_assert (JUCE_CXX20_IS_AVAILABLE, "Make sure C++20 is enabled to use Windows MIDI Services");

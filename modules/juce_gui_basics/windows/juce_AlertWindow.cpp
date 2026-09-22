@@ -581,7 +581,7 @@ bool AlertWindow::keyPressed (const KeyPress& key)
         return true;
     }
 
-    if (key.isKeyCode (KeyPress::returnKey) && buttons.size() == 1)
+    if ((key.isKeyCode (KeyPress::returnKey) || key.isKeyCode (KeyPress::selectKey)) && buttons.size() == 1)
     {
         buttons.getUnchecked (0)->triggerClick();
         return true;

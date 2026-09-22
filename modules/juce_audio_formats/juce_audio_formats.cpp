@@ -51,7 +51,7 @@
 #if JUCE_MAC
  #include <AudioToolbox/AudioToolbox.h>
 
-#elif JUCE_IOS
+#elif JUCE_IOS || JUCE_TVOS
  #import <AudioToolbox/AudioToolbox.h>
  #import <AVFoundation/AVFoundation.h>
 

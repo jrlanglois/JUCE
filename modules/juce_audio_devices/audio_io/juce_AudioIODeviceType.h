@@ -158,7 +158,7 @@ public:
     //==============================================================================
     /** Creates a CoreAudio device type if it's available on this platform, or returns null. */
     static AudioIODeviceType* createAudioIODeviceType_CoreAudio();
-    /** Creates an iOS device type if it's available on this platform, or returns null. */
+    /** Creates an iOS or tvOS device type if it's available on this platform, or returns null. */
     static AudioIODeviceType* createAudioIODeviceType_iOSAudio();
     /** Creates a WASAPI device type in the specified mode if it's available on this platform, or returns null. */
     static AudioIODeviceType* createAudioIODeviceType_WASAPI (WASAPIDeviceMode deviceMode);

@@ -54,6 +54,7 @@
   dependencies:       juce_gui_extra
   OSXFrameworks:      OpenGL
   iOSFrameworks:      OpenGLES
+  tvOSFrameworks:     OpenGLES
   linuxPackages:      egl gl
 
  END_JUCE_MODULE_DECLARATION
@@ -69,7 +70,7 @@
 #undef JUCE_OPENGL
 #define JUCE_OPENGL 1
 
-#if JUCE_IOS || JUCE_ANDROID
+#if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
  #define JUCE_OPENGL_ES 1
 #endif
 

@@ -38,7 +38,7 @@ namespace juce
 JUCEApplicationBase::CreateInstanceFunction JUCEApplicationBase::createInstance = nullptr;
 JUCEApplicationBase* JUCEApplicationBase::appInstance = nullptr;
 
-#if JUCE_IOS
+#if JUCE_IOS || JUCE_TVOS
 void* JUCEApplicationBase::iOSCustomDelegate = nullptr;
 #endif
 
@@ -47,7 +47,7 @@ void JUCEApplicationBase::setApplicationReturnValue (const int newReturnValue) n
     appReturnValue = newReturnValue;
 }
 
-// This is called on the Mac and iOS where the OS doesn't allow the stack to unwind on shutdown.
+// This is called on Apple platforms where the OS doesn't allow the stack to unwind on shutdown.
 void JUCEApplicationBase::appWillTerminateByForce()
 {
     JUCE_AUTORELEASEPOOL
@@ -85,7 +85,7 @@ void JUCEApplicationBase::sendUnhandledException (const std::exception* const e,
 }
 
 //==============================================================================
-#if ! (JUCE_IOS || JUCE_ANDROID)
+#if ! (JUCE_IOS || JUCE_TVOS || JUCE_ANDROID)
  #define JUCE_HANDLE_MULTIPLE_INSTANCES 1
 #endif
 
@@ -186,7 +186,7 @@ StringArray JUCE_CALLTYPE JUCEApplicationBase::getCommandLineParameterArray()
 
 #else
 
-#if JUCE_IOS && JUCE_MODULE_AVAILABLE_juce_gui_basics
+#if (JUCE_IOS || JUCE_TVOS) && JUCE_MODULE_AVAILABLE_juce_gui_basics
  extern int juce_iOSMain (int argc, const char* argv[], void* classPtr);
 #endif
 
@@ -247,7 +247,7 @@ int JUCEApplicationBase::main (int argc, const char* argv[])
             return juce_gtkWebkitMain (argc, argv);
        #endif
 
-       #if JUCE_IOS && JUCE_MODULE_AVAILABLE_juce_gui_basics
+       #if (JUCE_IOS || JUCE_TVOS) && JUCE_MODULE_AVAILABLE_juce_gui_basics
         return juce_iOSMain (argc, argv, iOSCustomDelegate);
        #else
 

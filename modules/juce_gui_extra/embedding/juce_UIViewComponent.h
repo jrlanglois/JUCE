@@ -35,11 +35,11 @@
 namespace juce
 {
 
-#if JUCE_IOS || DOXYGEN
+#if JUCE_IOS || JUCE_TVOS || DOXYGEN
 
 //==============================================================================
 /**
-    An iOS-specific class that can create and embed an UIView inside itself.
+    A UIKit-specific class that can create and embed a UIView inside itself.
 
     To use it, create one of these, put it in place and make sure it's visible in a
     window, then use setView() to assign a UIView to it. The view will then be

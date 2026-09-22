@@ -100,7 +100,7 @@
 
  #include "native/juce_Direct2DPixelDataPage_windows.h"
 
-#elif JUCE_IOS
+#elif JUCE_IOS || JUCE_TVOS
  #import <QuartzCore/QuartzCore.h>
  #import <CoreText/CoreText.h>
 
@@ -136,7 +136,7 @@
 
 #undef SIZEOF
 
-#if (JUCE_MAC || JUCE_IOS) && USE_COREGRAPHICS_RENDERING && JUCE_USE_COREIMAGE_LOADER
+#if JUCE_APPLE && USE_COREGRAPHICS_RENDERING && JUCE_USE_COREIMAGE_LOADER
  #define JUCE_USING_COREIMAGE_LOADER 1
 #else
  #define JUCE_USING_COREIMAGE_LOADER 0
@@ -148,7 +148,7 @@
 
 #if JUCE_WINDOWS
  #include <juce_graphics/fonts/harfbuzz/hb-directwrite.h>
-#elif JUCE_MAC || JUCE_IOS
+#elif JUCE_APPLE
  #include <juce_graphics/fonts/harfbuzz/hb-coretext.h>
 #endif
 
@@ -287,7 +287,7 @@ JUCE_END_IGNORE_WARNINGS_MSVC
 #endif
 
 //==============================================================================
-#if JUCE_MAC || JUCE_IOS
+#if JUCE_APPLE
  #include "native/juce_Fonts_mac.mm"
  #include "native/juce_CoreGraphicsContext_mac.mm"
  #include "native/juce_IconHelpers_mac.cpp"

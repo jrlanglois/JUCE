@@ -42,6 +42,7 @@ namespace juce::build_tools
         ProjectType::Target::Type type      = ProjectType::Target::GUIApp;
 
         bool isiOS                          = false;
+        bool isTVOS                         = false;
         bool isAudioPluginProject           = false;
         bool shouldEnableIAA                = false;
         bool isAUPluginHost                 = false;

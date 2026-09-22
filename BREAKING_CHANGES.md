@@ -32,6 +32,48 @@ implementations were out of step, and the Windows implementation did not detect
 
 ## Change
 
+`JUCE_IOS` is now defined only for iOS builds. tvOS builds define `JUCE_TVOS`
+instead, and all Apple targets define `JUCE_APPLE`.
+
+**Possible Issues**
+
+Code that previously relied on tvOS satisfying an iOS conditional will no longer
+compile that branch.
+
+**Workaround**
+
+Use `JUCE_IOS || JUCE_TVOS` for shared UIKit behavior, `JUCE_TVOS` for
+tvOS-only behavior, or `JUCE_APPLE` for behavior shared by all Apple targets.
+
+**Rationale**
+
+Apple defines `TARGET_OS_IPHONE` for tvOS, but iOS APIs are not necessarily
+available there. Separate macros make platform-specific code and dependencies
+explicit.
+
+## Change
+
+Shared UIKit native implementation files previously ending in `_ios` now end in
+`_uikit`.
+
+**Possible Issues**
+
+Out-of-tree patches or source files that directly include these internal
+implementation files will need to update their paths.
+
+**Workaround**
+
+Replace the `_ios` suffix with `_uikit` for shared UIKit implementations.
+iOS-only files, including the native file chooser and content sharer, keep the
+`_ios` suffix.
+
+**Rationale**
+
+The renamed files are shared by iOS and tvOS. Keeping the `_ios` suffix would
+misidentify their platform and invite duplicate tvOS implementations.
+
+## Change
+
 ThreadPool::addJob no longer provides separate std::function overloads for
 void and ThreadPoolJob::JobStatus return types. It now accepts a single
 callable template parameter that must return exactly void or

@@ -77,7 +77,7 @@ void AudioFormatManager::registerBasicFormats()
     registerFormat (new OpusAudioFormat(), false);
    #endif
 
-   #if JUCE_MAC || JUCE_IOS
+   #if JUCE_APPLE
     registerFormat (new CoreAudioFormat(), false);
    #endif
 

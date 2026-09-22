@@ -89,6 +89,10 @@ std::vector<ProjectExporter::ExporterTypeInfo> ProjectExporter::getExporterTypeI
           XcodeProjectExporter::getDisplayNameiOS(),
           XcodeProjectExporter::getTargetFolderNameiOS(),
           createIcon (export_xcode_svg, (size_t) export_xcode_svgSize) },
+        { XcodeProjectExporter::getValueTreeTypeNameTVOS(),
+          XcodeProjectExporter::getDisplayNameTVOS(),
+          XcodeProjectExporter::getTargetFolderNameTVOS(),
+          createIcon (export_xcode_svg, (size_t) export_xcode_svgSize) },
 
         createExporterTypeInfo<MSVCProjectExporterVC2026> (export_visualStudio_svg, export_visualStudio_svgSize),
         createExporterTypeInfo<MSVCProjectExporterVC2022> (export_visualStudio_svg, export_visualStudio_svgSize),
@@ -121,7 +125,8 @@ void ProjectExporter::getCurrentPlatformExporterTypeInfos (std::vector<ExporterT
     const auto typeNames =
        #if JUCE_MAC
         { XcodeProjectExporter::getValueTreeTypeNameMac(),
-          XcodeProjectExporter::getValueTreeTypeNameiOS() };
+          XcodeProjectExporter::getValueTreeTypeNameiOS(),
+          XcodeProjectExporter::getValueTreeTypeNameTVOS() };
        #elif JUCE_WINDOWS
         { MSVCProjectExporterVC2026::getValueTreeTypeName(),
           MSVCProjectExporterVC2022::getValueTreeTypeName(),
@@ -184,6 +189,7 @@ bool ProjectExporter::canProjectBeLaunched (Project* project)
             #if JUCE_MAC
              XcodeProjectExporter::getValueTreeTypeNameMac(),
              XcodeProjectExporter::getValueTreeTypeNameiOS(),
+            XcodeProjectExporter::getValueTreeTypeNameTVOS(),
             #elif JUCE_WINDOWS
              MSVCProjectExporterVC2026::getValueTreeTypeName(),
              MSVCProjectExporterVC2022::getValueTreeTypeName(),
@@ -566,6 +572,22 @@ void ProjectExporter::addDefaultPreprocessorDefs (StringPairArray& defs) const
     defs.set (getExporterIdentifierMacro(), "1");
     defs.set ("JUCE_APP_VERSION", project.getVersionString());
     defs.set ("JUCE_APP_VERSION_HEX", project.getVersionAsHex());
+
+    if (isTVOS())
+    {
+        defs.set ("JUCE_CONTENT_SHARING", "0");
+        defs.set ("JUCE_PLUGINHOST_ARA", "0");
+        defs.set ("JUCE_PLUGINHOST_AU", "0");
+        defs.set ("JUCE_PLUGINHOST_LADSPA", "0");
+        defs.set ("JUCE_PLUGINHOST_LV2", "0");
+        defs.set ("JUCE_PLUGINHOST_VST", "0");
+        defs.set ("JUCE_PLUGINHOST_VST3", "0");
+        defs.set ("JUCE_PUSH_NOTIFICATIONS", "0");
+        defs.set ("JUCE_WEB_BROWSER", "0");
+        defs.set ("JUCE_USE_CAMERA", "0");
+        defs.set ("JUCE_USE_CDREADER", "0");
+        defs.set ("JUCE_USE_CDBURNER", "0");
+    }
 }
 
 String ProjectExporter::replacePreprocessorTokens (const ProjectExporter::BuildConfiguration& config,
@@ -725,7 +747,7 @@ TargetOS::OS ProjectExporter::getTargetOSForExporter() const
     auto targetOS = TargetOS::unknown;
 
     if      (isWindows())                 targetOS = TargetOS::windows;
-    else if (isOSX() || isiOS())          targetOS = TargetOS::osx;
+    else if (isOSX() || isiOS() || isTVOS()) targetOS = TargetOS::osx;
     else if (isLinux())                   targetOS = TargetOS::linux;
     else if (isAndroid())                 targetOS = TargetOS::getThisOS();
 

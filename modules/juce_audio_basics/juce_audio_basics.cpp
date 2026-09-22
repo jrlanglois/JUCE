@@ -47,7 +47,7 @@
  #include <emmintrin.h>
 #endif
 
-#if JUCE_MAC || JUCE_IOS
+#if JUCE_APPLE
  #ifndef JUCE_USE_VDSP_FRAMEWORK
   #define JUCE_USE_VDSP_FRAMEWORK 1
  #endif

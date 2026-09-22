@@ -3158,5 +3158,7 @@ const int KeyPress::playKey                 = extendedKeyModifier + 0x00;
 const int KeyPress::stopKey                 = extendedKeyModifier + 0x01;
 const int KeyPress::fastForwardKey          = extendedKeyModifier + 0x02;
 const int KeyPress::rewindKey               = extendedKeyModifier + 0x03;
+const int KeyPress::selectKey               = extendedKeyModifier + 0x04;
+const int KeyPress::menuKey                 = extendedKeyModifier + 0x05;
 
 } // namespace juce

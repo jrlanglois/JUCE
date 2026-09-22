@@ -42,7 +42,7 @@ class MessageQueue
 public:
     MessageQueue()
     {
-       #if JUCE_IOS
+       #if JUCE_IOS || JUCE_TVOS
         runLoop = CFRunLoopGetCurrent();
        #else
         runLoop = CFRunLoopGetMain();

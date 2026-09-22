@@ -116,7 +116,7 @@ JUCE_BEGIN_IGNORE_WARNINGS_MSVC (4514 4245 4100)
 #endif
 
 
-#if JUCE_MAC || JUCE_IOS
+#if JUCE_APPLE
  #include <libkern/OSAtomic.h>
  #include <libkern/OSByteOrder.h>
  #include <xlocale.h>

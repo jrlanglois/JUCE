@@ -278,7 +278,7 @@ void NamedPipe::close()
 
 bool NamedPipe::openInternal (const String& pipeName, bool createPipe, bool mustNotExist)
 {
-   #if JUCE_IOS
+   #if JUCE_IOS || JUCE_TVOS
     pimpl.reset (new Pimpl (File::getSpecialLocation (File::tempDirectory)
                              .getChildFile (File::createLegalFileName (pipeName)).getFullPathName(), createPipe));
    #else

@@ -280,6 +280,47 @@ function(_juce_link_optional_libraries target)
                 juce_link_with_embedded_linux_subprocess(${target})
             endif()
         endif()
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+        get_target_property(needs_storekit ${target} JUCE_NEEDS_STORE_KIT)
+        get_target_property(needs_browser ${target} JUCE_NEEDS_WEB_BROWSER)
+        get_target_property(needs_camera ${target} JUCE_CAMERA_PERMISSION_ENABLED)
+        get_target_property(needs_microphone ${target} JUCE_MICROPHONE_PERMISSION_ENABLED)
+        get_target_property(needs_push_notifications ${target} JUCE_PUSH_NOTIFICATIONS_ENABLED)
+
+        if(needs_browser)
+            message(STATUS "JUCE: Web browser support is unavailable on tvOS and will be disabled for ${target}")
+        endif()
+
+        if(needs_camera)
+            message(STATUS "JUCE: CameraDevice is unavailable on tvOS and will be disabled for ${target}")
+        endif()
+
+        if(needs_microphone)
+            message(STATUS "JUCE: Audio input is unavailable on tvOS and microphone permission will be disabled for ${target}")
+        endif()
+
+        if(needs_push_notifications)
+            message(STATUS "JUCE: JUCE push notification support is unavailable on tvOS and will be disabled for ${target}")
+        endif()
+
+        target_compile_definitions(${target} PRIVATE
+            JUCE_CONTENT_SHARING=0
+            JUCE_PLUGINHOST_ARA=0
+            JUCE_PLUGINHOST_AU=0
+            JUCE_PLUGINHOST_LADSPA=0
+            JUCE_PLUGINHOST_LV2=0
+            JUCE_PLUGINHOST_VST=0
+            JUCE_PLUGINHOST_VST3=0
+            JUCE_PUSH_NOTIFICATIONS=0
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CAMERA=0
+            JUCE_USE_CDREADER=0
+            JUCE_USE_CDBURNER=0
+            JUCE_IN_APP_PURCHASES=$<BOOL:${needs_storekit}>)
+
+        if(needs_storekit)
+            _juce_link_frameworks("${target}" PRIVATE StoreKit)
+        endif()
     elseif(APPLE)
         get_target_property(needs_storekit ${target} JUCE_NEEDS_STORE_KIT)
 
@@ -426,8 +467,13 @@ function(_juce_write_configure_time_info target)
 
     if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         _juce_append_record(file_content IS_IOS 1)
+        _juce_append_record(file_content IS_TVOS 0)
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+        _juce_append_record(file_content IS_IOS 0)
+        _juce_append_record(file_content IS_TVOS 1)
     else()
         _juce_append_record(file_content IS_IOS 0)
+        _juce_append_record(file_content IS_TVOS 0)
     endif()
 
     get_target_property(juce_library_code ${target} JUCE_GENERATED_SOURCES_DIRECTORY)
@@ -737,6 +783,29 @@ function(_juce_generate_icon source_target dest_target)
         if(NOT add_storyboard)
             set_target_properties(${dest_target} PROPERTIES
                 XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME "LaunchImage")
+        endif()
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+        get_target_property(generated_icon ${source_target} JUCE_CUSTOM_XCASSETS_FOLDER)
+
+        if(icon_args AND (NOT generated_icon))
+            _juce_check_icon_files_exist("${icon_args}")
+
+            set(out_path "${juce_library_code}/${dest_target}")
+            set(generated_icon "${out_path}/Images.xcassets")
+
+            # To get compiled properly, we need tvOS assets at configure time!
+            _juce_execute_juceaide(tvosassets "${out_path}" ${icon_args})
+        endif()
+
+        if(NOT generated_icon)
+            return()
+        endif()
+
+        get_target_property(existing_appicon ${dest_target} XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME)
+
+        if(NOT existing_appicon)
+            set_target_properties(${dest_target} PROPERTIES
+                XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "App Icon & Top Shelf Image")
         endif()
     endif()
 
@@ -1062,7 +1131,10 @@ endfunction()
 # ==================================================================================================
 
 function(_juce_add_lv2_manifest_helper_target)
-    if(TARGET juce_lv2_helper OR (CMAKE_SYSTEM_NAME STREQUAL "iOS") OR (CMAKE_SYSTEM_NAME STREQUAL "Android"))
+    if(TARGET juce_lv2_helper
+       OR (CMAKE_SYSTEM_NAME STREQUAL "iOS")
+       OR (CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+       OR (CMAKE_SYSTEM_NAME STREQUAL "Android"))
         return()
     endif()
 
@@ -1084,6 +1156,7 @@ function(_juce_add_vst3_manifest_helper_target shared_code_target out_target out
 
     if(TARGET ${helper_target}
        OR (CMAKE_SYSTEM_NAME STREQUAL "iOS")
+       OR (CMAKE_SYSTEM_NAME STREQUAL "tvOS")
        OR (CMAKE_SYSTEM_NAME STREQUAL "Android")
        OR (CMAKE_SYSTEM_NAME MATCHES ".*BSD"))
         return()
@@ -1578,6 +1651,14 @@ function(_juce_configure_plugin_targets target)
         endif()
     endforeach()
 
+    if(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+        foreach(kind IN LISTS enabled_formats)
+            if(NOT kind IN_LIST active_formats)
+                message(STATUS "JUCE: ${kind} is unavailable on tvOS and will not be built for ${target}")
+            endif()
+        endforeach()
+    endif()
+
     if((VST IN_LIST active_formats) AND (NOT TARGET juce_vst2_sdk))
         message(FATAL_ERROR "Use juce_set_vst2_sdk_path to set up the VST sdk before adding VST targets")
     endif()
@@ -1811,10 +1892,14 @@ function(_juce_set_fallback_properties target)
     get_target_property(custom_xcassets ${target} JUCE_CUSTOM_XCASSETS_FOLDER)
     get_target_property(custom_storyboard ${target} JUCE_LAUNCH_STORYBOARD_FILE)
 
-    set(needs_storyboard TRUE)
-
-    if((NOT custom_storyboard) AND custom_xcassets AND (EXISTS "${custom_xcassets}/LaunchImage.launchimage"))
+    if(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
         set(needs_storyboard FALSE)
+    else()
+        set(needs_storyboard TRUE)
+
+        if((NOT custom_storyboard) AND custom_xcassets AND (EXISTS "${custom_xcassets}/LaunchImage.launchimage"))
+            set(needs_storyboard FALSE)
+        endif()
     endif()
 
     set_target_properties(${target} PROPERTIES JUCE_SHOULD_ADD_STORYBOARD ${needs_storyboard})
@@ -1900,7 +1985,11 @@ function(_juce_set_fallback_properties target)
         _juce_set_property_if_not_set(${target} AU_MAIN_TYPE kAudioUnitType_Effect)
     endif()
 
-    _juce_set_property_if_not_set(${target} TARGETED_DEVICE_FAMILY "1,2")
+    if(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+        _juce_set_property_if_not_set(${target} TARGETED_DEVICE_FAMILY "3")
+    else()
+        _juce_set_property_if_not_set(${target} TARGETED_DEVICE_FAMILY "1,2")
+    endif()
 
     set(au_category_codes
         'aufx'
@@ -2201,14 +2290,19 @@ function(_juce_initialise_target target)
     get_target_property(is_pluginhost_au ${target} JUCE_PLUGINHOST_AU)
 
     if(is_pluginhost_au)
-        target_compile_definitions(${target} PUBLIC JUCE_PLUGINHOST_AU=1)
+        if(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+            message(STATUS "JUCE: Audio Unit hosting is unavailable on tvOS and will be disabled for ${target}")
+            target_compile_definitions(${target} PUBLIC JUCE_PLUGINHOST_AU=0)
+        else()
+            target_compile_definitions(${target} PUBLIC JUCE_PLUGINHOST_AU=1)
 
-        if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
-            _juce_link_frameworks("${target}" PRIVATE CoreAudioKit)
-        endif()
+            if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
+                _juce_link_frameworks("${target}" PRIVATE CoreAudioKit)
+            endif()
 
-        if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-            _juce_link_frameworks("${target}" PRIVATE AudioUnit)
+            if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+                _juce_link_frameworks("${target}" PRIVATE AudioUnit)
+            endif()
         endif()
     endif()
 

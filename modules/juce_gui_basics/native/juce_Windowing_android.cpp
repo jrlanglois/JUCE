@@ -3109,6 +3109,8 @@ const int KeyPress::playKey                 = extendedKeyModifier + 69;
 const int KeyPress::stopKey                 = extendedKeyModifier + 70;
 const int KeyPress::fastForwardKey          = extendedKeyModifier + 71;
 const int KeyPress::rewindKey               = extendedKeyModifier + 72;
+const int KeyPress::selectKey               = extendedKeyModifier + 73;
+const int KeyPress::menuKey                 = extendedKeyModifier + 74;
 
 //==============================================================================
 #ifdef JUCE_PUSH_NOTIFICATIONS_ACTIVITY

@@ -664,7 +664,7 @@ bool Button::keyStateChangedCallback()
 
 bool Button::keyPressed (const KeyPress& key)
 {
-    if (isEnabled() && key.isKeyCode (KeyPress::returnKey))
+    if (isEnabled() && (key.isKeyCode (KeyPress::returnKey) || key.isKeyCode (KeyPress::selectKey)))
     {
         triggerClick();
         return true;

@@ -116,6 +116,58 @@ provisioning profiles, which is achieved by passing the `-allowProvisioningUpdat
 
     cmake --build build-ios --target <targetName> -- -allowProvisioningUpdates
 
+### Building for tvOS
+
+tvOS also requires the Xcode generator. Configure a separate build tree and set the deployment
+target to JUCE's minimum supported tvOS version:
+
+    cmake -Bbuild-tvos -GXcode -DCMAKE_SYSTEM_NAME=tvOS \
+        -DCMAKE_OSX_SYSROOT=appletvsimulator -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0
+
+To build for the simulator without a development team, pass the simulator SDK and disable code
+signing. Pin the destination by UDID because simulator names are not necessarily unique:
+
+    xcodebuild -project build-tvos/<projectName>.xcodeproj -scheme <targetName> \
+        -configuration Debug -sdk appletvsimulator -destination 'id=<simulator-udid>' \
+        CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=NO build
+
+A device build requires the same development-team and provisioning settings as an iOS device
+build. Plug-in projects produce only the `Standalone` format on tvOS; any other values passed to
+`FORMATS` are reported and omitted.
+
+`ICON_BIG`, or `ICON_SMALL` when `ICON_BIG` is omitted, generates the layered app icons and Top
+Shelf images required by tvOS. The generated layers all contain the same flat source image, so they
+are placeholders rather than shippable parallax artwork. Point `CUSTOM_XCASSETS_FOLDER` at a
+hand-authored tvOS asset catalog for release builds. Camera, web-browser, content-sharing, JUCE
+push-notification, CD-reader, and CD-burner support are disabled even if their feature macros are
+enabled by the project. MIDI, audio input, and StoreKit hosted-content downloads are unavailable;
+other in-app purchases remain supported.
+
+For a new project, either add the Xcode (tvOS) exporter in Projucer or start with the separate CMake
+build tree above. To add tvOS to an existing Projucer project, open it in the updated Projucer, add
+the Xcode (tvOS) exporter, set its signing team, and save to generate a separate Xcode project. To
+add tvOS to an existing CMake project, keep the existing targets and configure them in a separate
+`CMAKE_SYSTEM_NAME=tvOS` build tree; platform-incompatible features are disabled and unsupported
+plug-in formats are reported during configuration.
+
+tvOS provides only 500 KB of persistent local preferences. The system warns at 512 KB and may
+terminate an app whose preferences reach 1 MB, so `PropertiesFile` rejects files larger than 500 KB
+when loading and refuses to replace its last good file with oversized serialized data. Files
+returned for document or application-data locations reside in the purgeable caches directory and
+must be treated as replaceable. Desktop, media, common-data, and applications locations are
+unsupported; they assert in debug builds and return an empty `File`.
+
+The Siri Remote's trackpad moves JUCE's virtual mouse cursor without synthesizing mouse-button
+transitions. Select is delivered as `KeyPress::selectKey`, which activates JUCE's built-in controls.
+
+The Siri Remote's Menu button is first offered as `KeyPress::menuKey`, then to
+`JUCEApplicationBase::backButtonPressed()`. If both are unhandled, the event reaches UIKit and exits
+the app. Returning `true` from `backButtonPressed()` makes Menu an in-app Back action, so the app
+must still provide a way to exit.
+
+Dynamic Top Shelf content is not generated. TVML and on-demand resources are deprecated by Apple
+and are not wrapped by this port.
+
 #### Archiving for iOS
 
 CMake's out-of-the-box archiving behaviour doesn't always work as expected, especially for targets
@@ -285,13 +337,15 @@ attributes directly to these creation functions, rather than adding them later.
   the target's `COMPANY_NAME` and the name of the CMake target.
 
 `MICROPHONE_PERMISSION_ENABLED`
-- May be either `TRUE` or `FALSE`. Adds `NSMicrophoneUsageDescription` to an app's Info.plist.
+- May be either `TRUE` or `FALSE`. Adds `NSMicrophoneUsageDescription` to an app's Info.plist. This
+  option does not apply to tvOS.
 
 `MICROPHONE_PERMISSION_TEXT`
 - The text your app will display when it requests microphone permissions.
 
 `CAMERA_PERMISSION_ENABLED`
 - May be either `TRUE` or `FALSE`. Adds `NSCameraUsageDescription` to an app's Info.plist.
+  Camera access is unavailable on tvOS, where this option has no effect.
 
 `CAMERA_PERMISSION_TEXT`
 - The text your app will display when it requests camera permissions.
@@ -327,19 +381,23 @@ attributes directly to these creation functions, rather than adding them later.
 - May be either `TRUE` or `FALSE`. Adds the appropriate entries to an iOS app's Info.plist.
 
 `BACKGROUND_AUDIO_ENABLED`
-- May be either `TRUE` or `FALSE`. Adds the appropriate entries to an iOS app's Info.plist.
+- May be either `TRUE` or `FALSE`. Adds the appropriate entries to an iOS or tvOS app's Info.plist.
 
 `BACKGROUND_BLE_ENABLED`
-- May be either `TRUE` or `FALSE`. Adds the appropriate entries to an iOS app's Info.plist.
+- May be either `TRUE` or `FALSE`. Adds the appropriate entries to an iOS app's Info.plist. This
+  option does not apply to tvOS.
 
 `APP_GROUPS_ENABLED`
-- May be either `TRUE` or `FALSE`. Adds the appropriate entries to an iOS app's entitlements.
+- May be either `TRUE` or `FALSE`. Adds the appropriate entries to an iOS or tvOS app's
+  entitlements.
 
 `APP_GROUP_IDS`
-- The app groups to which your iOS app belongs. These will be added to your app's entitlements.
+- The app groups to which your iOS or tvOS app belongs. These will be added to your app's
+  entitlements.
 
 `ICLOUD_PERMISSIONS_ENABLED`
-- May be either `TRUE` or `FALSE`. Adds the appropriate entries to an iOS app's entitlements.
+- May be either `TRUE` or `FALSE`. Adds the appropriate entries to an iOS or tvOS app's
+  entitlements.
 
 `IPHONE_SCREEN_ORIENTATIONS`
 - May be one or more of `UIInterfaceOrientationUnknown`, `UIInterfaceOrientationPortrait`,
@@ -362,20 +420,22 @@ attributes directly to these creation functions, rather than adding them later.
 
 `CUSTOM_XCASSETS_FOLDER`
 - A path to an xcassets directory, containing icons and/or launch images for this target. If this
-  is specified, the `ICON_BIG` and `ICON_SMALL` arguments will not have an effect on iOS.
+  is specified, the `ICON_BIG` and `ICON_SMALL` arguments will not have an effect on iOS or tvOS.
+  A tvOS catalog must contain the required Brand Assets.
   LaunchImages have been deprecated from iOS 13 onward, but if your xcassets folder contains a
   LaunchImage and a custom storyboard hasn't been specified, then it will be used.
 
 `TARGETED_DEVICE_FAMILY`
 - Specifies the device families on which the product must be capable of running. Allowed values
-  are `1`, `2`, and `1,2`; these correspond to "iPhone/iPod touch", "iPad", and "iPhone/iPod and
-  iPad" respectively. This will default to `1,2`, meaning that the target will target iPhone,
-  iPod, and iPad.
+  are `1`, `2`, `1,2`, and `3`; these correspond to "iPhone/iPod touch", "iPad", "iPhone/iPod and
+  iPad", and "Apple TV" respectively. This defaults to `3` on tvOS and `1,2` on iOS.
 
 `ICON_BIG`, `ICON_SMALL`
 - Paths to image files that will be used to generate app icons. If only one of these parameters
   is specified, then that image will be used for all icon resolutions. If both arguments are
-  specified, then the appropriate image will be picked for each icon resolution.
+  specified, then the appropriate image will be picked for each icon resolution. On tvOS,
+  `ICON_BIG` generates all layered Brand Assets and Top Shelf images, falling back to `ICON_SMALL`
+  when `ICON_BIG` is omitted.
 
 `ICON_COMPOSER_BUNDLE`
 - An Icon Composer bundle used for MacOS and iOS builds. This argument takes precedence over the
@@ -435,9 +495,10 @@ attributes directly to these creation functions, rather than adding them later.
   if you get linker or include errors that reference WebView2, just set this argument to `TRUE`.
 
 `NEEDS_STORE_KIT`
-- On macOS, JUCE may or may not need to link to StoreKit depending on the compile definitions that
-  are set on a JUCE target. By default, we don't link StoreKit because you might not need it, but
-  if you get linker or include errors that reference StoreKit, just set this argument to `TRUE`.
+- On Apple platforms, JUCE may or may not need to link to StoreKit depending on the compile
+  definitions that are set on a JUCE target. By default, we don't link StoreKit because you might
+  not need it, but if you get linker or include errors that reference StoreKit, just set this
+  argument to `TRUE`.
 
 `NEEDS_WINDOWS_MIDI_SERVICES`
 - On Windows, JUCE can use the Windows MIDI Services library to support MIDI 2.0 protocol
@@ -450,10 +511,10 @@ attributes directly to these creation functions, rather than adding them later.
 
 `PUSH_NOTIFICATIONS_ENABLED`
 - Sets app entitlements to allow push notifications. May be either `TRUE`
-  or `FALSE`. Defaults to `FALSE`.
+  or `FALSE`. Defaults to `FALSE` and has no effect on tvOS.
 
 `NETWORK_MULTICAST_ENABLED`
-- Sets app entitlements to allow IP multicast or broadcast on macOS/iOS. May be either `TRUE`
+- Sets app entitlements to allow IP multicast or broadcast on macOS, iOS, or tvOS. May be either `TRUE`
   or `FALSE`. Defaults to `FALSE`.
 
 `HARDENED_RUNTIME_ENABLED`
@@ -504,9 +565,10 @@ attributes directly to these creation functions, rather than adding them later.
 
 `FORMATS`
 - For plugin targets, specifies the plugin targets to build. Should be provided as a space-separated
-  list. Valid values are `Standalone Unity VST3 AU AUv3 AAX VST LV2`. `AU` and `AUv3` plugins will
-  only be enabled when building on macOS; `AUv3` plugins will only be enabled when using the Xcode
-  generator. It is an error to pass `VST` without first calling `juce_set_vst2_sdk_path`.
+  list. Valid values are `Standalone Unity VST3 AU AUv3 AAX VST LV2`. `AU` is enabled only on
+  macOS, while `AUv3` is enabled on Apple platforms using the Xcode generator. tvOS is the
+  exception: it enables only `Standalone` and reports the other requested formats as unavailable.
+  It is an error to pass `VST` without first calling `juce_set_vst2_sdk_path`.
 
 `PLUGIN_NAME`
 - The name of the plugin. In a DAW environment, this is the name that will be displayed to the
@@ -752,7 +814,7 @@ and embedded in the resulting static library. This library can be linked as norm
     juce_add_bundle_resources_directory(<target> <folder>)
 
 Copy the entire directory at the location `<folder>` into an Apple bundle's resource directory, i.e.
-the `Resources` directory for a macOS bundle, and the top-level directory of an iOS bundle.
+the `Resources` directory for a macOS bundle, and the top-level directory of an iOS or tvOS bundle.
 
 #### `juce_generate_juce_header`
 

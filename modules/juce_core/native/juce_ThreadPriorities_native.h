@@ -74,7 +74,7 @@ struct ThreadPriorities
         { Thread::Priority::background, 0 },
        #endif
 
-       #if JUCE_MAC || JUCE_IOS
+       #if JUCE_APPLE
         { Thread::Priority::highest,    4 },
         { Thread::Priority::high,       3 },
         { Thread::Priority::normal,     2 },

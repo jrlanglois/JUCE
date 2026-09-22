@@ -19,17 +19,24 @@
 #
 # ==============================================================================
 
+set(demo_runner_platform_options
+    NEEDS_CURL TRUE)
+
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+    list(APPEND demo_runner_platform_options
+        NEEDS_WEB_BROWSER TRUE
+        MICROPHONE_PERMISSION_ENABLED TRUE
+        CAMERA_PERMISSION_ENABLED TRUE
+        BLUETOOTH_PERMISSION_ENABLED TRUE
+        FILE_SHARING_ENABLED TRUE
+        DOCUMENT_BROWSER_ENABLED TRUE)
+endif()
+
 juce_add_gui_app(DemoRunner
     BUNDLE_ID                       com.juce.demorunner
     ICON_BIG                        ${CMAKE_CURRENT_SOURCE_DIR}/Source/JUCEAppIcon.png
     ICON_COMPOSER_BUNDLE            "${CMAKE_CURRENT_SOURCE_DIR}/Source/AppIcon.icon"
-    NEEDS_CURL                      TRUE
-    NEEDS_WEB_BROWSER               TRUE
-    MICROPHONE_PERMISSION_ENABLED   TRUE
-    CAMERA_PERMISSION_ENABLED       TRUE
-    BLUETOOTH_PERMISSION_ENABLED    TRUE
-    FILE_SHARING_ENABLED            TRUE
-    DOCUMENT_BROWSER_ENABLED        TRUE
+    ${demo_runner_platform_options}
     REQUIRES_FULL_SCREEN            FALSE
     IPAD_SCREEN_ORIENTATIONS        UIInterfaceOrientationPortrait
                                     UIInterfaceOrientationPortraitUpsideDown
@@ -50,22 +57,29 @@ target_sources(DemoRunner PRIVATE
     Source/UI/DemoContentComponent.cpp
     Source/UI/MainComponent.cpp)
 
-target_compile_definitions(DemoRunner PRIVATE
-    PIP_JUCE_EXAMPLES_DIRECTORY_STRING="${JUCE_SOURCE_DIR}/examples"
-    JUCE_ASIO=1
-    JUCE_ALLOW_STATIC_NULL_VARIABLES=0
+set(demo_runner_feature_definitions
     JUCE_CONTENT_SHARING=1
-    JUCE_DEMO_RUNNER=1
     JUCE_PLUGINHOST_AU=1
     JUCE_PLUGINHOST_LV2=1
     JUCE_PLUGINHOST_VST3=1
     JUCE_PUSH_NOTIFICATIONS=1
+    JUCE_USE_CAMERA=1
+    JUCE_WEB_BROWSER=1)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+    set(demo_runner_feature_definitions)
+endif()
+
+target_compile_definitions(DemoRunner PRIVATE
+    PIP_JUCE_EXAMPLES_DIRECTORY_STRING="${JUCE_SOURCE_DIR}/examples"
+    JUCE_ASIO=1
+    JUCE_ALLOW_STATIC_NULL_VARIABLES=0
+    JUCE_DEMO_RUNNER=1
     JUCE_STRICT_REFCOUNTEDPOINTER=1
     JUCE_UNIT_TESTS=1
-    JUCE_USE_CAMERA=1
     JUCE_USE_CURL=1
     JUCE_USE_MP3AUDIOFORMAT=1
-    JUCE_WEB_BROWSER=1
+    ${demo_runner_feature_definitions}
     # This is a temporary workaround to allow builds to complete on Xcode 15.
     # Add -Wl,-ld_classic to the OTHER_LDFLAGS build setting if you need to
     # deploy to older versions of macOS/iOS.

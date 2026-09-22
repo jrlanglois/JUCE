@@ -39,6 +39,8 @@ namespace juce
  #include "../native/juce_CameraDevice_mac.h"
 #elif JUCE_WINDOWS
  #include "../native/juce_CameraDevice_windows.h"
+#elif JUCE_TVOS
+ #include "../native/juce_CameraDevice_tvos.h"
 #elif JUCE_IOS
  #include "../native/juce_CameraDevice_ios.h"
 #elif JUCE_ANDROID
@@ -207,7 +209,9 @@ CameraDevice* CameraDevice::openDevice ([[maybe_unused]] int index,
 {
     jassert (juce::MessageManager::getInstance()->currentThreadHasLockedMessageManager());
 
-   #if ! JUCE_ANDROID && ! JUCE_IOS
+   #if JUCE_TVOS
+    ignoreUnused (index, minWidth, minHeight, maxWidth, maxHeight, useHighQuality);
+   #elif ! JUCE_ANDROID && ! JUCE_IOS
     std::unique_ptr<CameraDevice> d (new CameraDevice (getAvailableDevices() [index], index,
                                                        minWidth, minHeight, maxWidth, maxHeight, useHighQuality));
     if (d != nullptr && d->pimpl->openedOk())
@@ -232,7 +236,10 @@ void CameraDevice::openDeviceAsync (int index, OpenCameraResultCallback resultCa
         return;
     }
 
-   #if JUCE_ANDROID || JUCE_IOS
+   #if JUCE_TVOS
+    ignoreUnused (index, minWidth, minHeight, maxWidth, maxHeight, useHighQuality);
+    resultCallback (nullptr, "Camera devices are unavailable on tvOS");
+   #elif JUCE_ANDROID || JUCE_IOS
     CameraFactory::getInstance().openCamera (index, std::move (resultCallback),
                                              minWidth, minHeight, maxWidth, maxHeight, useHighQuality);
    #else

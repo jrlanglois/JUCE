@@ -41,7 +41,7 @@
 namespace juce
 {
 
-#if JUCE_IOS
+#if JUCE_IOS || JUCE_TVOS
 struct AppInactivityCallback // NB: this is a duplicate of an internal declaration in juce_core
 {
     virtual ~AppInactivityCallback() {}
@@ -365,7 +365,7 @@ public:
 
         state |= StateFlags::initialised;
 
-       #if JUCE_IOS
+       #if JUCE_IOS || JUCE_TVOS
         if (backgroundProcessCheck.isBackgroundProcess())
             return RenderStatus::noWork;
        #endif
@@ -492,7 +492,7 @@ public:
            #elif JUCE_WINDOWS || JUCE_LINUX || JUCE_BSD
             const auto globalArea = detail::ScalingHelpers::scaledScreenPosToUnscaled (component, logicalArea);
             const auto newArea = (globalArea.toFloat() * peer->getPlatformScaleFactor()).withZeroOrigin().toNearestInt();
-           #elif JUCE_IOS || JUCE_ANDROID
+           #elif JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
             auto& desktop = Desktop::getInstance();
             const auto& displays = desktop.getDisplays();
             const auto physicalTopLeft = displays.logicalToPhysical (logicalArea.getTopLeft().toFloat());
@@ -1110,7 +1110,7 @@ public:
     std::atomic<int> state { 0 };
     ReferenceCountedArray<AsyncWorker, CriticalSection> workQueue;
 
-   #if JUCE_IOS
+   #if JUCE_IOS || JUCE_TVOS
     iOSBackgroundProcessCheck backgroundProcessCheck;
    #endif
 

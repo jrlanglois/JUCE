@@ -36,7 +36,7 @@
 namespace juce
 {
 
-#if JUCE_MAC || JUCE_IOS
+#if JUCE_APPLE
 
 struct CoreAudioLayouts
 {

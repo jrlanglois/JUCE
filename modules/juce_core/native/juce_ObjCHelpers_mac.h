@@ -673,6 +673,26 @@ private:
 JUCE_DEFINE_IOS_VERSION_CHECKER_FOR_VERSION (14, 0)
 JUCE_DEFINE_IOS_VERSION_CHECKER_FOR_VERSION (17, 0)
 
+#elif JUCE_TVOS
+
+#define JUCE_DEFINE_TVOS_VERSION_CHECKER_FOR_VERSION(major, minor)          \
+    template <typename Trait, typename... Args>                             \
+    auto ifelse_ ## major ## _ ## minor (Args&&... args)                    \
+    {                                                                       \
+        constexpr auto fullVersion = major * 10'000 + minor * 100;          \
+        if constexpr (fullVersion <= __TV_OS_VERSION_MIN_REQUIRED)          \
+            return Trait::newFn (std::forward<Args> (args)...);             \
+        else if constexpr (__TV_OS_VERSION_MAX_ALLOWED < fullVersion)       \
+            return Trait::oldFn (std::forward<Args> (args)...);             \
+        else if (@available (tvOS major ## . ## minor, *))                  \
+            return Trait::newFn (std::forward<Args> (args)...);             \
+        else                                                                \
+            return Trait::oldFn (std::forward<Args> (args)...);             \
+    }
+
+JUCE_DEFINE_TVOS_VERSION_CHECKER_FOR_VERSION (14, 0)
+JUCE_DEFINE_TVOS_VERSION_CHECKER_FOR_VERSION (17, 0)
+
 #endif
 
 } // namespace juce

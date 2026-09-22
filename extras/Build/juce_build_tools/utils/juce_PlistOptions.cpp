@@ -143,10 +143,10 @@ namespace juce::build_tools
         if (dict == nullptr)
             dict = plist->createNewChildElement ("dict");
 
-        if (microphonePermissionEnabled)
+        if (microphonePermissionEnabled && ! tvOS)
             addPlistDictionaryKey (*dict, "NSMicrophoneUsageDescription", microphonePermissionText);
 
-        if (cameraPermissionEnabled)
+        if (cameraPermissionEnabled && ! tvOS)
             addPlistDictionaryKey (*dict, "NSCameraUsageDescription", cameraPermissionText);
 
         if (bluetoothPermissionEnabled)
@@ -175,7 +175,7 @@ namespace juce::build_tools
             addKeyIfNotFound (*sceneManifestDict, "UISceneConfigurations");
             sceneManifestDict->createNewChildElement ("dict");
         }
-        else
+        else if (! tvOS)
         {
             if (sendAppleEventsPermissionEnabled)
                 addPlistDictionaryKey (*dict, "NSAppleEventsUsageDescription", sendAppleEventsPermissionText);
@@ -183,7 +183,7 @@ namespace juce::build_tools
 
         addPlistDictionaryKey (*dict, "CFBundleExecutable",          executableName);
 
-        if (! iOS) // (NB: on iOS this causes error ITMS-90032 during publishing)
+        if (! iOS && ! tvOS) // (NB: on UIKit platforms this causes error ITMS-90032 during publishing)
         {
             addPlistDictionaryKey (*dict, "CFBundleIconFile", iconFile.exists() ? iconFile.getFileName() : String());
 
@@ -238,10 +238,10 @@ namespace juce::build_tools
             }
         }
 
-        if (fileSharingEnabled && type != ProjectType::Target::AudioUnitv3PlugIn)
+        if (iOS && fileSharingEnabled && type != ProjectType::Target::AudioUnitv3PlugIn)
             addPlistDictionaryKey (*dict, "UIFileSharingEnabled", true);
 
-        if (documentBrowserEnabled)
+        if (iOS && documentBrowserEnabled)
             addPlistDictionaryKey (*dict, "UISupportsDocumentBrowser", true);
 
         if (iOS)
@@ -276,6 +276,13 @@ namespace juce::build_tools
                 dict->addChildElement (new XmlElement (audioComponentsPlistEntry));
             }
         }
+        else if (tvOS && type != ProjectType::Target::AudioUnitv3PlugIn)
+        {
+            if (backgroundAudioEnabled)
+                addIosBackgroundModes (*dict);
+
+            addPlistDictionaryKey (*dict, "UIUserInterfaceStyle", "Automatic");
+        }
 
         const auto extraOptions = [&]() -> Array<XmlElement>
         {
@@ -307,7 +314,7 @@ namespace juce::build_tools
         StringArray iosBackgroundModes;
         if (backgroundAudioEnabled)     iosBackgroundModes.add ("audio");
         if (backgroundBleEnabled)       iosBackgroundModes.add ("bluetooth-central");
-        if (pushNotificationsEnabled)   iosBackgroundModes.add ("remote-notification");
+        if (pushNotificationsEnabled && ! tvOS)   iosBackgroundModes.add ("remote-notification");
 
         addArrayToPlist (dict, "UIBackgroundModes", iosBackgroundModes);
     }

@@ -62,7 +62,10 @@ namespace juce:: build_tools
             // entitlement iOS apps are unable to access AUv3 plug-ins.
             if ((isAudioPluginProject && shouldEnableIAA) || isAUPluginHost)
                 entitlements.set ("inter-app-audio", "<true/>");
+        }
 
+        if (isiOS || isTVOS)
+        {
             if (isiCloudPermissionsEnabled)
             {
                 entitlements.set ("com.apple.developer.icloud-container-identifiers",
@@ -82,7 +85,7 @@ namespace juce:: build_tools
             }
         }
 
-        if (isPushNotificationsEnabled)
+        if (isPushNotificationsEnabled && ! isTVOS)
             entitlements.set (isiOS ? "aps-environment"
                                     : "com.apple.developer.aps-environment",
                               "<string>development</string>");
@@ -104,7 +107,7 @@ namespace juce:: build_tools
             for (auto& option : hardenedRuntimeOptions)
                 entitlements.set (option, "<true/>");
 
-        if (isAppSandboxEnabled || (! isiOS && isAudioPluginProject && type == ProjectType::Target::AudioUnitv3PlugIn))
+        if (isAppSandboxEnabled || (! isiOS && ! isTVOS && isAudioPluginProject && type == ProjectType::Target::AudioUnitv3PlugIn))
         {
             entitlements.set ("com.apple.security.app-sandbox", "<true/>");
 

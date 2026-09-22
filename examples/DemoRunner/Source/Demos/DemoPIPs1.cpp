@@ -30,30 +30,40 @@
 //==============================================================================
 #include "IntroScreen.h"
 #include "../../../Audio/AudioAppDemo.h"
-#include "../../../Audio/AudioLatencyDemo.h"
+#if ! JUCE_TVOS
+ #include "../../../Audio/AudioLatencyDemo.h"
+#endif
 #include "../../../Audio/AudioPlaybackDemo.h"
-#include "../../../Audio/AudioRecordingDemo.h"
+#if ! JUCE_TVOS
+ #include "../../../Audio/AudioRecordingDemo.h"
+#endif
 #include "../../../Audio/AudioSettingsDemo.h"
 #include "../../../Audio/AudioSynthesiserDemo.h"
 #include "../../../Audio/AudioWorkgroupDemo.h"
-#include "../../../Audio/CapabilityInquiryDemo.h"
-#include "../../../Audio/MPEDemo.h"
-#include "../../../Audio/MidiDemo.h"
+#if ! JUCE_TVOS
+ #include "../../../Audio/CapabilityInquiryDemo.h"
+ #include "../../../Audio/MPEDemo.h"
+ #include "../../../Audio/MidiDemo.h"
+#endif
 #include "../../../Audio/PluckedStringsDemo.h"
 #include "../../../Audio/SimpleFFTDemo.h"
-#include "../../../Audio/UmpDemo.h"
-
-#include "../../../DSP/ConvolutionDemo.h"
-#include "../../../DSP/FIRFilterDemo.h"
-#include "../../../DSP/GainDemo.h"
-#include "../../../DSP/IIRFilterDemo.h"
-#include "../../../DSP/OscillatorDemo.h"
-#include "../../../DSP/OverdriveDemo.h"
-#if JUCE_USE_SIMD
- #include "../../../DSP/SIMDRegisterDemo.h"
+#if ! JUCE_TVOS
+ #include "../../../Audio/UmpDemo.h"
 #endif
-#include "../../../DSP/StateVariableFilterDemo.h"
-#include "../../../DSP/WaveShaperTanhDemo.h"
+
+#if ! JUCE_TVOS
+ #include "../../../DSP/ConvolutionDemo.h"
+ #include "../../../DSP/FIRFilterDemo.h"
+ #include "../../../DSP/GainDemo.h"
+ #include "../../../DSP/IIRFilterDemo.h"
+ #include "../../../DSP/OscillatorDemo.h"
+ #include "../../../DSP/OverdriveDemo.h"
+ #if JUCE_USE_SIMD
+  #include "../../../DSP/SIMDRegisterDemo.h"
+ #endif
+ #include "../../../DSP/StateVariableFilterDemo.h"
+ #include "../../../DSP/WaveShaperTanhDemo.h"
+#endif
 
 #include "../../../Utilities/Box2DDemo.h"
 #include "../../../Utilities/CryptographyDemo.h"
@@ -61,7 +71,9 @@
 #include "../../../Utilities/LiveConstantDemo.h"
 #include "../../../Utilities/MultithreadingDemo.h"
 #include "../../../Utilities/NetworkingDemo.h"
-#include "../../../Utilities/OSCDemo.h"
+#if ! JUCE_TVOS
+ #include "../../../Utilities/OSCDemo.h"
+#endif
 #include "../../../Utilities/SystemInfoDemo.h"
 #include "../../../Utilities/TimersAndEventsDemo.h"
 #include "../../../Utilities/UnitTestsDemo.h"
@@ -71,30 +83,40 @@
 void registerDemos_One() noexcept
 {
     REGISTER_DEMO (AudioAppDemo,            Audio,     false)
+   #if ! JUCE_TVOS
     REGISTER_DEMO (AudioLatencyDemo,        Audio,     false)
+   #endif
     REGISTER_DEMO (AudioPlaybackDemo,       Audio,     false)
+   #if ! JUCE_TVOS
     REGISTER_DEMO (AudioRecordingDemo,      Audio,     false)
+   #endif
     REGISTER_DEMO (AudioSettingsDemo,       Audio,     false)
     REGISTER_DEMO (AudioSynthesiserDemo,    Audio,     false)
     REGISTER_DEMO (AudioWorkgroupDemo,      Audio,     false)
+   #if ! JUCE_TVOS
     REGISTER_DEMO (CapabilityInquiryDemo,   Audio,     false)
-    REGISTER_DEMO (MidiDemo,                Audio,     false)
     REGISTER_DEMO (MPEDemo,                 Audio,     false)
+    REGISTER_DEMO (MidiDemo,                Audio,     false)
+   #endif
     REGISTER_DEMO (PluckedStringsDemo,      Audio,     false)
     REGISTER_DEMO (SimpleFFTDemo,           Audio,     false)
+   #if ! JUCE_TVOS
     REGISTER_DEMO (UmpDemo,                 Audio,     false)
+   #endif
 
+   #if ! JUCE_TVOS
     REGISTER_DEMO (ConvolutionDemo,         DSP,       false)
     REGISTER_DEMO (FIRFilterDemo,           DSP,       false)
     REGISTER_DEMO (GainDemo,                DSP,       false)
     REGISTER_DEMO (IIRFilterDemo,           DSP,       false)
     REGISTER_DEMO (OscillatorDemo,          DSP,       false)
     REGISTER_DEMO (OverdriveDemo,           DSP,       false)
-   #if JUCE_USE_SIMD
+    #if JUCE_USE_SIMD
     REGISTER_DEMO (SIMDRegisterDemo,        DSP,       false)
-   #endif
+    #endif
     REGISTER_DEMO (StateVariableFilterDemo, DSP,       false)
     REGISTER_DEMO (WaveShaperTanhDemo,      DSP,       false)
+   #endif
 
     REGISTER_DEMO (Box2DDemo,               Utilities, false)
    #if JUCE_MAC || JUCE_WINDOWS || JUCE_LINUX || JUCE_BSD
@@ -105,7 +127,9 @@ void registerDemos_One() noexcept
     REGISTER_DEMO (LiveConstantDemo,        Utilities, false)
     REGISTER_DEMO (MultithreadingDemo,      Utilities, false)
     REGISTER_DEMO (NetworkingDemo,          Utilities, false)
+   #if ! JUCE_TVOS
     REGISTER_DEMO (OSCDemo,                 Utilities, false)
+   #endif
     REGISTER_DEMO (SystemInfoDemo,          Utilities, false)
     REGISTER_DEMO (TimersAndEventsDemo,     Utilities, false)
     REGISTER_DEMO (UnitTestsDemo,           Utilities, false)

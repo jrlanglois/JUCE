@@ -37,7 +37,7 @@ namespace juce
 
 #if ! (JUCE_LINUX || JUCE_BSD)
 
-#if JUCE_MAC || JUCE_IOS
+#if JUCE_APPLE
  #include "../native/juce_Video_mac.h"
 #elif JUCE_WINDOWS
  #include "../native/juce_Video_windows.h"
@@ -75,7 +75,7 @@ void VideoComponent::loadAsync (const URL& url, std::function<void (const URL&, 
         return;
     }
 
-   #if JUCE_ANDROID || JUCE_IOS || JUCE_MAC
+   #if JUCE_ANDROID || JUCE_APPLE
     pimpl->loadAsync (url, callback);
    #else
     auto result = loadInternal (url, true);
@@ -152,9 +152,9 @@ void VideoComponent::timerCallback()
 template <class FileOrURL>
 Result VideoComponent::loadInternal (const FileOrURL& fileOrUrl, bool loadAsync)
 {
-   #if JUCE_ANDROID || JUCE_IOS
+   #if JUCE_ANDROID || JUCE_IOS || JUCE_TVOS
     ignoreUnused (fileOrUrl, loadAsync);
-    // You need to use loadAsync on Android & iOS.
+    // You need to use loadAsync on Android, iOS, and tvOS.
     jassertfalse;
     return Result::fail ("load() is not supported on this platform. Use loadAsync() instead.");
    #else

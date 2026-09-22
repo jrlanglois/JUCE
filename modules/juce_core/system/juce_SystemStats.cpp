@@ -221,7 +221,7 @@ String SystemStats::getStackBacktrace()
         }
     }
 
-   #elif JUCE_MAC || JUCE_IOS || defined (__GLIBC__)
+   #elif JUCE_APPLE || defined (__GLIBC__)
 
     void* stack[128];
     auto frames = backtrace (stack, numElementsInArray (stack));
@@ -282,7 +282,7 @@ void SystemStats::setApplicationCrashHandler (CrashHandlerFunction handler)
 
 bool SystemStats::isRunningInAppExtensionSandbox() noexcept
 {
-   #if JUCE_MAC || JUCE_IOS
+   #if JUCE_APPLE
     static bool isRunningInAppSandbox = [&]
     {
         File bundle = File::getSpecialLocation (File::invokedExecutableFile).getParentDirectory();

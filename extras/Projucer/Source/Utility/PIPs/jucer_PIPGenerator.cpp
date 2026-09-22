@@ -91,6 +91,7 @@ static bool isValidExporterIdentifier (const Identifier& exporterIdentifier)
 static bool exporterRequiresExampleAssets (const Identifier& exporterIdentifier, const String& projectName)
 {
     return (exporterIdentifier.toString() == XcodeProjectExporter::getValueTreeTypeNameiOS()
+            || exporterIdentifier.toString() == XcodeProjectExporter::getValueTreeTypeNameTVOS()
             || exporterIdentifier.toString() == AndroidProjectExporter::getValueTreeTypeName())
             || (exporterIdentifier.toString() == XcodeProjectExporter::getValueTreeTypeNameMac() && projectName == "AUv3SynthPlugin");
 }

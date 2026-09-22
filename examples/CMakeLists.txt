@@ -29,7 +29,46 @@ function(_juce_add_pips)
         CONFIGURE_DEPENDS LIST_DIRECTORIES false
         "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 
-    if((CMAKE_SYSTEM_NAME STREQUAL "Linux") OR (CMAKE_SYSTEM_NAME MATCHES ".*BSD"))
+    if(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+        list(REMOVE_ITEM headers
+            "${CMAKE_CURRENT_SOURCE_DIR}/AudioLatencyDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/AudioRecordingDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/AUv3SynthPluginDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/ARAPluginDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/ArpeggiatorPluginDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/BouncingBallWavetableDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/CameraDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/CapabilityInquiryDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/ChildProcessDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/ComponentDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/ConvolutionDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/DialogsDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/DSPModulePluginDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/FIRFilterDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/GainDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/GainPluginDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/HostPluginDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/IIRFilterDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/MidiDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/MidiLoggerPluginDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/MPEDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/MultiTouchDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/MultiOutSynthPluginDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/NoiseGatePluginDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/OSCDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/OscillatorDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/OverdriveDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/PushNotificationsDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/ReaperEmbeddedViewPluginDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/SamplerPluginDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/SIMDRegisterDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/StateVariableFilterDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/SurroundPluginDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/UmpDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/WaveShaperTanhDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/WebBrowserDemo.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/WebViewPluginDemo.h")
+    elseif((CMAKE_SYSTEM_NAME STREQUAL "Linux") OR (CMAKE_SYSTEM_NAME MATCHES ".*BSD"))
         list(REMOVE_ITEM headers
             "${CMAKE_CURRENT_SOURCE_DIR}/CameraDemo.h"
             "${CMAKE_CURRENT_SOURCE_DIR}/PushNotificationsDemo.h"

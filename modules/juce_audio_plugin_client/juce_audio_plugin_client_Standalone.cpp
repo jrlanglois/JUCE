@@ -222,7 +222,7 @@ JUCE_END_IGNORE_WARNINGS_GCC_LIKE
 #if JUCE_USE_CUSTOM_PLUGIN_STANDALONE_APP
  extern juce::JUCEApplicationBase* juce_CreateApplication();
 
- #if JUCE_IOS
+ #if JUCE_IOS || JUCE_TVOS
   extern void* juce_GetIOSCustomDelegateClass();
  #endif
 
