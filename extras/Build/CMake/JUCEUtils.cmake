@@ -1991,6 +1991,8 @@ function(_juce_set_fallback_properties target)
         _juce_set_property_if_not_set(${target} TARGETED_DEVICE_FAMILY "1,2")
     endif()
 
+    _juce_set_property_if_not_set(${target} TVOS_OVERSCAN_COMPENSATION systemDefault)
+
     set(au_category_codes
         'aufx'
         'aufc'
@@ -2162,6 +2164,7 @@ function(_juce_initialise_target target)
         BACKGROUND_BLE_ENABLED          # iOS only
         CUSTOM_XCASSETS_FOLDER          # iOS only
         TARGETED_DEVICE_FAMILY          # iOS only
+        TVOS_OVERSCAN_COMPENSATION      # tvOS only
         REQUIRES_FULL_SCREEN            # iOS only
         ICON_BIG
         ICON_SMALL
@@ -2282,6 +2285,22 @@ function(_juce_initialise_target target)
     endforeach()
 
     _juce_set_fallback_properties(${target})
+
+    if(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+        get_target_property(overscan_compensation ${target} JUCE_TVOS_OVERSCAN_COMPENSATION)
+        set(valid_overscan_compensations systemDefault scale insetBounds none)
+
+        if(NOT overscan_compensation IN_LIST valid_overscan_compensations)
+            message(FATAL_ERROR
+                "Target ${target} has invalid TVOS_OVERSCAN_COMPENSATION '${overscan_compensation}'. "
+                "Expected one of: systemDefault, scale, insetBounds, none.")
+        endif()
+
+        if(NOT overscan_compensation STREQUAL "systemDefault")
+            target_compile_definitions(${target}
+                PUBLIC JUCE_TVOS_OVERSCAN_COMPENSATION=${overscan_compensation})
+        endif()
+    endif()
 
     target_include_directories(${target} PRIVATE
         $<TARGET_PROPERTY:${target},JUCE_GENERATED_SOURCES_DIRECTORY>)

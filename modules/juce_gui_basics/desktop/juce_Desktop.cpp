@@ -45,6 +45,9 @@ Desktop::Desktop()
 
 Desktop::~Desktop()
 {
+    overscanCompensation = OverscanCompensation::systemDefault;
+    overscanCompensationChanged();
+
     setScreenSaverEnabled (true);
     animator.cancelAllAnimations (false);
 
@@ -59,7 +62,10 @@ Desktop::~Desktop()
 Desktop& JUCE_CALLTYPE Desktop::getInstance()
 {
     if (instance == nullptr)
+    {
         instance = new Desktop();
+        instance->overscanCompensationChanged();
+    }
 
     return *instance;
 }
@@ -375,6 +381,19 @@ bool Desktop::isOrientationEnabled (DisplayOrientation orientation) const noexce
               || orientation == rotatedClockwise || orientation == rotatedAntiClockwise);
 
     return (allowedOrientations & orientation) != 0;
+}
+
+void Desktop::setOverscanCompensation (OverscanCompensation newOverscanCompensation)
+{
+    JUCE_ASSERT_MESSAGE_MANAGER_IS_LOCKED
+
+    overscanCompensation = newOverscanCompensation;
+    overscanCompensationChanged();
+}
+
+Desktop::OverscanCompensation Desktop::getOverscanCompensation() const noexcept
+{
+    return overscanCompensation;
 }
 
 void Desktop::setGlobalScaleFactor (float newScaleFactor) noexcept

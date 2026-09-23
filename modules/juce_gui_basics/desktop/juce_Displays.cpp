@@ -215,6 +215,7 @@ static auto tie (const Displays::Display& d)
     return std::tie (d.dpi,
                      d.isMain,
                      d.keyboardInsets,
+                     d.overscanCompensationInsets,
                      d.safeAreaInsets,
                      d.scale,
                      d.topLeftPhysical,
@@ -230,6 +231,32 @@ static bool operator== (const Displays::Display& d1, const Displays::Display& d2
 {
     return tie (d1) == tie (d2);
 }
+
+#if JUCE_UNIT_TESTS
+class DisplaysTests final : public UnitTest
+{
+public:
+    DisplaysTests()
+        : UnitTest ("Displays", UnitTestCategories::gui)
+    {
+    }
+
+    void runTest() override
+    {
+        beginTest ("Overscan insets participate in display-refresh comparisons");
+
+        Displays::Display first {};
+        Displays::Display second {};
+
+        expect (first == second);
+
+        second.overscanCompensationInsets = BorderSize<int> (1, 2, 3, 4);
+        expect (! (first == second));
+    }
+};
+
+static DisplaysTests displaysTests;
+#endif
 
 //==============================================================================
 // These methods are used for converting the totalArea and userArea Rectangles in Display from physical to logical

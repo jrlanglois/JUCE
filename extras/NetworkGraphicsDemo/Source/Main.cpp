@@ -70,7 +70,7 @@ public:
     //==============================================================================
     void initialise (const String& commandLine) override
     {
-       #if ! JUCE_IOS && ! JUCE_ANDROID
+       #if ! JUCE_IOS && ! JUCE_TVOS && ! JUCE_ANDROID
         // Run as the master if we have a command-line flag "master" or if the exe itself
         // has been renamed to include the word "master"..
         bool isMaster = commandLine.containsIgnoreCase ("master")
@@ -79,6 +79,8 @@ public:
 
         if (isMaster)
             mainWindows.add (new MainWindow (properties));
+       #else
+        ignoreUnused (commandLine);
        #endif
 
         mainWindows.add (new MainWindow (properties, 0));
@@ -125,7 +127,7 @@ public:
             glContext.attachTo (*this);
            #endif
 
-           #if JUCE_IOS || JUCE_ANDROID
+           #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
             setFullScreen (true);
            #endif
         }

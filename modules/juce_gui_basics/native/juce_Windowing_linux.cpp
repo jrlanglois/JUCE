@@ -781,6 +781,7 @@ double Desktop::getDefaultMasterScale()                             { return 1.0
 
 Desktop::DisplayOrientation Desktop::getCurrentOrientation() const  { return upright; }
 void Desktop::allowedOrientationsChanged()                          {}
+void Desktop::overscanCompensationChanged()                         {}
 
 //==============================================================================
 bool detail::MouseInputSourceList::addSource()

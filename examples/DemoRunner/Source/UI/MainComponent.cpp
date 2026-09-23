@@ -364,7 +364,7 @@ void MainComponent::resized()
     {
         auto bounds = getLocalBounds();
 
-       #if JUCE_IOS || JUCE_ANDROID
+       #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
         if (auto* display = Desktop::getInstance().getDisplays().getDisplayForRect (getScreenBounds()))
             return display->safeAreaInsets.subtractedFrom (display->keyboardInsets.subtractedFrom (bounds));
        #endif

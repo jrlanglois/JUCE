@@ -185,7 +185,7 @@ public:
     {
         File fileToOpen;
 
-       #if JUCE_ANDROID || JUCE_IOS
+       #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
         fileToOpen = PluginGraph::getDefaultGraphDocumentOnMobile();
        #else
         for (int i = 0; i < getCommandLineParameterArray().size(); ++i)
@@ -221,7 +221,7 @@ public:
 
     void suspended() override
     {
-       #if JUCE_ANDROID || JUCE_IOS
+       #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
         if (auto graph = mainWindow->graphHolder.get())
             if (auto ioGraph = graph->graph.get())
                 ioGraph->saveDocument (PluginGraph::getDefaultGraphDocumentOnMobile());

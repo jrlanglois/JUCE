@@ -143,6 +143,18 @@ push-notification, CD-reader, and CD-burner support are disabled even if their f
 enabled by the project. MIDI, audio input, and StoreKit hosted-content downloads are unavailable;
 other in-app purchases remain supported.
 
+JUCE presents top-level tvOS windows at the full scene size. UIKit's output policy can be selected
+with `TVOS_OVERSCAN_COMPENSATION`, or changed at runtime with
+`Desktop::setOverscanCompensation()`. Runtime calls take precedence over the project setting.
+`systemDefault` leaves UIKit's policy unchanged; `scale` scales the final framebuffer;
+`insetBounds` reduces the application bounds without scaling; and `none` disables compensation.
+Returning to `systemDefault` restores the policy that was active before JUCE first overrode it.
+
+`Display::safeAreaInsets` identifies where important interface content should be placed.
+`Display::overscanCompensationInsets` separately reports the edges that may be clipped when native
+overscan compensation is disabled. JUCE does not combine these values or automatically inset root
+components.
+
 For a new project, either add the Xcode (tvOS) exporter in Projucer or start with the separate CMake
 build tree above. To add tvOS to an existing Projucer project, open it in the updated Projucer, add
 the Xcode (tvOS) exporter, set its signing team, and save to generate a separate Xcode project. To
@@ -429,6 +441,12 @@ attributes directly to these creation functions, rather than adding them later.
 - Specifies the device families on which the product must be capable of running. Allowed values
   are `1`, `2`, `1,2`, and `3`; these correspond to "iPhone/iPod touch", "iPad", "iPhone/iPod and
   iPad", and "Apple TV" respectively. This defaults to `3` on tvOS and `1,2` on iOS.
+
+`TVOS_OVERSCAN_COMPENSATION`
+- Selects the initial tvOS overscan-compensation policy. Allowed values are `systemDefault`,
+  `scale`, `insetBounds`, and `none`; the default is `systemDefault`. Explicit modes define
+  `JUCE_TVOS_OVERSCAN_COMPENSATION` for the target, while `systemDefault` emits no definition.
+  The argument has no effect on non-tvOS targets.
 
 `ICON_BIG`, `ICON_SMALL`
 - Paths to image files that will be used to generate app icons. If only one of these parameters

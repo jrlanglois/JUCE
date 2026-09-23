@@ -141,6 +141,15 @@
  #define JUCE_WIN_PER_MONITOR_DPI_AWARE 1
 #endif
 
+/** Sets the initial overscan-compensation policy for tvOS applications.
+
+    The value must be one of systemDefault, scale, insetBounds, or none.
+    systemDefault leaves UIKit's current policy unchanged.
+*/
+#ifndef JUCE_TVOS_OVERSCAN_COMPENSATION
+ #define JUCE_TVOS_OVERSCAN_COMPENSATION systemDefault
+#endif
+
 //==============================================================================
 namespace juce
 {

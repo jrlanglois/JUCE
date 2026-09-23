@@ -3077,6 +3077,7 @@ void Desktop::setKioskComponent (Component* kioskComp, bool shouldBeEnabled, boo
 }
 
 void Desktop::allowedOrientationsChanged() {}
+void Desktop::overscanCompensationChanged() {}
 
 //==============================================================================
 ComponentPeer* Component::createNewPeer (int styleFlags, void* windowToAttachTo)

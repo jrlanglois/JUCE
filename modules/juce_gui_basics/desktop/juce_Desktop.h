@@ -391,6 +391,30 @@ public:
     bool isOrientationEnabled (DisplayOrientation orientation) const noexcept;
 
     //==============================================================================
+    /** Describes how tvOS compensates for displays that may overscan their input. */
+    enum class OverscanCompensation
+    {
+        systemDefault,  /**< Leaves the native policy unchanged, or restores the policy that was
+                             active before JUCE first overrode it. */
+        scale,          /**< Scales the final framebuffer to avoid clipping. */
+        insetBounds,    /**< Insets the application's bounds without scaling the framebuffer. */
+        none            /**< Disables native compensation. Display::overscanCompensationInsets can
+                             be used to keep critical content away from potentially clipped edges. */
+    };
+
+    /** Sets the overscan-compensation policy.
+
+        On tvOS, this updates the active scene's screen and resynchronises fullscreen windows.
+        On other platforms, the requested value is stored but has no native effect.
+
+        This method must be called from the message thread.
+    */
+    void setOverscanCompensation (OverscanCompensation);
+
+    /** Returns the currently requested overscan-compensation policy. */
+    OverscanCompensation getOverscanCompensation() const noexcept;
+
+    //==============================================================================
     /** Returns the Displays object representing the connected displays.
 
         @see Displays
@@ -470,6 +494,9 @@ private:
 
     int allowedOrientations = allOrientations;
     void allowedOrientationsChanged();
+
+    OverscanCompensation overscanCompensation = OverscanCompensation::JUCE_TVOS_OVERSCAN_COMPENSATION;
+    void overscanCompensationChanged();
 
     float masterScaleFactor;
 

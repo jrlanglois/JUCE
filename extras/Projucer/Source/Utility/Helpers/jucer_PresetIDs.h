@@ -141,6 +141,7 @@ namespace Ids
     DECLARE_ID (iosDeploymentTarget);
     DECLARE_ID (tvOSBaseSDK);
     DECLARE_ID (tvOSDeploymentTarget);
+    DECLARE_ID (tvOSOverscanCompensation);
     DECLARE_ID (xcodeSubprojects);
     DECLARE_ID (extraFrameworks);
     DECLARE_ID (frameworkSearchPaths);

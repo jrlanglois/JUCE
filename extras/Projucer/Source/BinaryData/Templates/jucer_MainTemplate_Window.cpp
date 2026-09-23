@@ -66,7 +66,7 @@ public:
             setUsingNativeTitleBar (true);
             setContentOwned (new %%content_component_class%%(), true);
 
-           #if JUCE_IOS || JUCE_ANDROID
+           #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
             setFullScreen (true);
            #else
             setResizable (true, true);

@@ -148,6 +148,8 @@ private:
         return "Android";
        #elif JUCE_IOS
         return "iOS";
+       #elif JUCE_TVOS
+        return "tvOS";
        #elif JUCE_WINDOWS
         return "Windows";
        #elif JUCE_LINUX

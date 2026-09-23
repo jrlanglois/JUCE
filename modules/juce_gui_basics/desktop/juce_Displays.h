@@ -109,6 +109,16 @@ public:
         */
         BorderSize<int> safeAreaInsets;
 
+        /** Represents the area of this display in logical pixels that may be clipped by overscan.
+
+            This is currently populated on UIKit platforms from UIScreen's
+            overscanCompensationInsets. It is independent of safeAreaInsets and is not
+            automatically removed from userBounds or from the bounds of top-level components.
+
+            These insets are most useful on tvOS when Desktop::OverscanCompensation::none is active.
+        */
+        BorderSize<int> overscanCompensationInsets;
+
         /** Represents the area of this display in logical pixels that is obscured by an
             onscreen keyboard.
 

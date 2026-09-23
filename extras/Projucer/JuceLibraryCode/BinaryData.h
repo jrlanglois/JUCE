@@ -21,7 +21,7 @@ namespace BinaryData
     const int            PIPAudioProcessorWithARA_cpp_inSize = 689;
 
     extern const char*   PIPComponent_cpp_in;
-    const int            PIPComponent_cpp_inSize = 3231;
+    const int            PIPComponent_cpp_inSize = 3257;
 
     extern const char*   PIPConsole_cpp_in;
     const int            PIPConsole_cpp_inSize = 299;
@@ -168,7 +168,7 @@ namespace BinaryData
     const int            jucer_MainTemplate_NoWindow_cppSize = 1999;
 
     extern const char*   jucer_MainTemplate_Window_cpp;
-    const int            jucer_MainTemplate_Window_cppSize = 4081;
+    const int            jucer_MainTemplate_Window_cppSize = 4094;
 
     extern const char*   jucer_NewComponentTemplate_cpp;
     const int            jucer_NewComponentTemplate_cppSize = 1541;

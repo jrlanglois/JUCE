@@ -189,7 +189,7 @@ public:
 
         setConstrainer (&constrainer);
 
-       #if JUCE_IOS || JUCE_ANDROID
+       #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
         const auto screenBounds = Desktop::getInstance().getDisplays().getTotalBounds (true).toFloat();
         const auto scaleFactor = jmin ((screenBounds.getWidth()  - 50.0f) / (float) getWidth(),
                                        (screenBounds.getHeight() - 50.0f) / (float) getHeight());
@@ -240,7 +240,7 @@ public:
 
     BorderSize<int> getBorderThickness() const override
     {
-       #if JUCE_IOS || JUCE_ANDROID
+       #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
         const int border = 10;
         return { border, border, border, border };
        #else

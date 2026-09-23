@@ -5784,6 +5784,7 @@ void Desktop::setKioskComponent (Component* kioskModeComp, bool enableOrDisable,
 }
 
 void Desktop::allowedOrientationsChanged() {}
+void Desktop::overscanCompensationChanged() {}
 
 //==============================================================================
 struct MonitorInfo

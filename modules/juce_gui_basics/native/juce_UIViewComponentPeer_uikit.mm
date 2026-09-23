@@ -44,6 +44,14 @@
 namespace juce
 {
 
+#if JUCE_TVOS
+static void reapplyOverscanCompensationAfterSceneChange()
+{
+    if (auto* desktop = Desktop::getInstanceWithoutCreating())
+        desktop->setOverscanCompensation (desktop->getOverscanCompensation());
+}
+#endif
+
 struct WindowSceneTrackerListener
 {
     virtual ~WindowSceneTrackerListener() = default;
@@ -58,6 +66,11 @@ public:
     void setWindowScene (UIWindowScene* x) API_AVAILABLE (ios (13.0), tvos (13.0))
     {
         windowScene = x;
+
+       #if JUCE_TVOS
+        reapplyOverscanCompensationAfterSceneChange();
+       #endif
+
         listeners.call ([] (auto& l) { l.windowSceneChanged(); });
     }
 
@@ -80,6 +93,24 @@ private:
     ListenerList<WindowSceneTrackerListener> listeners;
     id windowScene = nil;
 };
+
+static UIScreen* getActiveScreen()
+{
+    if (@available (iOS 13.0, tvOS 13.0, *))
+    {
+        SharedResourcePointer<WindowSceneTracker> windowSceneTracker;
+
+        if (auto* scene = windowSceneTracker->getWindowScene())
+            if (auto* screen = [scene screen])
+                return screen;
+    }
+
+    JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated-declarations")
+    auto* screen = [UIScreen mainScreen];
+    JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+
+    return screen;
+}
 
 //==============================================================================
 static NSArray* getContainerAccessibilityElements (AccessibilityHandler& handler)
@@ -634,7 +665,7 @@ private:
             else if (window == nil)
             {
                 auto r = convertToCGRect (component.getBounds());
-                r.origin.y = [UIScreen mainScreen].bounds.size.height - (r.origin.y + r.size.height);
+                r.origin.y = [getActiveScreen() bounds].size.height - (r.origin.y + r.size.height);
 
                 return [[JuceUIWindow alloc] initWithFrame: r];
             }
@@ -2174,6 +2205,10 @@ UIViewComponentPeer::UIViewComponentPeer (Component& comp,
       isSharedWindow (viewToAttachTo != nil),
       isAppex (SystemStats::isRunningInAppExtensionSandbox())
 {
+   #if JUCE_TVOS
+    fullScreen = ! isSharedWindow;
+   #endif
+
     CGRect r = convertToCGRect (component.getBounds());
 
     view = [[JuceUIView alloc] initWithOwner: this withFrame: r];
@@ -2207,7 +2242,7 @@ UIViewComponentPeer::UIViewComponentPeer (Component& comp,
     else
     {
         r = convertToCGRect (component.getBounds());
-        r.origin.y = [UIScreen mainScreen].bounds.size.height - (r.origin.y + r.size.height);
+        r.origin.y = [getActiveScreen() bounds].size.height - (r.origin.y + r.size.height);
 
         controller = [[JuceUIViewController alloc] init];
         controller.view = view;
@@ -2264,6 +2299,16 @@ void UIViewComponentPeer::setTitle (const String&)
 
 void UIViewComponentPeer::setBounds (const Rectangle<int>& newBounds, const bool isNowFullScreen)
 {
+   #if JUCE_TVOS
+    // tvOS always presents top-level windows at the size of their scene. Keeping a
+    // different component size would make ComponentPeer scale the two axes independently.
+    if (! isSharedWindow && ! isNowFullScreen)
+    {
+        setFullScreen (true);
+        return;
+    }
+   #endif
+
     fullScreen = isNowFullScreen;
 
     if (isSharedWindow)
@@ -2883,6 +2928,175 @@ bool UIViewComponentPeer::canBecomeKeyWindow()
     return (getStyleFlags() & juce::ComponentPeer::windowIgnoresKeyPresses) == 0;
 }
 
+#if JUCE_TVOS
+static std::optional<UIScreenOverscanCompensation> getNativeOverscanCompensation (Desktop::OverscanCompensation policy)
+{
+    switch (policy)
+    {
+        case Desktop::OverscanCompensation::systemDefault: return {};
+        case Desktop::OverscanCompensation::scale:         return UIScreenOverscanCompensationScale;
+        case Desktop::OverscanCompensation::insetBounds:   return UIScreenOverscanCompensationInsetBounds;
+        case Desktop::OverscanCompensation::none:          return UIScreenOverscanCompensationNone;
+    }
+
+    jassertfalse;
+    return {};
+}
+
+class OverscanCompensationState
+{
+public:
+    ~OverscanCompensationState()
+    {
+        restore();
+    }
+
+    void apply (UIScreen* screen, UIScreenOverscanCompensation policy)
+    {
+        if (screen == nil)
+            return;
+
+        const auto iter = std::find_if (entries.begin(), entries.end(), [screen] (const auto& entry)
+        {
+            return entry.screen.get() == screen;
+        });
+
+        if (iter == entries.end())
+            entries.emplace_back (screen);
+
+        [screen setOverscanCompensation: policy];
+    }
+
+    void restore()
+    {
+        for (const auto& entry : entries)
+            [entry.screen.get() setOverscanCompensation: entry.originalPolicy];
+
+        entries.clear();
+    }
+
+private:
+    struct Entry
+    {
+        explicit Entry (UIScreen* screenIn)
+            : screen ([screenIn retain]),
+              originalPolicy ([screenIn overscanCompensation])
+        {
+        }
+
+        NSUniquePtr<UIScreen> screen;
+        UIScreenOverscanCompensation originalPolicy;
+    };
+
+    std::vector<Entry> entries;
+};
+
+static OverscanCompensationState& getOverscanCompensationState()
+{
+    static OverscanCompensationState state;
+    return state;
+}
+
+#if JUCE_UNIT_TESTS
+class OverscanCompensationTests final : public UnitTest
+{
+public:
+    OverscanCompensationTests()
+        : UnitTest ("tvOS overscan compensation", UnitTestCategories::gui)
+    {
+    }
+
+    void runTest() override
+    {
+        beginTest ("Public policies map to UIKit policies");
+
+        const auto expectMapping = [this] (Desktop::OverscanCompensation policy,
+                                           UIScreenOverscanCompensation expected)
+        {
+            const auto actual = getNativeOverscanCompensation (policy);
+            expect (actual.has_value());
+
+            if (actual.has_value())
+                expectEquals ((int) *actual, (int) expected);
+        };
+
+        expect (! getNativeOverscanCompensation (Desktop::OverscanCompensation::systemDefault).has_value());
+        expectMapping (Desktop::OverscanCompensation::scale, UIScreenOverscanCompensationScale);
+        expectMapping (Desktop::OverscanCompensation::insetBounds, UIScreenOverscanCompensationInsetBounds);
+        expectMapping (Desktop::OverscanCompensation::none, UIScreenOverscanCompensationNone);
+
+        auto* screen = getActiveScreen();
+        expect (screen != nil);
+
+        if (screen == nil)
+            return;
+
+        const auto originalPolicy = [screen overscanCompensation];
+
+        beginTest ("Selecting systemDefault restores the captured policy");
+        {
+            OverscanCompensationState state;
+            const auto temporaryPolicy = originalPolicy == UIScreenOverscanCompensationNone
+                                       ? UIScreenOverscanCompensationScale
+                                       : UIScreenOverscanCompensationNone;
+
+            state.apply (screen, temporaryPolicy);
+            expectEquals ((int) [screen overscanCompensation], (int) temporaryPolicy);
+            state.restore();
+            expectEquals ((int) [screen overscanCompensation], (int) originalPolicy);
+        }
+
+        beginTest ("Repeated application does not replace the captured policy");
+        {
+            OverscanCompensationState state;
+            state.apply (screen, UIScreenOverscanCompensationInsetBounds);
+
+            [screen setOverscanCompensation: UIScreenOverscanCompensationScale];
+            state.apply (screen, UIScreenOverscanCompensationNone);
+
+            expectEquals ((int) [screen overscanCompensation], (int) UIScreenOverscanCompensationNone);
+            state.restore();
+            expectEquals ((int) [screen overscanCompensation], (int) originalPolicy);
+        }
+
+        beginTest ("Scene reconnection reapplies the requested policy");
+        {
+            MessageManager::getInstance();
+
+            auto& desktop = Desktop::getInstance();
+            const auto requestedPolicy = desktop.getOverscanCompensation();
+            const ScopeGuard restorePolicy { [&desktop, requestedPolicy]
+            {
+                desktop.setOverscanCompensation (requestedPolicy);
+            } };
+
+            desktop.setOverscanCompensation (Desktop::OverscanCompensation::systemDefault);
+            const auto capturedPolicy = [screen overscanCompensation];
+            const auto testPolicy = capturedPolicy == UIScreenOverscanCompensationNone
+                                  ? Desktop::OverscanCompensation::scale
+                                  : Desktop::OverscanCompensation::none;
+            const auto nativeTestPolicy = *getNativeOverscanCompensation (testPolicy);
+
+            desktop.setOverscanCompensation (testPolicy);
+            [screen setOverscanCompensation: nativeTestPolicy == UIScreenOverscanCompensationScale
+                                               ? UIScreenOverscanCompensationNone
+                                               : UIScreenOverscanCompensationScale];
+
+            SharedResourcePointer<WindowSceneTracker> windowSceneTracker;
+            windowSceneTracker->setWindowScene (windowSceneTracker->getWindowScene());
+
+            expectEquals ((int) [screen overscanCompensation], (int) nativeTestPolicy);
+
+            desktop.setOverscanCompensation (Desktop::OverscanCompensation::systemDefault);
+            expectEquals ((int) [screen overscanCompensation], (int) capturedPolicy);
+        }
+    }
+};
+
+static OverscanCompensationTests overscanCompensationTests;
+#endif
+#endif
+
 //==============================================================================
 void Desktop::setKioskComponent (Component* kioskModeComp, bool enableOrDisable, bool /*allowMenusAndBars*/)
 {
@@ -2897,6 +3111,27 @@ void Desktop::setKioskComponent (Component* kioskModeComp, bool enableOrDisable,
 
         peer->setFullScreen (enableOrDisable);
     }
+}
+
+void Desktop::overscanCompensationChanged()
+{
+   #if JUCE_TVOS
+    auto& state = getOverscanCompensationState();
+
+    if (const auto nativePolicy = getNativeOverscanCompensation (overscanCompensation))
+        state.apply (getActiveScreen(), *nativePolicy);
+    else
+        state.restore();
+
+    if (getInstanceWithoutCreating() != this)
+        return;
+
+    displays->refresh();
+
+    for (auto i = ComponentPeer::getNumPeers(); --i >= 0;)
+        if (auto* peer = dynamic_cast<UIViewComponentPeer*> (ComponentPeer::getPeer (i)))
+            peer->updateScreenBounds();
+   #endif
 }
 
 void Desktop::allowedOrientationsChanged()

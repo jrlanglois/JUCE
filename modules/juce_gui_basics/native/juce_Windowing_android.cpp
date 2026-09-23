@@ -2853,6 +2853,8 @@ void Desktop::allowedOrientationsChanged()
         getEnv()->CallVoidMethod (activity.get(), AndroidActivity.setRequestedOrientation, getAndroidOrientationFlag (allowedOrientations));
 }
 
+void Desktop::overscanCompensationChanged() {}
+
 //==============================================================================
 #define JNI_CLASS_MEMBERS(METHOD, STATICMETHOD, FIELD, STATICFIELD, CALLBACK) \
  METHOD (create,          "<init>",         "()V") \
