@@ -66,7 +66,8 @@ private:
     static constexpr int itemSpacing = 7;
 
     class GraphicsSettingsGroup final : public Component,
-                                        private ComponentMovementWatcher
+                                        private ComponentMovementWatcher,
+                                        private Timer
     {
     public:
         GraphicsSettingsGroup (MainComponent& comp)
@@ -102,6 +103,30 @@ private:
             rendererLabel.setJustificationType (Justification::centredRight);
             rendererLabel.attachToComponent (&rendererSelector, true);
 
+           #if JUCE_TVOS
+            addAndMakeVisible (overscanCompensationSelector);
+            overscanCompensationSelector.addItemList ({ "System Default", "Scale", "Inset Bounds", "None" }, 1);
+            overscanCompensationSelector.setSelectedItemIndex (getOverscanCompensationIndex (
+                                                                    Desktop::getInstance().getOverscanCompensation()),
+                                                               NotificationType::dontSendNotification);
+            overscanCompensationSelector.onChange = [this]
+            {
+                Desktop::getInstance().setOverscanCompensation (
+                    getOverscanCompensation (overscanCompensationSelector.getSelectedItemIndex()));
+                refreshOverscanInsets();
+            };
+
+            addAndMakeVisible (overscanCompensationLabel);
+            overscanCompensationLabel.setJustificationType (Justification::centredRight);
+            overscanCompensationLabel.attachToComponent (&overscanCompensationSelector, true);
+
+            addAndMakeVisible (overscanInsetsLabel);
+            overscanInsetsLabel.setJustificationType (Justification::centredLeft);
+
+            refreshOverscanInsets();
+            startTimerHz (4);
+           #endif
+
             setFocusContainerType (FocusContainerType::focusContainer);
             setTitle ("Graphics Settings");
         }
@@ -120,9 +145,23 @@ private:
             bounds.removeFromTop (itemSpacing);
 
             rendererSelector.setBounds (bounds.removeFromTop (itemHeight).withWidth (width).withX (xPos));
+
+           #if JUCE_TVOS
+            bounds.removeFromTop (itemSpacing);
+            overscanCompensationSelector.setBounds (bounds.removeFromTop (itemHeight).withWidth (width).withX (xPos));
+            bounds.removeFromTop (itemSpacing);
+            overscanInsetsLabel.setBounds (bounds.removeFromTop (itemHeight).withWidth (width).withX (xPos));
+           #endif
         }
 
     private:
+        void timerCallback() override
+        {
+           #if JUCE_TVOS
+            refreshOverscanInsets();
+           #endif
+        }
+
         void componentMovedOrResized (bool, bool) override    {}
         using ComponentListener::componentMovedOrResized;
 
@@ -165,6 +204,55 @@ private:
             lookAndFeels.add (new LookAndFeel_V4 (LookAndFeel_V4::getLightColourScheme()));
         }
 
+       #if JUCE_TVOS
+        static int getOverscanCompensationIndex (Desktop::OverscanCompensation policy)
+        {
+            switch (policy)
+            {
+                case Desktop::OverscanCompensation::systemDefault: return 0;
+                case Desktop::OverscanCompensation::scale:         return 1;
+                case Desktop::OverscanCompensation::insetBounds:   return 2;
+                case Desktop::OverscanCompensation::none:          return 3;
+            }
+
+            jassertfalse;
+            return 0;
+        }
+
+        static Desktop::OverscanCompensation getOverscanCompensation (int index)
+        {
+            switch (index)
+            {
+                case 0:  return Desktop::OverscanCompensation::systemDefault;
+                case 1:  return Desktop::OverscanCompensation::scale;
+                case 2:  return Desktop::OverscanCompensation::insetBounds;
+                case 3:  return Desktop::OverscanCompensation::none;
+                default: break;
+            }
+
+            jassertfalse;
+            return Desktop::OverscanCompensation::systemDefault;
+        }
+
+        void refreshOverscanInsets()
+        {
+            const auto* display = Desktop::getInstance().getDisplays().getPrimaryDisplay();
+
+            if (display == nullptr)
+            {
+                overscanInsetsLabel.setText ("Insets unavailable", NotificationType::dontSendNotification);
+                return;
+            }
+
+            const auto insets = display->overscanCompensationInsets;
+            overscanInsetsLabel.setText ("Insets: T " + String (insets.getTop())
+                                           + " L " + String (insets.getLeft())
+                                           + " B " + String (insets.getBottom())
+                                           + " R " + String (insets.getRight()),
+                                         NotificationType::dontSendNotification);
+        }
+       #endif
+
         MainComponent& mainComponent;
         ComponentPeer* peer = nullptr;
 
@@ -173,6 +261,11 @@ private:
               rendererLabel    { {}, "Renderer:" };
 
         ComboBox lookAndFeelSelector, rendererSelector;
+       #if JUCE_TVOS
+        Label overscanCompensationLabel { {}, "Overscan:" },
+              overscanInsetsLabel;
+        ComboBox overscanCompensationSelector;
+       #endif
         StringArray lookAndFeelNames;
         OwnedArray<LookAndFeel> lookAndFeels;
     };
@@ -230,7 +323,11 @@ private:
         {
             auto bounds = getLocalBounds();
 
+           #if JUCE_TVOS
+            graphicsSettings.setBounds (bounds.removeFromTop (190));
+           #else
             graphicsSettings.setBounds (bounds.removeFromTop (150));
+           #endif
             audioSettings.setBounds (bounds);
         }
 

@@ -37,7 +37,7 @@ private:
         {
             setUsingNativeTitleBar (true);
 
-           #if JUCE_ANDROID || JUCE_IOS
+           #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
             setContentOwned (new SafeAreaComponent { std::move (c) }, true);
             setFullScreen (true);
            #else
@@ -55,7 +55,7 @@ private:
             app.systemRequestedQuit();
         }
 
-       #if JUCE_ANDROID || JUCE_IOS
+       #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
         class SafeAreaComponent : public juce::Component
         {
         public:

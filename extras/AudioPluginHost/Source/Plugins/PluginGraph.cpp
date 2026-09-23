@@ -166,7 +166,7 @@ PluginWindow* PluginGraph::getOrCreateWindowFor (AudioProcessorGraph::Node* node
 {
     jassert (node != nullptr);
 
-   #if JUCE_IOS || JUCE_ANDROID
+   #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
     closeAnyOpenPluginWindows();
    #else
     for (auto* w : activePluginWindows)

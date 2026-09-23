@@ -41,7 +41,7 @@
 //==============================================================================
 namespace CommandIDs
 {
-   #if ! (JUCE_IOS || JUCE_ANDROID)
+   #if ! (JUCE_IOS || JUCE_TVOS || JUCE_ANDROID)
     static const int open                   = 0x30000;
     static const int save                   = 0x30001;
     static const int saveAs                 = 0x30002;

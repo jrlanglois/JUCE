@@ -127,7 +127,7 @@ private:
             setResizable (true, false);
             setResizeLimits (400, 400, 10000, 10000);
 
-           #if JUCE_IOS || JUCE_ANDROID
+           #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
             setFullScreen (true);
 
             auto& desktop = Desktop::getInstance();
@@ -147,7 +147,7 @@ private:
 
         void closeButtonPressed() override    { JUCEApplication::getInstance()->systemRequestedQuit(); }
 
-       #if JUCE_IOS || JUCE_ANDROID
+       #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
         void parentSizeChanged() override
         {
             if (auto* comp = getContentComponent())

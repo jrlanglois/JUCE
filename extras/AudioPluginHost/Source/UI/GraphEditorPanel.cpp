@@ -447,7 +447,7 @@ struct GraphEditorPanel::PluginComponent final : public Component,
         menu->addItem ("Configure Audio I/O", [this] { showWindow (PluginWindow::Type::audioIO); });
         menu->addItem ("Test state save/load", [this] { testStateSaveLoad(); });
 
-       #if ! JUCE_IOS && ! JUCE_ANDROID
+       #if ! JUCE_IOS && ! JUCE_TVOS && ! JUCE_ANDROID
         menu->addSeparator();
         menu->addItem ("Save plugin state", [this] { savePluginState(); });
         menu->addItem ("Load plugin state", [this] { loadPluginState(); });

@@ -74,7 +74,7 @@ public:
             setContentOwned (new MainContentComponent(), true);
             setResizable (false, false);
 
-           #if JUCE_IOS || JUCE_ANDROID
+           #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
             setFullScreen (true);
            #else
             centreWithSize (getWidth(), getHeight());

@@ -608,7 +608,7 @@ bool Desktop::canUseSemiTransparentWindows() noexcept
 
 bool Desktop::isDarkModeActive() const
 {
-    return [[[UIScreen mainScreen] traitCollection] userInterfaceStyle] == UIUserInterfaceStyleDark;
+    return [[getActiveScreen() traitCollection] userInterfaceStyle] == UIUserInterfaceStyleDark;
 }
 
 JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wundeclared-selector")
@@ -744,6 +744,33 @@ static BorderSize<int> getSafeAreaInsets (const Desktop& desktop)
     return detail::WindowingHelpers::roundToInt (safeInsets.multipliedBy (1.0 / masterScale));
 }
 
+static BorderSize<int> convertToBorderSize (UIEdgeInsets insets, double masterScale)
+{
+    const BorderSize<double> unscaled { insets.top, insets.left, insets.bottom, insets.right };
+    return detail::WindowingHelpers::roundToInt (unscaled.multipliedBy (1.0 / masterScale));
+}
+
+#if JUCE_UNIT_TESTS && JUCE_TVOS
+class UIKitOverscanInsetsTests final : public UnitTest
+{
+public:
+    UIKitOverscanInsetsTests()
+        : UnitTest ("tvOS overscan insets", UnitTestCategories::gui)
+    {
+    }
+
+    void runTest() override
+    {
+        beginTest ("UIEdgeInsets convert to scaled JUCE border sizes");
+
+        const auto actual = convertToBorderSize (UIEdgeInsetsMake (20.0, 40.0, 60.0, 80.0), 2.0);
+        expect (actual == BorderSize<int> (10, 20, 30, 40));
+    }
+};
+
+static UIKitOverscanInsetsTests uiKitOverscanInsetsTests;
+#endif
+
 //==============================================================================
 void Displays::findDisplays (const Desktop& desktop)
 {
@@ -838,7 +865,7 @@ void Displays::findDisplays (const Desktop& desktop)
         static OnScreenKeyboardChangeDetectorImpl keyboardChangeDetector;
        #endif
 
-        UIScreen* s = [UIScreen mainScreen];
+        UIScreen* s = getActiveScreen();
 
         Display d;
         const auto masterScale = desktop.getGlobalScaleFactor();
@@ -846,6 +873,7 @@ void Displays::findDisplays (const Desktop& desktop)
         d.logicalBounds = convertToRectFloat ([s bounds]) / masterScale;
         d.userBounds = getRecommendedWindowBounds (desktop).toFloat() / masterScale;
         d.safeAreaInsets = getSafeAreaInsets (desktop);
+        d.overscanCompensationInsets = convertToBorderSize ([s overscanCompensationInsets], masterScale);
        #if JUCE_IOS
         const auto scaledInsets = keyboardChangeDetector.getInsets().multipliedBy (1.0 / (double) masterScale);
         d.keyboardInsets = detail::WindowingHelpers::roundToInt (scaledInsets);

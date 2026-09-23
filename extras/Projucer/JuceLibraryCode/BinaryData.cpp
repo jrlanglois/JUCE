@@ -131,7 +131,7 @@ static const unsigned char temp_binary_data_4[] =
 "        {\r\n"
 "            setUsingNativeTitleBar (true);\r\n"
 "\r\n"
-"           #if JUCE_ANDROID || JUCE_IOS\r\n"
+"           #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID\r\n"
 "            setContentOwned (new SafeAreaComponent { std::move (c) }, true);\r\n"
 "            setFullScreen (true);\r\n"
 "           #else\r\n"
@@ -149,7 +149,7 @@ static const unsigned char temp_binary_data_4[] =
 "            app.systemRequestedQuit();\r\n"
 "        }\r\n"
 "\r\n"
-"       #if JUCE_ANDROID || JUCE_IOS\r\n"
+"       #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID\r\n"
 "        class SafeAreaComponent : public juce::Component\r\n"
 "        {\r\n"
 "        public:\r\n"
@@ -7879,7 +7879,7 @@ static const unsigned char temp_binary_data_53[] =
 "            setUsingNativeTitleBar (true);\r\n"
 "            setContentOwned (new %%content_component_class%%(), true);\r\n"
 "\r\n"
-"           #if JUCE_IOS || JUCE_ANDROID\r\n"
+"           #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID\r\n"
 "            setFullScreen (true);\r\n"
 "           #else\r\n"
 "            setResizable (true, true);\r\n"
@@ -9016,7 +9016,7 @@ const char* getNamedResource (const char* resourceNameUTF8, int& numBytes)
         case 0x31d21131:  numBytes = 1042; return LaunchScreen_storyboard;
         case 0x24e5a04d:  numBytes = 483; return PIPAudioProcessor_cpp_in;
         case 0x956e0109:  numBytes = 689; return PIPAudioProcessorWithARA_cpp_in;
-        case 0xd572ce5a:  numBytes = 3231; return PIPComponent_cpp_in;
+        case 0xd572ce5a:  numBytes = 3257; return PIPComponent_cpp_in;
         case 0x1a77c680:  numBytes = 299; return PIPConsole_cpp_in;
         case 0xa41e649d:  numBytes = 2842; return RecentFilesMenuTemplate_nib;
         case 0x667fbbb3:  numBytes = 6424; return UnityPluginGUIScript_cs_in;
@@ -9065,7 +9065,7 @@ const char* getNamedResource (const char* resourceNameUTF8, int& numBytes)
         case 0x28d496ad:  numBytes = 1296; return jucer_InlineComponentTemplate_h;
         case 0x8905395b:  numBytes = 443; return jucer_MainConsoleAppTemplate_cpp;
         case 0x5e5ea047:  numBytes = 1999; return jucer_MainTemplate_NoWindow_cpp;
-        case 0x400bc026:  numBytes = 4081; return jucer_MainTemplate_Window_cpp;
+        case 0x400bc026:  numBytes = 4094; return jucer_MainTemplate_Window_cpp;
         case 0xf4842835:  numBytes = 1541; return jucer_NewComponentTemplate_cpp;
         case 0xe7bf237a:  numBytes = 665; return jucer_NewComponentTemplate_h;
         case 0x02a2a077:  numBytes = 278; return jucer_NewCppFileTemplate_cpp;

@@ -225,6 +225,7 @@ public:
           postSignCommandValue                         (settings, Ids::postSignCommand,                         getUndoManager()),
           duplicateAppExResourcesFolderValue           (settings, Ids::duplicateAppExResourcesFolder,           getUndoManager(), true),
           iosDeviceFamilyValue                         (settings, Ids::iosDeviceFamily,                         getUndoManager(), platformToUse == Platform::tvOS ? "3" : "1,2"),
+          tvOSOverscanCompensationValue                (settings, Ids::tvOSOverscanCompensation,                getUndoManager(), "systemDefault"),
           iPhoneScreenOrientationValue                 (settings, Ids::iPhoneScreenOrientation,                 getUndoManager(), getDefaultScreenOrientations(), ","),
           iPadScreenOrientationValue                   (settings, Ids::iPadScreenOrientation,                   getUndoManager(), getDefaultScreenOrientations(), ","),
           iconComposerIconValue                        (settings, Ids::iconComposerIcon,                        getUndoManager()),
@@ -331,6 +332,7 @@ public:
     bool shouldDuplicateAppExResourcesFolder() const        { return duplicateAppExResourcesFolderValue.get(); }
 
     String getDeviceFamilyString() const                    { return iosDeviceFamilyValue.get(); }
+    String getTvOSOverscanCompensationString() const        { return tvOSOverscanCompensationValue.get(); }
 
     Array<var> getDefaultScreenOrientations() const         { return { "UIInterfaceOrientationPortrait",
                                                                        "UIInterfaceOrientationLandscapeLeft",
@@ -570,6 +572,13 @@ public:
                    "The current version of the project. Used to disambiguate different builds of the same project on App Store Connect. "
                    "If this field is empty, the project's version will be used as the build number. "
                    "For more details about the difference between the project version and build version, see developer.apple.com/library/archive/technotes/tn2420/_index.html");
+
+        if (isTVOS())
+            props.add (new ChoicePropertyComponent (tvOSOverscanCompensationValue, "Overscan Compensation",
+                                                    { "System Default", "Scale", "Inset Bounds", "None" },
+                                                    { "systemDefault",  "scale", "insetBounds", "none" }),
+                       "Selects the initial UIKit overscan-compensation policy. System Default leaves UIKit's policy unchanged. "
+                       "A runtime call to Desktop::setOverscanCompensation overrides this setting.");
 
         if (isiOS())
         {
@@ -1780,6 +1789,11 @@ public:
 
             if (owner.isPushNotificationsEnabled())
                 defines.set ("JUCE_PUSH_NOTIFICATIONS", "1");
+
+            const auto overscanCompensation = owner.getTvOSOverscanCompensationString();
+
+            if (owner.isTVOS() && overscanCompensation != "systemDefault")
+                defines.set ("JUCE_TVOS_OVERSCAN_COMPENSATION", overscanCompensation);
 
             return mergePreprocessorDefs (defines, owner.getAllPreprocessorDefs (config, type));
         }
@@ -4530,7 +4544,7 @@ private:
                                  validArchsValue,
                                  extraFrameworksValue, frameworkSearchPathsValue, extraCustomFrameworksValue, embeddedFrameworksValue,
                                  postbuildCommandValue, prebuildCommandValue, postSignCommandValue,
-                                 duplicateAppExResourcesFolderValue, iosDeviceFamilyValue, iPhoneScreenOrientationValue,
+                                 duplicateAppExResourcesFolderValue, iosDeviceFamilyValue, tvOSOverscanCompensationValue, iPhoneScreenOrientationValue,
                                  iPadScreenOrientationValue, iconComposerIconValue, customXcodeResourceFoldersValue, customXcassetsFolderValue,
                                  appSandboxValue, appSandboxInheritanceValue, appSandboxOptionsValue,
                                  appSandboxHomeDirROValue, appSandboxHomeDirRWValue, appSandboxAbsDirROValue, appSandboxAbsDirRWValue,

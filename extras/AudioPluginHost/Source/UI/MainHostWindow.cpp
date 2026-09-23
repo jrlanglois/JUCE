@@ -331,7 +331,7 @@ MainHostWindow::MainHostWindow()
                                      safeThis->deviceManager.initialise (granted ? 256 : 0, 256, savedState.get(), true);
                                  });
 
-   #if JUCE_IOS || JUCE_ANDROID
+   #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
     setFullScreen (true);
    #else
     setResizable (true, false);
@@ -372,7 +372,7 @@ MainHostWindow::MainHostWindow()
 
     Process::setPriority (Process::HighPriority);
 
-  #if JUCE_IOS || JUCE_ANDROID
+  #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
     graphHolder->burgerMenu.setModel (this);
   #else
    #if JUCE_MAC
@@ -396,7 +396,7 @@ MainHostWindow::~MainHostWindow()
     getAppProperties().getUserSettings()->setValue ("mainWindowPos", getWindowStateAsString());
     clearContentComponent();
 
-  #if ! (JUCE_ANDROID || JUCE_IOS)
+  #if ! (JUCE_IOS || JUCE_TVOS || JUCE_ANDROID)
    #if JUCE_MAC
     setMacMainMenu (nullptr);
    #else
@@ -456,7 +456,7 @@ void MainHostWindow::tryToQuitApplication()
             JUCEApplication::quit();
         };
 
-       #if JUCE_ANDROID || JUCE_IOS
+       #if JUCE_IOS || JUCE_TVOS || JUCE_ANDROID
         if (graphHolder->graph->saveDocument (PluginGraph::getDefaultGraphDocumentOnMobile()))
             releaseAndQuit();
        #else
@@ -520,7 +520,7 @@ PopupMenu MainHostWindow::getMenuForIndex (int topLevelMenuIndex, const String& 
     if (topLevelMenuIndex == 0)
     {
         // "File" menu
-       #if ! (JUCE_IOS || JUCE_ANDROID)
+       #if ! (JUCE_IOS || JUCE_TVOS || JUCE_ANDROID)
         menu.addCommandItem (&getCommandManager(), CommandIDs::newFile);
         menu.addCommandItem (&getCommandManager(), CommandIDs::open);
        #endif
@@ -533,7 +533,7 @@ PopupMenu MainHostWindow::getMenuForIndex (int topLevelMenuIndex, const String& 
         recentFiles.createPopupMenuItems (recentFilesMenu, 100, true, true);
         menu.addSubMenu ("Open recent file", recentFilesMenu);
 
-       #if ! (JUCE_IOS || JUCE_ANDROID)
+       #if ! (JUCE_IOS || JUCE_TVOS || JUCE_ANDROID)
         menu.addCommandItem (&getCommandManager(), CommandIDs::save);
         menu.addCommandItem (&getCommandManager(), CommandIDs::saveAs);
        #endif
@@ -590,7 +590,7 @@ void MainHostWindow::menuItemSelected (int menuItemID, int /*topLevelMenuIndex*/
             if (auto* graph = graphHolder->graph.get())
                 graph->clear();
     }
-   #if ! (JUCE_ANDROID || JUCE_IOS)
+   #if ! (JUCE_IOS || JUCE_TVOS || JUCE_ANDROID)
     else if (menuItemID >= 100 && menuItemID < 200)
     {
         RecentlyOpenedFilesList recentFiles;
@@ -748,7 +748,7 @@ void MainHostWindow::getAllCommands (Array<CommandID>& commands)
 {
     // this returns the set of all commands that this target can perform..
     const CommandID ids[] = {
-                             #if ! (JUCE_IOS || JUCE_ANDROID)
+                             #if ! (JUCE_IOS || JUCE_TVOS || JUCE_ANDROID)
                               CommandIDs::newFile,
                               CommandIDs::open,
                               CommandIDs::save,
@@ -771,7 +771,7 @@ void MainHostWindow::getCommandInfo (const CommandID commandID, ApplicationComma
 
     switch (commandID)
     {
-   #if ! (JUCE_IOS || JUCE_ANDROID)
+   #if ! (JUCE_IOS || JUCE_TVOS || JUCE_ANDROID)
     case CommandIDs::newFile:
         result.setInfo ("New", "Creates a new filter graph file", category, 0);
         result.defaultKeypresses.add (KeyPress ('n', ModifierKeys::commandModifier, 0));
@@ -831,7 +831,7 @@ bool MainHostWindow::perform (const InvocationInfo& info)
 {
     switch (info.commandID)
     {
-   #if ! (JUCE_IOS || JUCE_ANDROID)
+   #if ! (JUCE_IOS || JUCE_TVOS || JUCE_ANDROID)
     case CommandIDs::newFile:
         if (graphHolder != nullptr && graphHolder->graph != nullptr)
         {
@@ -990,7 +990,7 @@ void MainHostWindow::filesDropped (const StringArray& files, int x, int y)
 {
     if (graphHolder != nullptr)
     {
-       #if ! (JUCE_ANDROID || JUCE_IOS)
+       #if ! (JUCE_IOS || JUCE_TVOS || JUCE_ANDROID)
         File firstFile { files[0] };
 
         if (files.size() == 1 && firstFile.hasFileExtension (PluginGraph::getFilenameSuffix()))
