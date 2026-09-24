@@ -73,10 +73,12 @@ struct SidePanelHeader final : public Component
         addAndMakeVisible (titleLabel);
 
         homeButton.onClick = [this] { owner.homeButtonClicked(); };
+        homeButton.setHasFocusOutline (true);
         addAndMakeVisible (homeButton);
 
         addAndMakeVisible (settingsButton);
         settingsButton.onClick = [this] { owner.settingsButtonClicked(); };
+        settingsButton.setHasFocusOutline (true);
 
         updateLookAndFeel();
     }
@@ -221,6 +223,7 @@ private:
         {
             setTitle ("Previous");
             setSize (0, 30);
+            setHasFocusOutline (true);
         }
 
         void paintButton (Graphics& g, bool, bool) override
@@ -257,20 +260,14 @@ private:
 
     void selectFirstRow()
     {
-        if (auto* handler = demos.getAccessibilityHandler())
-        {
-            for (auto* child : handler->getChildren())
-            {
-                if (child->getRole() == AccessibilityRole::listItem)
-                {
-                    child->grabFocus();
-                    break;
-                }
-            }
-        }
+        demos.grabKeyboardFocus();
     }
 
+public:
+    void focusList()    { selectFirstRow(); }
+
     //==============================================================================
+private:
     String selectedCategory;
 
     DemoContentComponent& demoHolder;
@@ -280,6 +277,8 @@ private:
 //==============================================================================
 MainComponent::MainComponent()
 {
+    setFocusNavigationMode (FocusNavigationMode::directional);
+
     contentComponent.reset (new DemoContentComponent (*this, [this] (bool isHeavyweight)
     {
         demosPanel.showOrHide (false);
@@ -311,6 +310,7 @@ MainComponent::MainComponent()
     demosPanel.setContentRestrictedToSafeArea (true);
 
     showDemosButton.onClick = [this] { demosPanel.showOrHide (true); };
+    showDemosButton.setHasFocusOutline (true);
 
     demosPanel.onPanelMove = [this]
     {
@@ -329,8 +329,14 @@ MainComponent::MainComponent()
             if (isShowingHeavyweightDemo)
                 resized();
 
-            if (auto* handler = demosPanel.getAccessibilityHandler())
-                handler->grabFocus();
+            if (auto* focused = Component::getCurrentlyFocusedComponent();
+                focused != nullptr && ! demosPanel.isParentOf (focused))
+            {
+                focusBeforePanel = focused;
+            }
+
+            if (auto* list = dynamic_cast<DemoList*> (demosPanel.getContent()))
+                list->focusList();
         }
         else
         {
@@ -338,6 +344,26 @@ MainComponent::MainComponent()
 
             if (isShowingHeavyweightDemo)
                 Timer::callAfterDelay (250, [this] { resized(); });
+
+            Timer::callAfterDelay (250, [this]
+            {
+                auto* focused = Component::getCurrentlyFocusedComponent();
+
+                if (focused == nullptr || focused == &demosPanel || demosPanel.isParentOf (focused))
+                {
+                    if (auto* previous = focusBeforePanel.getComponent();
+                        previous != nullptr && previous->isShowing() && previous->isEnabled())
+                    {
+                        previous->grabKeyboardFocus();
+                    }
+                    else
+                    {
+                        showDemosButton.grabKeyboardFocus();
+                    }
+                }
+
+                focusBeforePanel = nullptr;
+            });
         }
     };
 
@@ -350,6 +376,16 @@ MainComponent::MainComponent()
 MainComponent::~MainComponent()
 {
     contentComponent->clearCurrentDemo();
+}
+
+//==============================================================================
+bool MainComponent::backButtonPressed()
+{
+    if (! demosPanel.isPanelShowing())
+        return false;
+
+    demosPanel.showOrHide (false);
+    return true;
 }
 
 //==============================================================================
@@ -389,6 +425,8 @@ void MainComponent::resized()
 
 void MainComponent::homeButtonClicked()
 {
+    demosPanel.showOrHide (false);
+
     if (auto* list = dynamic_cast<DemoList*> (demosPanel.getContent()))
         list->showCategory ({});
 
@@ -410,7 +448,11 @@ void MainComponent::homeButtonClicked()
 void MainComponent::settingsButtonClicked()
 {
     if (contentComponent != nullptr)
+    {
         contentComponent->setCurrentTabIndex (2);
+        demosPanel.showOrHide (false);
+        contentComponent->grabKeyboardFocus();
+    }
 }
 
 void MainComponent::setRenderingEngine (int renderingEngineIndex)
