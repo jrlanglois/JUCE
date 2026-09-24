@@ -41,6 +41,7 @@ public:
     void setDemo (const String& category, int selectedDemoIndex);
     void clearCurrentDemo();
     int getCurrentDemoIndex() const noexcept      { return currentDemoIndex; }
+    void focusCurrentContent();
 
     bool isShowingHomeScreen() const noexcept;
     void showHomeScreen();

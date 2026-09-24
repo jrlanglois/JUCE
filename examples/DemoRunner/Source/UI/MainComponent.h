@@ -40,6 +40,7 @@ public:
 
     //==============================================================================
     SidePanel& getSidePanel()              { return demosPanel; }
+    bool backButtonPressed();
 
     //==============================================================================
     void homeButtonClicked();
@@ -68,6 +69,7 @@ private:
 
     bool isShowingHeavyweightDemo = false;
     int sidePanelWidth = 0;
+    Component::SafePointer<Component> focusBeforePanel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

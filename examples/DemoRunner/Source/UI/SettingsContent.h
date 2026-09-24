@@ -274,7 +274,7 @@ private:
     {
     public:
         AudioSettingsGroup()
-            : deviceSelectorComp (getSharedAudioDeviceManager(), 0, 256, 0, 256, true, true, true, false)
+            : deviceSelectorComp (getSharedAudioDeviceManager (0, 0), 0, 256, 0, 256, true, true, true, false)
         {
             addAndMakeVisible (titleLabel);
             titleLabel.setFont (FontOptions { titleLabelFontHeight });

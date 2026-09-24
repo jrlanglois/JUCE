@@ -37,20 +37,15 @@
 #if ! JUCE_TVOS
  #include "../../../GUI/BouncingBallWavetableDemo.h"
 #endif
-#if JUCE_USE_CAMERA && ! (JUCE_LINUX || JUCE_BSD)
+#if JUCE_USE_CAMERA && ! (JUCE_LINUX || JUCE_BSD || JUCE_TVOS)
  #include "../../../GUI/CameraDemo.h"
 #endif
-#if ! JUCE_ANDROID
- #include "../../../GUI/CodeEditorDemo.h"
-#endif
-#if ! JUCE_TVOS
- #include "../../../GUI/ComponentDemo.h"
-#endif
+#include "../../../GUI/CodeEditorDemo.h"
+#include "../../../GUI/ComponentDemo.h"
 #include "../../../GUI/ComponentTransformsDemo.h"
-#if ! JUCE_TVOS
- #include "../../../GUI/DialogsDemo.h"
-#endif
+#include "../../../GUI/DialogsDemo.h"
 #include "../../../GUI/FlexBoxDemo.h"
+#include "../../../GUI/FocusNavigationDemo.h"
 #include "../../../GUI/FontsDemo.h"
 #include "../../../GUI/FontFeaturesDemo.h"
 #include "../../../GUI/FontVariablesDemo.h"
@@ -92,21 +87,16 @@ void registerDemos_Two() noexcept
    #if ! JUCE_TVOS
     REGISTER_DEMO (BouncingBallWavetableDemo, GUI, false)
    #endif
-   #if JUCE_USE_CAMERA && ! (JUCE_LINUX || JUCE_BSD)
+   #if JUCE_USE_CAMERA && ! (JUCE_LINUX || JUCE_BSD || JUCE_TVOS)
     REGISTER_DEMO (CameraDemo,                GUI, true)
    #endif
-   #if ! JUCE_ANDROID
     REGISTER_DEMO (CodeEditorDemo,            GUI, false)
-   #endif
-   #if ! JUCE_TVOS
     REGISTER_DEMO (ComponentDemo,             GUI, false)
-   #endif
     REGISTER_DEMO (ComponentDiagnosticsDemo,  GUI, false)
     REGISTER_DEMO (ComponentTransformsDemo,   GUI, false)
-   #if ! JUCE_TVOS
     REGISTER_DEMO (DialogsDemo,               GUI, false)
-   #endif
     REGISTER_DEMO (FlexBoxDemo,               GUI, false)
+    REGISTER_DEMO (FocusNavigationDemo,       GUI, false)
     REGISTER_DEMO (FontsDemo,                 GUI, false)
     REGISTER_DEMO (FontFeaturesDemo,          GUI, false)
     REGISTER_DEMO (FontVariablesDemo,         GUI, false)

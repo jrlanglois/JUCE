@@ -64,6 +64,7 @@ struct CodeContent final : public Component
 
         codeEditor.setReadOnly (true);
         codeEditor.setScrollbarThickness (8);
+        codeEditor.setHasFocusOutline (true);
 
         updateLookAndFeel();
     }
@@ -118,6 +119,11 @@ DemoContentComponent::DemoContentComponent (Component& mainComponent, std::funct
     addTab ("Settings", Colours::transparentBlack, new SettingsContent (dynamic_cast<MainComponent&> (mainComponent)), true);
 
     setTabBarDepth (40);
+
+    for (int i = 0; i < getNumTabs(); ++i)
+        if (auto* button = getTabbedButtonBar().getTabButton (i))
+            button->setHasFocusOutline (true);
+
     updateLookAndFeel();
 }
 
@@ -154,6 +160,12 @@ void DemoContentComponent::setDemo (const String& category, int selectedDemoInde
 
     currentDemoCategory = category;
     currentDemoIndex = selectedDemoIndex;
+
+    MessageManager::callAsync ([safeThis = Component::SafePointer<DemoContentComponent> (this)]
+    {
+        if (safeThis != nullptr)
+            safeThis->focusCurrentContent();
+    });
 }
 
 bool DemoContentComponent::isShowingHomeScreen() const noexcept
@@ -177,12 +189,24 @@ void DemoContentComponent::showHomeScreen()
 
     currentDemoCategory = {};
     currentDemoIndex = -1;
+
+    MessageManager::callAsync ([safeThis = Component::SafePointer<DemoContentComponent> (this)]
+    {
+        if (safeThis != nullptr)
+            safeThis->focusCurrentContent();
+    });
 }
 
 void DemoContentComponent::clearCurrentDemo()
 {
     demoContent->setComponent (nullptr);
     demoChangedCallback (false);
+}
+
+void DemoContentComponent::focusCurrentContent()
+{
+    if (auto* content = demoContent->getComponent())
+        content->grabKeyboardFocus();
 }
 
 void DemoContentComponent::updateLookAndFeel()

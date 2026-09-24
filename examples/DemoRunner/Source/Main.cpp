@@ -105,7 +105,7 @@ public:
         mainWindow.reset (new MainAppWindow (getApplicationName()));
     }
 
-    bool backButtonPressed() override    { mainWindow->getMainComponent().getSidePanel().showOrHide (false); return true; }
+    bool backButtonPressed() override    { return mainWindow->getMainComponent().backButtonPressed(); }
     void shutdown() override             { mainWindow = nullptr; }
 
     //==============================================================================
