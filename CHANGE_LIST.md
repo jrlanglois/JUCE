@@ -26,6 +26,8 @@ about changes and bugfixes please see the git log and BREAKING_CHANGES.md.
   - Fixed some VST3 hosting issues
   - Fixed a UMP sysex7 timestamp issue
   - Fixed removal of UMP endpoint listeners
+  - Fixed Android font enumeration with very large system fonts
+  - Fixed Android colour glyph rendering when a native font is unavailable
   - Fixed Projucer weak-linking of frameworks in multi-target Xcode projects
   - Added a SECURITY.md and a software bill of materials
 

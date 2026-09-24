@@ -73,7 +73,7 @@ DECLARE_JNI_CLASS (AndroidRectF, "android/graphics/RectF")
 
 #define JNI_CLASS_MEMBERS(METHOD, STATICMETHOD, FIELD, STATICFIELD, CALLBACK) \
  STATICMETHOD (getInstance, "getInstance", "(Ljava/lang/String;)Ljava/security/MessageDigest;") \
- METHOD       (update,      "update",      "([B)V") \
+ METHOD       (update,      "update",      "([BII)V") \
  METHOD       (digest,      "digest",      "()[B")
 DECLARE_JNI_CLASS (JavaMessageDigest, "java/security/MessageDigest")
 #undef JNI_CLASS_MEMBERS
@@ -654,15 +654,24 @@ private:
         const auto key = std::invoke ([&]
         {
             LocalRef digest (env->CallStaticObjectMethod (JavaMessageDigest, JavaMessageDigest.getInstance, javaString ("MD5").get()));
-            LocalRef bytes (env->NewByteArray ((int) data.size()));
+            constexpr size_t maxChunkSize = 64 * 1024;
+            const auto bufferSize = static_cast<jsize> (jmin (maxChunkSize, data.size()));
+            LocalRef bytes (env->NewByteArray (bufferSize));
 
-            jboolean ignore;
-            auto* jbytes = env->GetByteArrayElements (bytes.get(), &ignore);
-            memcpy (jbytes, data.data(), data.size());
-            env->ReleaseByteArrayElements (bytes.get(), jbytes, 0);
+            for (size_t offset = 0; offset < data.size();)
+            {
+                const auto numBytes = static_cast<jsize> (jmin (maxChunkSize, data.size() - offset));
+                env->SetByteArrayRegion (bytes.get(),
+                                         0,
+                                         numBytes,
+                                         reinterpret_cast<const jbyte*> (data.data() + offset));
+                env->CallVoidMethod (digest.get(), JavaMessageDigest.update, bytes.get(), 0, numBytes);
 
-            env->CallVoidMethod (digest.get(), JavaMessageDigest.update, bytes.get());
+                offset += static_cast<size_t> (numBytes);
+            }
+
             LocalRef result ((jbyteArray) env->CallObjectMethod (digest.get(), JavaMessageDigest.digest));
+            jboolean ignore;
             auto* md5Bytes = env->GetByteArrayElements (result.get(), &ignore);
             const ScopeGuard scope { [&] { env->ReleaseByteArrayElements (result.get(), md5Bytes, 0); } };
 
@@ -751,7 +760,7 @@ private:
                                                           const AffineTransform& transform) const override
     {
         // Canvas.drawGlyphs is only available from API 31
-        if (getAndroidSDKVersion() < 31)
+        if (getAndroidSDKVersion() < 31 || javaFont.get() == nullptr)
             return {};
 
         auto* env = getEnv();
@@ -811,6 +820,9 @@ private:
                              (jint) std::size (glyphIdsIn),
                              javaFont.get(),
                              paint.get());
+
+        if (jniCheckHasExceptionOccurredAndClear())
+            return {};
 
         LocalRef<jintArray> pixels { env->NewIntArray ((jint) totalW * (jint) totalH) };
         env->CallVoidMethod (bitmap,
