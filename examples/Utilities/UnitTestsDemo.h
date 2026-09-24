@@ -138,6 +138,7 @@ public:
 
     void logMessage (const String& message)
     {
+        Logger::writeToLog (message);
         testResultsBox.moveCaretToEnd();
         testResultsBox.insertTextAtCaret (message + newLine);
         testResultsBox.moveCaretToEnd();
@@ -167,9 +168,26 @@ private:
             CustomTestRunner runner (*this);
 
             if (category == "All Tests")
-                runner.runAllTests();
+            {
+                Array<UnitTest*> workerTests, messageThreadTests;
+
+                for (auto* test : UnitTest::getAllTests())
+                    (test->getCategory() == UnitTestCategories::gui ? messageThreadTests
+                                                                    : workerTests).add (test);
+
+                runner.runTests (workerTests);
+
+                if (! threadShouldExit())
+                    MessageManager::callSync ([&] { runner.runTests (messageThreadTests); });
+            }
+            else if (category == UnitTestCategories::gui)
+            {
+                MessageManager::callSync ([&] { runner.runTestsInCategory (category); });
+            }
             else
+            {
                 runner.runTestsInCategory (category);
+            }
 
             startTimer (50); // when finished, start the timer which will
                              // wait for the thread to end, then tell our component.
@@ -177,6 +195,12 @@ private:
 
         void logMessage (const String& message)
         {
+            if (MessageManager::getInstance()->isThisTheMessageThread())
+            {
+                owner.logMessage (message);
+                return;
+            }
+
             WeakReference<UnitTestsDemo> safeOwner (&owner);
 
             MessageManager::callAsync ([=]

@@ -69,6 +69,8 @@ public:
           thumbnail (512, formatManager, thumbnailCache)
     {
         thumbnail.addChangeListener (this);
+        setWantsKeyboardFocus (true);
+        setHasFocusOutline (true);
 
         addAndMakeVisible (scrollbar);
         scrollbar.setRangeLimits (visibleRange);
@@ -200,6 +202,44 @@ public:
         }
     }
 
+    FocusNavigationResult handleFocusNavigation (FocusNavigationDirection direction) override
+    {
+        if (direction != FocusNavigationDirection::left && direction != FocusNavigationDirection::right)
+            return FocusNavigationResult::unhandled;
+
+        if (! canMoveTransport() || thumbnail.getTotalLength() <= 0.0)
+            return FocusNavigationResult::unhandled;
+
+        const auto delta = jmax (0.25, visibleRange.getLength() / 20.0)
+                           * (direction == FocusNavigationDirection::left ? -1.0 : 1.0);
+        const auto nextPosition = jlimit (0.0,
+                                          thumbnail.getTotalLength(),
+                                          transportSource.getCurrentPosition() + delta);
+
+        if (approximatelyEqual (nextPosition, transportSource.getCurrentPosition()))
+            return FocusNavigationResult::unhandled;
+
+        transportSource.setPosition (nextPosition);
+        updateCursorPosition();
+        return FocusNavigationResult::handled;
+    }
+
+    bool keyPressed (const KeyPress& key) override
+    {
+        if (key.isKeyCode (KeyPress::returnKey) || key.isKeyCode (KeyPress::selectKey))
+        {
+            if (transportSource.isPlaying())
+                transportSource.stop();
+            else
+                transportSource.start();
+
+            updateCursorPosition();
+            return true;
+        }
+
+        return Component::keyPressed (key);
+    }
+
 private:
     AudioTransportSource& transportSource;
     Slider& zoomSlider;
@@ -249,7 +289,9 @@ private:
 
     void updateCursorPosition()
     {
-        currentPositionMarkerComponent.setVisible (transportSource.isPlaying() || isMouseButtonDown());
+        currentPositionMarkerComponent.setVisible (transportSource.isPlaying()
+                                                   || isMouseButtonDown()
+                                                   || hasKeyboardFocus (false));
 
         currentPositionMarker.setRectangle (Rectangle<float> (timeToX (transportSource.getCurrentPosition()) - 0.75f, 0,
                                                                1.5f, (float) (getHeight() - scrollbar.getHeight())));
@@ -258,7 +300,7 @@ private:
 
 //==============================================================================
 class AudioPlaybackDemo final : public Component,
-                               #if (JUCE_ANDROID || JUCE_IOS)
+                               #if (JUCE_ANDROID || JUCE_IOS || JUCE_TVOS)
                                 private Button::Listener,
                                #else
                                 private FileBrowserListener,
@@ -278,10 +320,10 @@ public:
         addAndMakeVisible (followTransportButton);
         followTransportButton.onClick = [this] { updateFollowTransportState(); };
 
-       #if (JUCE_ANDROID || JUCE_IOS)
+       #if JUCE_ANDROID || JUCE_IOS
         addAndMakeVisible (chooseFileButton);
         chooseFileButton.addListener (this);
-       #else
+       #elif ! JUCE_TVOS
         addAndMakeVisible (fileTreeComp);
 
         directoryList.setDirectory (File::getSpecialLocation (File::userHomeDirectory), true, true);
@@ -324,6 +366,10 @@ public:
         audioDeviceManager.addAudioCallback (&audioSourcePlayer);
         audioSourcePlayer.setSource (&transportSource);
 
+       #if JUCE_TVOS
+        showAudioResource (URL (createDemoAudioFile()));
+       #endif
+
         setOpaque (true);
         setSize (500, 500);
     }
@@ -335,9 +381,9 @@ public:
 
         audioDeviceManager.removeAudioCallback (&audioSourcePlayer);
 
-       #if (JUCE_ANDROID || JUCE_IOS)
+       #if JUCE_ANDROID || JUCE_IOS
         chooseFileButton.removeListener (this);
-       #else
+       #elif ! JUCE_TVOS
         fileTreeComp.removeListener (this);
        #endif
 
@@ -355,11 +401,13 @@ public:
 
         auto controls = r.removeFromBottom (90);
 
+       #if JUCE_TVOS
+        controls.removeFromRight (controls.getWidth() / 3);
+       #elif JUCE_ANDROID || JUCE_IOS
         auto controlRightBounds = controls.removeFromRight (controls.getWidth() / 3);
-
-       #if (JUCE_ANDROID || JUCE_IOS)
         chooseFileButton.setBounds (controlRightBounds.reduced (10));
        #else
+        auto controlRightBounds = controls.removeFromRight (controls.getWidth() / 3);
         explanation.setBounds (controlRightBounds);
        #endif
 
@@ -372,7 +420,7 @@ public:
 
         r.removeFromBottom (6);
 
-       #if JUCE_ANDROID || JUCE_IOS
+       #if JUCE_ANDROID || JUCE_IOS || JUCE_TVOS
         thumbnail->setBounds (r);
        #else
         thumbnail->setBounds (r.removeFromBottom (140));
@@ -393,7 +441,7 @@ private:
     AudioFormatManager formatManager;
     TimeSliceThread thread  { "audio file preview" };
 
-   #if (JUCE_ANDROID || JUCE_IOS)
+   #if (JUCE_ANDROID || JUCE_IOS || JUCE_TVOS)
     std::unique_ptr<FileChooser> fileChooser;
     TextButton chooseFileButton {"Choose Audio File...", "Choose an audio file for playback"};
    #else
@@ -412,6 +460,44 @@ private:
     Slider zoomSlider                   { Slider::LinearHorizontal, Slider::NoTextBox };
     ToggleButton followTransportButton  { "Follow Transport" };
     TextButton startStopButton          { "Play/Stop" };
+
+   #if JUCE_TVOS
+    static File createDemoAudioFile()
+    {
+        constexpr auto sampleRate = 44100.0;
+        constexpr auto durationSeconds = 2.0;
+        const auto numSamples = roundToInt (sampleRate * durationSeconds);
+        auto file = File::getSpecialLocation (File::tempDirectory).getChildFile ("JUCE Audio Playback Demo.wav");
+
+        file.deleteFile();
+
+        if (std::unique_ptr<OutputStream> stream { file.createOutputStream() })
+        {
+            WavAudioFormat format;
+            const auto options = AudioFormatWriterOptions{}.withSampleRate (sampleRate)
+                                                           .withNumChannels (1)
+                                                           .withBitsPerSample (16);
+
+            if (auto writer = format.createWriterFor (stream, options))
+            {
+                AudioBuffer<float> buffer (1, numSamples);
+                auto* samples = buffer.getWritePointer (0);
+
+                for (auto i = 0; i < numSamples; ++i)
+                {
+                    const auto time = (double) i / sampleRate;
+                    samples[i] = 0.2f * (float) (std::sin (MathConstants<double>::twoPi * 220.0 * time)
+                                               + std::sin (MathConstants<double>::twoPi * 330.0 * time));
+                }
+
+                writer->writeFromAudioSampleBuffer (buffer, 0, numSamples);
+                writer->flush();
+            }
+        }
+
+        return file;
+    }
+   #endif
 
     //==============================================================================
     void showAudioResource (URL resource)
@@ -479,7 +565,7 @@ private:
         thumbnail->setFollowsTransport (followTransportButton.getToggleState());
     }
 
-   #if (JUCE_ANDROID || JUCE_IOS)
+   #if (JUCE_ANDROID || JUCE_IOS || JUCE_TVOS)
     void buttonClicked (Button* btn) override
     {
         if (btn == &chooseFileButton && fileChooser.get() == nullptr)

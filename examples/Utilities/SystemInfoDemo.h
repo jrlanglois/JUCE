@@ -231,6 +231,7 @@ public:
     {
         addAndMakeVisible (resultsBox);
         resultsBox.setReadOnly (true);
+        resultsBox.setWantsKeyboardFocus (false);
         resultsBox.setMultiLine (true);
         resultsBox.setColour (TextEditor::backgroundColourId, Colours::transparentBlack);
         resultsBox.setFont (FontOptions { Font::getDefaultMonospacedFontName(), 12.0f, Font::plain });

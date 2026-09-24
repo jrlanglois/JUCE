@@ -81,6 +81,8 @@ public:
                                      Colours::green, Colours::blue, Colours::hotpink };
         colours.addArray (coloursToUse);
 
+        button.setButtonText ("Capture arrows");
+        button.onClick = [this] { setArrowCaptureEnabled (! isArrowCaptureEnabled); };
         addAndMakeVisible (button);
     }
 
@@ -207,7 +209,53 @@ public:
         return true;
     }
 
+    bool keyPressed (const KeyPress& key) override
+    {
+        if (isArrowCaptureEnabled
+            && (key.isKeyCode (KeyPress::escapeKey) || key.isKeyCode (KeyPress::menuKey)))
+        {
+            setArrowCaptureEnabled (false);
+            return true;
+        }
+
+        return Component::keyPressed (key);
+    }
+
+    FocusNavigationResult handleFocusNavigation (FocusNavigationDirection direction) override
+    {
+        if (! isArrowCaptureEnabled)
+            return FocusNavigationResult::unhandled;
+
+        switch (direction)
+        {
+            case FocusNavigationDirection::up:    buttonY -= 5; break;
+            case FocusNavigationDirection::right: buttonX += 5; break;
+            case FocusNavigationDirection::down:  buttonY += 5; break;
+            case FocusNavigationDirection::left:  buttonX -= 5; break;
+        }
+
+        resized();
+        return FocusNavigationResult::handled;
+    }
+
+    void focusOfChildComponentChanged (FocusChangeType) override
+    {
+        if (isArrowCaptureEnabled && ! hasKeyboardFocus (true))
+            setArrowCaptureEnabled (false);
+    }
+
+    std::function<void (bool)> onArrowCaptureChanged;
+
 private:
+    void setArrowCaptureEnabled (bool shouldCapture)
+    {
+        if (std::exchange (isArrowCaptureEnabled, shouldCapture) == shouldCapture)
+            return;
+
+        button.setButtonText (shouldCapture ? "Release arrows" : "Capture arrows");
+        NullCheckedInvocation::invoke (onArrowCaptureChanged, shouldCapture);
+    }
+
     TextButton button;
     int buttonX = -200, buttonY = -200;
 
@@ -215,6 +263,7 @@ private:
 
     int buttonColourIndex     = 0;
     int backgroundColourIndex = 1;
+    bool isArrowCaptureEnabled = false;
 };
 
 //==============================================================================
@@ -230,13 +279,26 @@ public:
         addAndMakeVisible (keyMappingEditor);
         addAndMakeVisible (keyTarget);
 
-        // add command manager key mappings as a KeyListener to the top-level component
-        // so it is notified of key presses
-        getTopLevelComponent()->addKeyListener (commandManager.getKeyMappings());
+        keyTarget.onArrowCaptureChanged = [this] (bool shouldCapture)
+        {
+            if (shouldCapture)
+                addKeyListener (commandManager.getKeyMappings());
+            else
+                removeKeyListener (commandManager.getKeyMappings());
+        };
 
         setSize (500, 500);
 
-        Timer::callAfterDelay (300, [this] { keyTarget.grabKeyboardFocus(); }); // ensure that key presses are sent to the KeyPressTarget object
+        Timer::callAfterDelay (300, [safeThis = SafePointer<KeyMappingsDemo> (this)]
+        {
+            if (safeThis != nullptr)
+                safeThis->keyMappingEditor.grabKeyboardFocus();
+        });
+    }
+
+    ~KeyMappingsDemo() override
+    {
+        removeKeyListener (commandManager.getKeyMappings());
     }
 
     void paint (Graphics& g) override

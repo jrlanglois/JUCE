@@ -230,6 +230,21 @@ private:
     {
         concertinaPanel.addPanel (-1, panel, true);
         concertinaPanel.setMaximumPanelSize (panel, panel->getTotalContentHeight());
+
+        // Root navigation reaches the property editors directly, while the viewport reveals each
+        // focused descendant instead of becoming a separate keyboard-focus boundary.
+        panel->getViewport().setWantsKeyboardFocus (false);
+        panel->getViewport().setFocusContainerType (Component::FocusContainerType::focusContainer);
+
+        auto* headerButton = new TextButton (panel->getName());
+        headerButton->setHasFocusOutline (true);
+        headerButton->onClick = [this, panel]
+        {
+            if (! concertinaPanel.expandPanelFully (panel, true))
+                concertinaPanel.setPanelSize (panel, 0, true);
+        };
+
+        concertinaPanel.setCustomPanelHeader (panel, headerButton, true);
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PropertiesDemo)

@@ -99,7 +99,7 @@ public:
                 return;
             }
 
-            self->imageList.setDirectory (File::getSpecialLocation (File::userPicturesDirectory), true, true);
+            self->imageList.setDirectory (getImagesDirectory(), true, true);
             self->directoryThread.startThread (Thread::Priority::background);
         });
     }
@@ -129,6 +129,28 @@ public:
     }
 
 private:
+    static File getImagesDirectory()
+    {
+       #if ! JUCE_TVOS
+        auto pictures = File::getSpecialLocation (File::userPicturesDirectory);
+
+        if (pictures.isDirectory())
+            return pictures;
+       #endif
+
+        auto fallback = File::getSpecialLocation (File::tempDirectory).getChildFile ("ImagesDemo");
+        fallback.createDirectory();
+
+        auto sample = fallback.getChildFile ("juce_icon.png");
+
+        if (! sample.existsAsFile())
+            if (auto input = createAssetInputStream ("juce_icon.png"))
+                if (auto output = sample.createOutputStream())
+                    output->writeFromInputStream (*input, -1);
+
+        return fallback;
+    }
+
     WildcardFileFilter imagesWildcardFilter  { "*.jpeg;*.jpg;*.png;*.gif", "*", "Image File Filter"};
     TimeSliceThread directoryThread          { "Image File Scanner Thread" };
     DirectoryContentsList imageList          { &imagesWildcardFilter, directoryThread };

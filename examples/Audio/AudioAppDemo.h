@@ -64,6 +64,30 @@ public:
         : AudioAppComponent (getSharedAudioDeviceManager (0, 2))
        #endif
     {
+        addAndMakeVisible (frequencySlider);
+        frequencySlider.setName ("Frequency");
+        frequencySlider.setRange (20.0, 10000.0, 1.0);
+        frequencySlider.setValue (frequency.load());
+        frequencySlider.setTextValueSuffix (" Hz");
+        frequencySlider.onValueChange = [this]
+        {
+            frequency = (float) frequencySlider.getValue();
+            repaint();
+        };
+
+        addAndMakeVisible (amplitudeSlider);
+        amplitudeSlider.setName ("Amplitude");
+        amplitudeSlider.setRange (0.0, 0.9, 0.01);
+        amplitudeSlider.setValue (amplitude.load());
+        amplitudeSlider.onValueChange = [this]
+        {
+            amplitude = (float) amplitudeSlider.getValue();
+            repaint();
+        };
+
+        addAndMakeVisible (playButton);
+        playButton.onClick = [this] { isTonePlaying = playButton.getToggleState(); };
+
         setAudioChannels (0, 2);
 
         setSize (800, 600);
@@ -89,6 +113,8 @@ public:
     {
         bufferToFill.clearActiveBufferRegion();
         auto originalPhase = phase;
+        const auto blockAmplitude = isTonePlaying.load() ? amplitude.load() : 0.0f;
+        const auto phaseDelta = (float) (MathConstants<double>::twoPi * frequency.load() / sampleRate);
 
         for (auto chan = 0; chan < bufferToFill.buffer->getNumChannels(); ++chan)
         {
@@ -98,7 +124,7 @@ public:
 
             for (auto i = 0; i < bufferToFill.numSamples ; ++i)
             {
-                channelData[i] = amplitude * std::sin (phase);
+                channelData[i] = blockAmplitude * std::sin (phase);
 
                 // increment the phase step for the next sample
                 phase = std::fmod (phase + phaseDelta, MathConstants<float>::twoPi);
@@ -120,7 +146,7 @@ public:
         g.fillAll (getLookAndFeel().findColour (ResizableWindow::backgroundColourId));
 
         auto centreY = (float) getHeight() / 2.0f;
-        auto radius = amplitude * 200.0f;
+        auto radius = amplitude.load() * 200.0f;
 
         if (radius >= 0.0f)
         {
@@ -137,8 +163,8 @@ public:
         wavePath.startNewSubPath (0, centreY);
 
         for (auto x = 1.0f; x < (float) getWidth(); ++x)
-            wavePath.lineTo (x, centreY + amplitude * (float) getHeight() * 2.0f
-                                            * std::sin (x * frequency * 0.0001f));
+            wavePath.lineTo (x, centreY + amplitude.load() * (float) getHeight() * 2.0f
+                                            * std::sin (x * frequency.load() * 0.0001f));
 
         g.setColour (getLookAndFeel().findColour (Slider::thumbColourId));
         g.strokePath (wavePath, PathStrokeType (2.0f));
@@ -147,6 +173,7 @@ public:
     // Mouse handling..
     void mouseDown (const MouseEvent& e) override
     {
+        isTonePlaying = true;
         mouseDrag (e);
     }
 
@@ -154,38 +181,42 @@ public:
     {
         lastMousePosition = e.position;
 
-        frequency = (float) (getHeight() - e.y) * 10.0f;
+        frequency = jlimit (20.0f, 10000.0f, (float) (getHeight() - e.y) * 10.0f);
         amplitude = jmin (0.9f, 0.2f * e.position.x / (float) getWidth());
-
-        phaseDelta = (float) (MathConstants<double>::twoPi * frequency / sampleRate);
+        frequencySlider.setValue (frequency.load(), dontSendNotification);
+        amplitudeSlider.setValue (amplitude.load(), dontSendNotification);
 
         repaint();
     }
 
     void mouseUp (const MouseEvent&) override
     {
-        amplitude = 0.0f;
+        isTonePlaying = playButton.getToggleState();
         repaint();
     }
 
     void resized() override
     {
-        // This is called when the component is resized.
-        // If you add any child components, this is where you should
-        // update their positions.
+        auto controls = getLocalBounds().reduced (20).removeFromBottom (90);
+        playButton.setBounds (controls.removeFromLeft (120).reduced (5));
+        frequencySlider.setBounds (controls.removeFromLeft (controls.getWidth() / 2).reduced (5));
+        amplitudeSlider.setBounds (controls.reduced (5));
     }
 
 
 private:
     //==============================================================================
     float phase       = 0.0f;
-    float phaseDelta  = 0.0f;
-    float frequency   = 5000.0f;
-    float amplitude   = 0.2f;
+    std::atomic<float> frequency { 5000.0f };
+    std::atomic<float> amplitude { 0.2f };
+    std::atomic<bool> isTonePlaying { false };
 
     double sampleRate = 0.0;
     int expectedSamplesPerBlock = 0;
     Point<float> lastMousePosition;
+
+    Slider frequencySlider, amplitudeSlider;
+    ToggleButton playButton { "Play tone" };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioAppDemo)
 };

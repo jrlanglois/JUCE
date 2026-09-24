@@ -35,8 +35,8 @@
 
  dependencies:     juce_core, juce_data_structures, juce_events, juce_graphics,
                    juce_gui_basics, juce_gui_extra
- exporters:        xcode_mac, vs2022, vs2026, linux_make, xcode_iphone,
-                   xcode_tvos
+ exporters:        xcode_mac, vs2022, vs2026, linux_make, androidstudio,
+                   xcode_iphone, xcode_tvos
 
  moduleFlags:      JUCE_STRICT_REFCOUNTEDPOINTER=1
 
@@ -52,10 +52,6 @@
 #pragma once
 
 #include "../Assets/DemoUtilities.h"
-
-#if JUCE_ANDROID
- #error "This demo is not supported on Android!"
-#endif
 
 //==============================================================================
 class CodeEditorDemo final : public Component,

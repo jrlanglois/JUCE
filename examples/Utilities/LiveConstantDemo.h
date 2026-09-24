@@ -120,8 +120,9 @@ public:
 
     void start()
     {
-        startButton.setVisible (false);
-        demoComp   .setVisible (true);
+        startButton.setButtonText ("Refresh Demo");
+        demoComp.setVisible (true);
+        demoComp.repaint();
 
         descriptionLabel.setText ("Tweak some of the colours and values in the pop-up window to see what "
                                   "the effect of your changes would be on the component below...",

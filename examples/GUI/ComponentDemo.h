@@ -35,7 +35,8 @@
 
  dependencies:     juce_core, juce_data_structures, juce_events, juce_graphics,
                    juce_gui_basics
- exporters:        xcode_mac, vs2022, vs2026
+ exporters:        xcode_mac, vs2022, vs2026, linux_make, androidstudio,
+                   xcode_iphone, xcode_tvos
 
  moduleFlags:      JUCE_STRICT_REFCOUNTEDPOINTER=1
 
@@ -58,7 +59,11 @@
 class ToggleLightComponent final : public Component
 {
 public:
-    ToggleLightComponent() {}
+    ToggleLightComponent()
+    {
+        setWantsKeyboardFocus (true);
+        setHasFocusOutline (true);
+    }
 
     void paint (Graphics& g) override
     {
@@ -72,12 +77,26 @@ public:
 
     void mouseEnter (const MouseEvent&) override
     {
-        // button toggles state on mouse over.
+        // The light toggles state on mouse over.
+        toggle();
+    }
+
+    bool keyPressed (const KeyPress& key) override
+    {
+        if (! key.isKeyCode (KeyPress::returnKey) && ! key.isKeyCode (KeyPress::selectKey))
+            return false;
+
+        toggle();
+        return true;
+    }
+
+private:
+    void toggle()
+    {
         isOn = ! isOn;
         repaint();
     }
 
-private:
     // member variables for the Component
     bool isOn = false;
 

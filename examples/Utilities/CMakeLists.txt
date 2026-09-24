@@ -20,3 +20,7 @@
 # ==============================================================================
 
 _juce_add_pips()
+
+# juce_add_pip applies a PIP's moduleFlags but not its defines, so the JUCE_UNIT_TESTS=1 that
+# UnitTestsDemo.h asks for (and UnitTestCategories needs) has to be set here.
+target_compile_definitions(UnitTestsDemo PRIVATE JUCE_UNIT_TESTS=1)
