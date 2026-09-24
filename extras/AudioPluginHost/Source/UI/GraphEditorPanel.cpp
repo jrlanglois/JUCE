@@ -37,6 +37,15 @@
 #include "../Plugins/InternalPlugins.h"
 #include "MainHostWindow.h"
 
+static bool shouldUseCompactAudioPluginHostLayout()
+{
+   #if JUCE_TVOS
+    return true;
+   #else
+    return Desktop::getInstance().getMainMouseSource().isTouch();
+   #endif
+}
+
 //==============================================================================
 #if JUCE_IOS
  class AUScanner
@@ -1239,7 +1248,7 @@ void GraphDocumentComponent::init()
 
     graphPanel->updateComponents();
 
-    if (Desktop::getInstance().getMainMouseSource().isTouch())
+    if (shouldUseCompactAudioPluginHostLayout())
     {
         titleBarComponent.reset (new TitleBarComponent (*this));
         addAndMakeVisible (titleBarComponent.get());
@@ -1255,8 +1264,32 @@ void GraphDocumentComponent::init()
                                                                               0, 2, 0, 2,
                                                                               true, true, true, false));
 
+        pluginListSidePanel.setTitle ("Plugins");
+        mobileSettingsSidePanel.setTitle ("Settings");
+
         addAndMakeVisible (pluginListSidePanel);
         addAndMakeVisible (mobileSettingsSidePanel);
+
+        pluginListSidePanel.setFocusContainerType (FocusContainerType::focusContainer);
+        mobileSettingsSidePanel.setFocusContainerType (FocusContainerType::focusContainer);
+
+        pluginListSidePanel.onPanelShowHide = [this] (bool isShowing)
+        {
+            handleSidePanelVisibilityChanged (pluginListSidePanel, isShowing);
+        };
+
+        mobileSettingsSidePanel.onPanelShowHide = [this] (bool isShowing)
+        {
+            handleSidePanelVisibilityChanged (mobileSettingsSidePanel, isShowing);
+        };
+
+       #if JUCE_TVOS
+        MessageManager::callAsync ([safeThis = Component::SafePointer<GraphDocumentComponent> (this)]
+        {
+            if (safeThis != nullptr && safeThis->titleBarComponent != nullptr)
+                safeThis->titleBarComponent->grabKeyboardFocus();
+        });
+       #endif
     }
 }
 
@@ -1286,7 +1319,7 @@ void GraphDocumentComponent::resized()
     const int keysHeight = 60;
     const int statusHeight = 20;
 
-    if (Desktop::getInstance().getMainMouseSource().isTouch())
+    if (shouldUseCompactAudioPluginHostLayout())
         titleBarComponent->setBounds (r.removeFromTop (titleBarHeight));
 
     keyboardComp->setBounds (r.removeFromBottom (keysHeight));
@@ -1294,6 +1327,18 @@ void GraphDocumentComponent::resized()
     graphPanel->setBounds (r);
 
     checkAvailableWidth();
+}
+
+bool GraphDocumentComponent::keyPressed (const KeyPress& key)
+{
+    if ((key.isKeyCode (KeyPress::escapeKey) || key.isKeyCode (KeyPress::menuKey))
+        && lastOpenedSidePanel != nullptr)
+    {
+        hideLastSidePanel();
+        return true;
+    }
+
+    return Component::keyPressed (key);
 }
 
 void GraphDocumentComponent::createNewPlugin (const PluginDescriptionAndPreference& desc, Point<int> pos)
@@ -1344,15 +1389,23 @@ void GraphDocumentComponent::itemDropped (const SourceDetails& details)
 
 void GraphDocumentComponent::showSidePanel (bool showSettingsPanel)
 {
-    if (showSettingsPanel)
-        mobileSettingsSidePanel.showOrHide (true);
-    else
-        pluginListSidePanel.showOrHide (true);
+    auto& sidePanel = showSettingsPanel ? mobileSettingsSidePanel
+                                        : pluginListSidePanel;
+
+    auto& previousFocus = showSettingsPanel ? focusBeforeSettingsPanel
+                                            : focusBeforePluginListPanel;
+
+    if (auto* focused = Component::getCurrentlyFocusedComponent();
+        focused != nullptr && ! sidePanel.isParentOf (focused))
+    {
+        previousFocus = focused;
+    }
+
+    sidePanel.showOrHide (true);
+
+    lastOpenedSidePanel = &sidePanel;
 
     checkAvailableWidth();
-
-    lastOpenedSidePanel = showSettingsPanel ? &mobileSettingsSidePanel
-                                            : &pluginListSidePanel;
 }
 
 void GraphDocumentComponent::hideLastSidePanel()
@@ -1363,6 +1416,37 @@ void GraphDocumentComponent::hideLastSidePanel()
     if      (mobileSettingsSidePanel.isPanelShowing())    lastOpenedSidePanel = &mobileSettingsSidePanel;
     else if (pluginListSidePanel.isPanelShowing())        lastOpenedSidePanel = &pluginListSidePanel;
     else                                                  lastOpenedSidePanel = nullptr;
+}
+
+void GraphDocumentComponent::handleSidePanelVisibilityChanged (SidePanel& sidePanel, bool isShowing)
+{
+    auto& previousFocus = &sidePanel == &mobileSettingsSidePanel ? focusBeforeSettingsPanel
+                                                                 : focusBeforePluginListPanel;
+
+    if (isShowing)
+    {
+        if (auto* content = sidePanel.getContent())
+            content->grabKeyboardFocus();
+
+        return;
+    }
+
+    auto* focused = Component::getCurrentlyFocusedComponent();
+
+    if (focused == nullptr || focused == &sidePanel || sidePanel.isParentOf (focused))
+    {
+        if (auto* previous = previousFocus.getComponent();
+            previous != nullptr && previous->isShowing() && previous->isEnabled())
+        {
+            previous->grabKeyboardFocus();
+        }
+        else if (titleBarComponent != nullptr)
+        {
+            titleBarComponent->grabKeyboardFocus();
+        }
+    }
+
+    previousFocus = nullptr;
 }
 
 void GraphDocumentComponent::checkAvailableWidth()

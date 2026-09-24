@@ -62,6 +62,13 @@ public:
         setOpaque (true);
         setSize (1500, 900);
 
+       #if JUCE_TVOS
+        focusTarget.setWantsKeyboardFocus (true);
+        focusTarget.setHasFocusOutline (true);
+        focusTarget.setInterceptsMouseClicks (false, false);
+        addAndMakeVisible (focusTarget);
+       #endif
+
         if (! OSCSender::connect (getBroadcastIPAddress(), clientPortNumber))
             error = "Client app OSC sender: network connection error.";
 
@@ -80,6 +87,13 @@ public:
     }
 
 private:
+   #if JUCE_TVOS
+    void resized() override
+    {
+        focusTarget.setBounds (getLocalBounds().reduced (24));
+    }
+   #endif
+
     void mouseDrag (const MouseEvent& e) override
     {
         auto clientArea = getAreaInGlobalSpace();
@@ -241,6 +255,10 @@ private:
 
     CriticalSection canvasLock;
     BlockPacketiser packetiser;
+
+   #if JUCE_TVOS
+    Component focusTarget;
+   #endif
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ClientCanvasComponent)
 };

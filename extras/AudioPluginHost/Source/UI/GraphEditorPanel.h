@@ -128,6 +128,7 @@ public:
     std::unique_ptr<PluginGraph> graph;
 
     void resized() override;
+    bool keyPressed (const KeyPress&) override;
     void releaseGraph();
 
     //==============================================================================
@@ -168,11 +169,14 @@ private:
     SidePanel mobileSettingsSidePanel { "Settings", 300, true };
     SidePanel pluginListSidePanel    { "Plugins", 250, false };
     SidePanel* lastOpenedSidePanel = nullptr;
+    Component::SafePointer<Component> focusBeforeSettingsPanel;
+    Component::SafePointer<Component> focusBeforePluginListPanel;
 
     //==============================================================================
     void changeListenerCallback (ChangeBroadcaster*) override;
 
     void init();
+    void handleSidePanelVisibilityChanged (SidePanel&, bool);
     void checkAvailableWidth();
     void updateMidiOutput();
 
