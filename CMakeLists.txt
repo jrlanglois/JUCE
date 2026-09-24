@@ -108,7 +108,7 @@ endif()
 
 # The ARA_SDK path should point to the "Umbrella installer" ARA_SDK directory.
 # The directory can be obtained by recursively cloning https://github.com/Celemony/ARA_SDK and
-# checking out the tag releases/2.1.0.
+# checking out the tag releases/2.3.0.
 if(JUCE_GLOBAL_ARA_SDK_PATH)
     juce_set_ara_sdk_path("${JUCE_GLOBAL_ARA_SDK_PATH}")
 endif()
