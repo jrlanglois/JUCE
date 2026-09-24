@@ -96,6 +96,13 @@ static bool exporterRequiresExampleAssets (const Identifier& exporterIdentifier,
             || (exporterIdentifier.toString() == XcodeProjectExporter::getValueTreeTypeNameMac() && projectName == "AUv3SynthPlugin");
 }
 
+static bool isModuleFlagEnabled (const String& moduleFlags, const String& flag)
+{
+    auto options = StringArray::fromTokens (moduleFlags, ",", {});
+    options.trim();
+    return options.contains (flag + "=1");
+}
+
 //==============================================================================
 PIPGenerator::PIPGenerator (const File& pip, const File& output, const File& jucePath, const File& userPath)
     : pipFile (pip),
@@ -284,6 +291,31 @@ ValueTree PIPGenerator::createExporterChild (const Identifier& exporterIdentifie
 
     if (exporterIdentifier.toString() == AndroidProjectExporter::getValueTreeTypeName())
         exporter.setProperty (Ids::androidBluetoothNeeded, true, nullptr);
+
+    if (isModuleFlagEnabled (metadata[Ids::moduleFlags].toString(), "JUCE_IN_APP_PURCHASES"))
+    {
+        if (exporterIdentifier.toString() == AndroidProjectExporter::getValueTreeTypeName())
+            exporter.setProperty (Ids::androidInAppBilling, true, nullptr);
+
+        const Identifier xcodeExporters[] { XcodeProjectExporter::getValueTreeTypeNameMac(),
+                                            XcodeProjectExporter::getValueTreeTypeNameiOS(),
+                                            XcodeProjectExporter::getValueTreeTypeNameTVOS() };
+
+        if (std::find (std::begin (xcodeExporters), std::end (xcodeExporters), exporterIdentifier) != std::end (xcodeExporters))
+            exporter.setProperty (Ids::iosInAppPurchases, true, nullptr);
+    }
+
+    if (isModuleFlagEnabled (metadata[Ids::moduleFlags].toString(), "JUCE_PUSH_NOTIFICATIONS"))
+    {
+        if (exporterIdentifier.toString() == AndroidProjectExporter::getValueTreeTypeName())
+            exporter.setProperty (Ids::androidPushNotifications, true, nullptr);
+
+        const Identifier xcodeExporters[] { XcodeProjectExporter::getValueTreeTypeNameMac(),
+                                            XcodeProjectExporter::getValueTreeTypeNameiOS() };
+
+        if (std::find (std::begin (xcodeExporters), std::end (xcodeExporters), exporterIdentifier) != std::end (xcodeExporters))
+            exporter.setProperty (Ids::iosPushNotifications, true, nullptr);
+    }
 
     {
         ValueTree configs (Ids::CONFIGURATIONS);

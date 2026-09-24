@@ -9942,6 +9942,9 @@
     <ClInclude Include="..\..\..\..\modules\juce_gui_basics\components\juce_ComponentTraverser.h">
       <Filter>JUCE Modules\juce_gui_basics\components</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\modules\juce_gui_basics\components\juce_FocusNavigation.h">
+      <Filter>JUCE Modules\juce_gui_basics\components</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\modules\juce_gui_basics\components\juce_FocusTraverser.h">
       <Filter>JUCE Modules\juce_gui_basics\components</Filter>
     </ClInclude>
@@ -9970,6 +9973,9 @@
       <Filter>JUCE Modules\juce_gui_basics\detail</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\modules\juce_gui_basics\detail\juce_CustomMouseCursorInfo.h">
+      <Filter>JUCE Modules\juce_gui_basics\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\modules\juce_gui_basics\detail\juce_DirectionalFocusHelpers.h">
       <Filter>JUCE Modules\juce_gui_basics\detail</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\modules\juce_gui_basics\detail\juce_FocusHelpers.h">

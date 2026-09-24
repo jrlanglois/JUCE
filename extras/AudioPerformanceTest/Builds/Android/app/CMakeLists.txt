@@ -2697,6 +2697,7 @@ add_library( ${BINARY_NAME}
     "../../../../../modules/juce_gui_basics/components/juce_ComponentListener.cpp"
     "../../../../../modules/juce_gui_basics/components/juce_ComponentListener.h"
     "../../../../../modules/juce_gui_basics/components/juce_ComponentTraverser.h"
+    "../../../../../modules/juce_gui_basics/components/juce_FocusNavigation.h"
     "../../../../../modules/juce_gui_basics/components/juce_FocusTraverser.cpp"
     "../../../../../modules/juce_gui_basics/components/juce_FocusTraverser.h"
     "../../../../../modules/juce_gui_basics/components/juce_ModalComponentManager.cpp"
@@ -2713,6 +2714,7 @@ add_library( ${BINARY_NAME}
     "../../../../../modules/juce_gui_basics/detail/juce_ComponentPeerHelpers.cpp"
     "../../../../../modules/juce_gui_basics/detail/juce_ComponentPeerHelpers.h"
     "../../../../../modules/juce_gui_basics/detail/juce_CustomMouseCursorInfo.h"
+    "../../../../../modules/juce_gui_basics/detail/juce_DirectionalFocusHelpers.h"
     "../../../../../modules/juce_gui_basics/detail/juce_FocusHelpers.h"
     "../../../../../modules/juce_gui_basics/detail/juce_FocusRestorer.h"
     "../../../../../modules/juce_gui_basics/detail/juce_LookAndFeelHelpers.h"
@@ -5804,6 +5806,7 @@ set_source_files_properties(
     "../../../../../modules/juce_gui_basics/components/juce_ComponentListener.cpp"
     "../../../../../modules/juce_gui_basics/components/juce_ComponentListener.h"
     "../../../../../modules/juce_gui_basics/components/juce_ComponentTraverser.h"
+    "../../../../../modules/juce_gui_basics/components/juce_FocusNavigation.h"
     "../../../../../modules/juce_gui_basics/components/juce_FocusTraverser.cpp"
     "../../../../../modules/juce_gui_basics/components/juce_FocusTraverser.h"
     "../../../../../modules/juce_gui_basics/components/juce_ModalComponentManager.cpp"
@@ -5820,6 +5823,7 @@ set_source_files_properties(
     "../../../../../modules/juce_gui_basics/detail/juce_ComponentPeerHelpers.cpp"
     "../../../../../modules/juce_gui_basics/detail/juce_ComponentPeerHelpers.h"
     "../../../../../modules/juce_gui_basics/detail/juce_CustomMouseCursorInfo.h"
+    "../../../../../modules/juce_gui_basics/detail/juce_DirectionalFocusHelpers.h"
     "../../../../../modules/juce_gui_basics/detail/juce_FocusHelpers.h"
     "../../../../../modules/juce_gui_basics/detail/juce_FocusRestorer.h"
     "../../../../../modules/juce_gui_basics/detail/juce_LookAndFeelHelpers.h"
@@ -6209,11 +6213,11 @@ set_source_files_properties(
     PROPERTIES HEADER_FILE_ONLY TRUE)
 
 if( JUCE_BUILD_CONFIGURATION MATCHES "DEBUG" )
-    target_compile_options( ${BINARY_NAME} PRIVATE "-fsigned-char" [[-mfpu=neon]] [[-mfloat-abi=hard]] [[-ffast-math]] [[-funroll-loops]] [[--param]] [[max-unroll-times=8]] [[-mhard-float]] [[-D_NDK_MATH_NO_SOFTFP=1]] [[-DJUCE_DISABLE_ASSERTIONS=1]] )
+    target_compile_options( ${BINARY_NAME} PRIVATE "-fsigned-char" [[-funroll-loops]] [[-DJUCE_DISABLE_ASSERTIONS=1]] )
 endif()
 
 if( JUCE_BUILD_CONFIGURATION MATCHES "RELEASE" )
-    target_compile_options( ${BINARY_NAME} PRIVATE "-fsigned-char" [[-mfpu=neon]] [[-mfloat-abi=hard]] [[-ffast-math]] [[-funroll-loops]] [[--param]] [[max-unroll-times=8]] [[-mhard-float]] [[-D_NDK_MATH_NO_SOFTFP=1]] [[-DJUCE_DISABLE_ASSERTIONS=1]] )
+    target_compile_options( ${BINARY_NAME} PRIVATE "-fsigned-char" [[-funroll-loops]] [[-DJUCE_DISABLE_ASSERTIONS=1]] )
 endif()
 
 find_library(log "log")
