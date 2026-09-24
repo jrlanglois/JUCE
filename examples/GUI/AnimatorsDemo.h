@@ -457,11 +457,14 @@ private:
 };
 
 // Displays the PulsingCheckmark as it looks when its animation is complete
-class CompletedCheckmark : public Component
+class CompletedCheckmark : public Button
 {
 public:
     explicit CompletedCheckmark (std::function<void()> onClickIn)
-        : onClick (std::move (onClickIn)) {}
+        : Button ("Checkmark tool")
+    {
+        onClick = std::move (onClickIn);
+    }
 
     void resized() override
     {
@@ -479,35 +482,26 @@ public:
         checkmark->getAnimator().update (0);
     }
 
-    void mouseDown (const MouseEvent&) override
-    {
-        NullCheckedInvocation::invoke (onClick);
-    }
+    void paintButton (Graphics&, bool, bool) override {}
 
 private:
     std::unique_ptr<PulsingCheckmark> checkmark;
-    std::function<void()> onClick;
 };
 
-class BallToolComponent : public Component
+class BallToolComponent : public Button
 {
 public:
     explicit BallToolComponent (std::function<void()> onClickIn)
-        : onClick (std::move (onClickIn)) {}
+        : Button ("Ball tool")
+    {
+        onClick = std::move (onClickIn);
+    }
 
-    void paint (Graphics& g) override
+    void paintButton (Graphics& g, bool, bool) override
     {
         g.setColour (Colour { 0xff179af0 });
         g.fillEllipse (getLocalBounds().toFloat());
     }
-
-    void mouseDown (const MouseEvent&) override
-    {
-        NullCheckedInvocation::invoke (onClick);
-    }
-
-private:
-    std::function<void()> onClick;
 };
 
 class AnimatorsDemo : public Component
@@ -528,6 +522,7 @@ public:
                                                                           {
                                                                               selectedTool = SelectedTool::ball;
                                                                           }));
+        toolsPanel.onPlaceAtCentre = [this] { placeSelectedToolAtCentre(); };
         addAndMakeVisible (toolsPanel);
 
         setSize (600, 400);
@@ -566,6 +561,18 @@ public:
     }
 
 private:
+    void placeSelectedToolAtCentre()
+    {
+        const auto centre = getLocalBounds().getCentre().toFloat();
+
+        switch (selectedTool)
+        {
+            case SelectedTool::checkmark: makeCheckmark (centre); break;
+            case SelectedTool::ball:      makeBall (centre);      break;
+            case SelectedTool::none:      toolsPanel.wobbleLabel(); break;
+        }
+    }
+
     void makeCheckmark (Point<float> centre)
     {
         auto checkmark = std::make_unique<PulsingCheckmark> (centre, 50.0f);
@@ -691,7 +698,9 @@ private:
         {
             shadower.setOwner (this);
             closeButton.onClick = [this] { close(); };
+            placeButton.onClick = [this] { NullCheckedInvocation::invoke (onPlaceAtCentre); };
             addAndMakeVisible (closeButton);
+            addAndMakeVisible (placeButton);
             addAndMakeVisible (label);
             addAndMakeVisible (instructions);
             addChildComponent (selectionComponent, 0);
@@ -726,6 +735,7 @@ private:
             for (auto& c : toolComponents)
                 flexBox.items.add (FlexItem (*c).withWidth (height).withHeight (height).withMargin (margin));
 
+            flexBox.items.add (FlexItem (placeButton).withWidth (120.0f).withHeight (40.0f).withMargin (margin));
             flexBox.performLayout (bounds);
         }
 
@@ -742,26 +752,30 @@ private:
             shouldOpen = false;
             updater.addAnimator (slideInAnimator, [this]
                                                   {
+                                                      setVisible (false);
                                                       NullCheckedInvocation::invoke (onClose);
                                                       updater.removeAnimator (slideInAnimator);
                                                   });
             slideInAnimator.start();
         }
 
-        void addToolComponent (std::unique_ptr<Component> component)
+        void addToolComponent (std::unique_ptr<Button> component)
         {
+            auto* componentPointer = component.get();
+            const auto originalOnClick = component->onClick;
+            component->onClick = [this, componentPointer, originalOnClick]
+            {
+                NullCheckedInvocation::invoke (originalOnClick);
+                selectTool (*componentPointer);
+            };
+
             addAndMakeVisible (*component);
-            component->addMouseListener (this, false);
             toolComponents.push_back (std::move (component));
         }
 
-        //==============================================================================
-        void mouseUp (const MouseEvent& event) override
+        void selectTool (Component& component)
         {
-            if (event.originalComponent == this)
-                return;
-
-            const auto targetBounds = event.originalComponent->getBounds().expanded (std::min (10, margin));
+            const auto targetBounds = component.getBounds().expanded (std::min (10, margin));
 
             if (! selectionComponent.isVisible())
             {
@@ -849,12 +863,13 @@ private:
         };
 
         WobblyLabel label { "Select animation:" };
-        Label instructions { "", "Click below to animate" };
+        Label instructions { "", "Select a tool, then place it at the centre" };
         SelectionComponent selectionComponent;
-        std::vector<std::unique_ptr<Component>> toolComponents;
+        std::vector<std::unique_ptr<Button>> toolComponents;
         DropShadow shadow { Colour { 0x90000000 }, 12, {} };
         DropShadower shadower { shadow };
         TextButton closeButton { "X" };
+        TextButton placeButton { "Place" };
 
         Animator slideInAnimator = ValueAnimatorBuilder{}
                                        .withEasing (Easings::createEaseInOutCubic())
@@ -882,6 +897,7 @@ private:
 
     public:
         std::function<void()> onClose;
+        std::function<void()> onPlaceAtCentre;
     };
 
     enum class SelectedTool

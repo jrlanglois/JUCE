@@ -1535,16 +1535,18 @@ struct DemoTabbedComponent final : public TabbedComponent
 
     // This is a small star button that is put inside one of the tabs. You can
     // use this technique to create things like "close tab" buttons, etc.
-    class CustomTabButton final : public Component
+    class CustomTabButton final : public Button
     {
     public:
         CustomTabButton (bool isRunningComponentTransformsDemo)
-            : runningComponentTransformsDemo (isRunningComponentTransformsDemo)
+            : Button ("Show custom tab component information"),
+              runningComponentTransformsDemo (isRunningComponentTransformsDemo)
         {
             setSize (20, 20);
+            setHasFocusOutline (true);
         }
 
-        void paint (Graphics& g) override
+        void paintButton (Graphics& g, bool, bool) override
         {
             Path star;
             star.addStar ({}, 7, 1.0f, 2.0f);
@@ -1553,7 +1555,7 @@ struct DemoTabbedComponent final : public TabbedComponent
             g.fillPath (star, star.getTransformToScaleToFit (getLocalBounds().reduced (2).toFloat(), true));
         }
 
-        void mouseDown (const MouseEvent&) override
+        void clicked() override
         {
             showBubbleMessage (*this,
                                "This is a custom tab component\n"
@@ -1563,6 +1565,9 @@ struct DemoTabbedComponent final : public TabbedComponent
                                bubbleMessage,
                                runningComponentTransformsDemo);
         }
+
+        using Button::clicked;
+
     private:
         bool runningComponentTransformsDemo;
         std::unique_ptr<BubbleMessageComponent> bubbleMessage;

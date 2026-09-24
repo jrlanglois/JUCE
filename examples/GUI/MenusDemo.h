@@ -61,8 +61,9 @@
 */
 struct BurgerMenuHeader final : public Component
 {
-    BurgerMenuHeader (SidePanel& sp)
-        : sidePanel (sp)
+    BurgerMenuHeader (SidePanel& sp, BurgerMenuComponent& bm)
+        : sidePanel (sp),
+          burgerMenu (bm)
     {
         static const unsigned char burgerMenuPathData[]
             = { 110,109,0,0,128,64,0,0,32,65,108,0,0,224,65,0,0,32,65,98,254,212,232,65,0,0,32,65,0,0,240,65,252,
@@ -81,6 +82,9 @@ struct BurgerMenuHeader final : public Component
         Path p;
         p.loadPathFromData (burgerMenuPathData, sizeof (burgerMenuPathData));
         burgerButton.setShape (p, true, true, false);
+        burgerButton.setButtonText ("Menu");
+        burgerButton.setTitle ("Menu");
+        burgerButton.setHasFocusOutline (true);
 
         burgerButton.onClick = [this] { showOrHide(); };
         addAndMakeVisible (burgerButton);
@@ -89,6 +93,21 @@ struct BurgerMenuHeader final : public Component
     ~BurgerMenuHeader() override
     {
         sidePanel.showOrHide (false);
+    }
+
+    bool dismiss()
+    {
+        if (! sidePanel.isPanelShowing())
+            return false;
+
+        sidePanel.showOrHide (false);
+        focusButton();
+        return true;
+    }
+
+    void focusButton()
+    {
+        burgerButton.grabKeyboardFocus();
     }
 
 private:
@@ -113,15 +132,85 @@ private:
 
     void showOrHide()
     {
-        sidePanel.showOrHide (! sidePanel.isPanelShowing());
+        if (dismiss())
+            return;
+
+        sidePanel.showOrHide (true);
+        burgerMenu.grabKeyboardFocus();
     }
 
     SidePanel& sidePanel;
+    BurgerMenuComponent& burgerMenu;
 
     Label titleLabel         { "titleLabel", "JUCE Demo" };
     ShapeButton burgerButton { "burgerButton", Colours::lightgrey, Colours::lightgrey, Colours::white };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BurgerMenuHeader)
+};
+
+//==============================================================================
+class DirectionalMenuBarComponent final : public MenuBarComponent
+{
+public:
+    explicit DirectionalMenuBarComponent (MenuBarModel* model)
+        : MenuBarComponent (model)
+    {
+        setWantsKeyboardFocus (true);
+        setHasFocusOutline (true);
+    }
+
+    bool keyPressed (const KeyPress& key) override
+    {
+        if (key.isKeyCode (KeyPress::returnKey) || key.isKeyCode (KeyPress::selectKey))
+        {
+            showMenu (selectedMenuIndex);
+            return true;
+        }
+
+        if (key.isKeyCode (KeyPress::leftKey))
+            return handleFocusNavigation (FocusNavigationDirection::left) != FocusNavigationResult::unhandled;
+
+        if (key.isKeyCode (KeyPress::rightKey))
+            return handleFocusNavigation (FocusNavigationDirection::right) != FocusNavigationResult::unhandled;
+
+        return MenuBarComponent::keyPressed (key);
+    }
+
+    FocusNavigationResult handleFocusNavigation (FocusNavigationDirection direction) override
+    {
+        switch (direction)
+        {
+            case FocusNavigationDirection::left:
+                if (selectedMenuIndex == 0)
+                    return FocusNavigationResult::unhandled;
+
+                showMenu (--selectedMenuIndex);
+                return FocusNavigationResult::handled;
+
+            case FocusNavigationDirection::right:
+                if (auto* model = getModel();
+                    model == nullptr || selectedMenuIndex + 1 >= model->getMenuBarNames().size())
+                {
+                    return FocusNavigationResult::unhandled;
+                }
+
+                showMenu (++selectedMenuIndex);
+                return FocusNavigationResult::handled;
+
+            case FocusNavigationDirection::down:
+                showMenu (selectedMenuIndex);
+                return FocusNavigationResult::handled;
+
+            case FocusNavigationDirection::up:
+                return FocusNavigationResult::unhandled;
+        }
+
+        jassertfalse;
+        return FocusNavigationResult::unhandled;
+    }
+
+private:
+    int selectedMenuIndex = 0;
 };
 
 //==============================================================================
@@ -157,7 +246,7 @@ public:
     //==============================================================================
     MenusDemo()
     {
-        menuBar.reset (new MenuBarComponent (this));
+        menuBar.reset (new DirectionalMenuBarComponent (this));
         addAndMakeVisible (menuBar.get());
         setApplicationCommandManagerToWatch (&commandManager);
         commandManager.registerAllCommandsForTarget (this);
@@ -172,8 +261,6 @@ public:
         addChildComponent (menuHeader);
         addAndMakeVisible (outerCommandTarget);
         addAndMakeVisible (sidePanel);
-
-        setWantsKeyboardFocus (true);
 
         setSize (500, 500);
     }
@@ -202,6 +289,17 @@ public:
         }
 
         outerCommandTarget.setBounds (b);
+    }
+
+    bool keyPressed (const KeyPress& key) override
+    {
+        if ((key.isKeyCode (KeyPress::escapeKey) || key.isKeyCode (KeyPress::menuKey))
+            && menuHeader.dismiss())
+        {
+            return true;
+        }
+
+        return Component::keyPressed (key);
     }
 
     //==============================================================================
@@ -319,6 +417,16 @@ public:
             burgerMenu.setModel   (menuBarPosition == MenuBarPosition::burger ? this : nullptr);
             menuHeader.setVisible (menuBarPosition == MenuBarPosition::burger);
 
+            if (menuBarPosition == MenuBarPosition::burger)
+            {
+                Component::SafePointer<BurgerMenuHeader> safeMenuHeader { &menuHeader };
+                MessageManager::callAsync ([safeMenuHeader]
+                {
+                    if (safeMenuHeader != nullptr)
+                        safeMenuHeader->focusButton();
+                });
+            }
+
             sidePanel.setContent  (menuBarPosition == MenuBarPosition::burger ? &burgerMenu : nullptr, false);
             menuItemsChanged();
 
@@ -333,13 +441,13 @@ private:
     ApplicationCommandManager commandManager;
    #endif
 
-    std::unique_ptr<MenuBarComponent> menuBar;
+    std::unique_ptr<DirectionalMenuBarComponent> menuBar;
     MenuBarPosition menuBarPosition = MenuBarPosition::window;
 
     SidePanel sidePanel { "Menu", 300, false };
 
     BurgerMenuComponent burgerMenu;
-    BurgerMenuHeader menuHeader { sidePanel };
+    BurgerMenuHeader menuHeader { sidePanel, burgerMenu };
 
     //==============================================================================
     /**

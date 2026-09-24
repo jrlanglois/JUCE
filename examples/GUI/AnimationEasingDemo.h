@@ -33,7 +33,8 @@
  website:          http://juce.com
  description:      Application for comparing animation easings.
 
- dependencies:     juce_gui_basics, juce_animation
+ dependencies:     juce_animation, juce_core, juce_data_structures, juce_events,
+                   juce_graphics, juce_gui_basics
 
  exporters:        xcode_mac, vs2022, vs2026, androidstudio, xcode_iphone,
                    xcode_tvos

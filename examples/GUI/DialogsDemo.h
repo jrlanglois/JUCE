@@ -36,7 +36,7 @@
  dependencies:     juce_core, juce_data_structures, juce_events, juce_graphics,
                    juce_gui_basics, juce_gui_extra
  exporters:        xcode_mac, vs2022, vs2026, linux_make, androidstudio,
-                   xcode_iphone
+                   xcode_iphone, xcode_tvos
 
  moduleFlags:      JUCE_STRICT_REFCOUNTEDPOINTER=1
 
@@ -153,6 +153,10 @@ public:
         nativeButton.setButtonText ("Use Native Windows");
         nativeButton.onClick = [this] { getLookAndFeel().setUsingNativeAlertWindows (nativeButton.getToggleState()); };
 
+       #if JUCE_TVOS
+        nativeButton.setButtonText ("Use Native Alert Windows");
+       #endif
+
         StringArray windowNames { "Plain Alert Window",
                                   "Alert Window With Warning Icon",
                                   "Alert Window With Info Icon",
@@ -181,6 +185,11 @@ public:
 
             auto index = windowNames.indexOf (windowName);
             newButton->onClick = [this, index, newButton] { showWindow (*newButton, static_cast<DialogType> (index)); };
+
+           #if JUCE_TVOS
+            if (index >= shareText)
+                newButton->setEnabled (false);
+           #endif
         }
 
         setSize (500, 500);
@@ -335,6 +344,10 @@ private:
         else if (type >= loadChooser && type <= saveChooser)
         {
             auto useNativeVersion = nativeButton.getToggleState();
+
+           #if JUCE_TVOS
+            useNativeVersion = false;
+           #endif
 
             if (type == loadChooser)
             {

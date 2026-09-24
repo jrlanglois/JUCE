@@ -107,7 +107,7 @@ inline std::unique_ptr<InputStream> createAssetInputStream (const char* resource
 
     return std::unique_ptr<InputStream> (apkZip.createStreamForEntry (fileIndex));
   #else
-   #if JUCE_IOS
+   #if JUCE_IOS || JUCE_TVOS
     auto assetsDir = File::getSpecialLocation (File::currentExecutableFile)
                           .getSiblingFile ("Assets");
    #elif JUCE_MAC

@@ -40,7 +40,7 @@
                    juce_gui_basics, juce_gui_extra, juce_audio_processors_headless
  exporters:        xcode_mac, xcode_iphone, androidstudio
 
- moduleFlags:      JUCE_STRICT_REFCOUNTEDPOINTER=1
+ moduleFlags:      JUCE_STRICT_REFCOUNTEDPOINTER=1,
                    JUCE_PUSH_NOTIFICATIONS=1
 
  type:             Component

@@ -54,6 +54,35 @@
 #include "../Assets/DemoUtilities.h"
 
 //==============================================================================
+class LookAndFeelDemoFocusOutlineProperties final : public FocusOutline::OutlineWindowProperties
+{
+public:
+    LookAndFeelDemoFocusOutlineProperties (Colour colourToUse, float cornerRadiusToUse)
+        : colour (colourToUse),
+          cornerRadius (cornerRadiusToUse)
+    {}
+
+    Rectangle<int> getOutlineBounds (Component& component) override
+    {
+        return component.getScreenBounds().expanded (5);
+    }
+
+    void drawOutline (Graphics& g, int width, int height) override
+    {
+        constexpr auto thickness = 4.0f;
+
+        g.setColour (colour);
+        g.drawRoundedRectangle (Rectangle<float> ((float) width, (float) height).reduced (thickness * 0.5f),
+                                cornerRadius,
+                                thickness);
+    }
+
+private:
+    Colour colour;
+    float cornerRadius;
+};
+
+//==============================================================================
 /** Custom Look And Feel subclasss.
 
     Simply override the methods you need to, anything else will be inherited from the base class.
@@ -62,6 +91,14 @@
 */
 struct CustomLookAndFeel : public LookAndFeel_V4
 {
+    std::unique_ptr<FocusOutline> createFocusOutlineForComponent (Component&) override
+    {
+        return std::make_unique<FocusOutline> (
+            std::make_unique<LookAndFeelDemoFocusOutlineProperties> (
+                findColour (Slider::rotarySliderFillColourId),
+                12.0f));
+    }
+
     void drawRoundThumb (Graphics& g, float x, float y, float diameter, Colour colour, float outlineThickness)
     {
         auto halfThickness = outlineThickness * 0.5f;
@@ -303,6 +340,14 @@ struct CustomLookAndFeel : public LookAndFeel_V4
 */
 struct SquareLookAndFeel final : public CustomLookAndFeel
 {
+    std::unique_ptr<FocusOutline> createFocusOutlineForComponent (Component&) override
+    {
+        return std::make_unique<FocusOutline> (
+            std::make_unique<LookAndFeelDemoFocusOutlineProperties> (
+                findColour (Slider::rotarySliderFillColourId),
+                0.0f));
+    }
+
     void drawButtonBackground (Graphics& g, Button& button, const Colour& backgroundColour,
                                bool isMouseOverButton, bool isButtonDown) override
     {

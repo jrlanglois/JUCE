@@ -35,7 +35,8 @@
 
  dependencies:     juce_core, juce_data_structures, juce_events, juce_graphics,
                    juce_gui_basics, juce_osc
- exporters:        xcode_mac, vs2022, vs2026, linux_make
+ exporters:        xcode_mac, vs2022, vs2026, linux_make, androidstudio,
+                   xcode_iphone, xcode_tvos
 
  moduleFlags:      JUCE_STRICT_REFCOUNTEDPOINTER=1
 

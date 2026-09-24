@@ -41,7 +41,7 @@
                    juce_product_unlocking, juce_audio_processors_headless
  exporters:        xcode_mac, xcode_iphone, xcode_tvos, androidstudio
 
- moduleFlags:      JUCE_STRICT_REFCOUNTEDPOINTER=1
+ moduleFlags:      JUCE_STRICT_REFCOUNTEDPOINTER=1,
                    JUCE_IN_APP_PURCHASES=1
 
  type:             Component

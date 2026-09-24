@@ -84,7 +84,11 @@ class FlashingComponent final : public Component,
                                 private Timer
 {
 public:
-    FlashingComponent() {}
+    FlashingComponent()
+    {
+        setWantsKeyboardFocus (true);
+        setHasFocusOutline (true);
+    }
 
     void startFlashing()
     {
@@ -118,6 +122,17 @@ public:
     void mouseDown (const MouseEvent&) override
     {
         startFlashing();
+    }
+
+    bool keyPressed (const KeyPress& key) override
+    {
+        if (key.isKeyCode (KeyPress::returnKey) || key.isKeyCode (KeyPress::selectKey))
+        {
+            startFlashing();
+            return true;
+        }
+
+        return Component::keyPressed (key);
     }
 
     /** Message listener callback used to change our colour */
@@ -163,6 +178,7 @@ public:
             auto* newFlasher = new FlashingComponent();
             flashingComponents.add (newFlasher);
 
+            newFlasher->setName ("Flashing circle " + String (i + 1));
             newFlasher->setFlashColour (getRandomBrightColour());
             newFlasher->addChangeListener (this);
 
@@ -218,7 +234,7 @@ public:
         auto explanationArea = getLocalBounds().removeFromTop (100);
 
         AttributedString s;
-        s.append ("Click on a circle to make it flash. When it has finished flashing it will send a message which causes the next circle to flash");
+        s.append ("Select or click a circle to make it flash. When it has finished flashing it will send a message which causes the next circle to flash");
         s.append (newLine);
         s.append ("Click the \"Set Random Colour\" button to change the colour of one of the circles.");
         s.append (newLine);

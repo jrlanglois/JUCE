@@ -54,6 +54,16 @@
 #include "../Assets/DemoUtilities.h"
 
 //==============================================================================
+inline File getMDIDemoNotesDirectory()
+{
+   #if JUCE_TVOS
+    return File::getSpecialLocation (File::userDocumentsDirectory);
+   #else
+    return File::getSpecialLocation (File::userDesktopDirectory);
+   #endif
+}
+
+//==============================================================================
 /** The Note class contains text editor used to display and edit the note's contents and will
     also listen to changes in the text and mark the FileBasedDocument as 'dirty'. This 'dirty'
     flag is used to prompt the user to save the note when it is closed.
@@ -117,7 +127,7 @@ public:
 
     File getSuggestedSaveAsFile (const File&) override
     {
-        return File::getSpecialLocation (File::userDesktopDirectory)
+        return getMDIDemoNotesDirectory()
                     .getChildFile (getName())
                     .withFileExtension ("jnote");
     }
@@ -290,7 +300,7 @@ private:
     void addExistingNotes()
     {
         Array<File> files;
-        File::getSpecialLocation (File::userDesktopDirectory).findChildFiles (files, File::findFiles, false, "*.jnote");
+        getMDIDemoNotesDirectory().findChildFiles (files, File::findFiles, false, "*.jnote");
         createNotesForFiles (files);
     }
 

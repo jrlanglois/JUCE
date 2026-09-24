@@ -148,6 +148,17 @@ public:
                 items.add (new ValueTree (vti->tree));
     }
 
+    void moveBy (int delta)
+    {
+        auto parent = tree.getParent();
+        const auto currentIndex = parent.indexOf (tree);
+
+        if (parent.isValid() && currentIndex >= 0)
+            parent.moveChild (currentIndex,
+                              jlimit (0, parent.getNumChildren() - 1, currentIndex + delta),
+                              &undoManager);
+    }
+
 private:
     ValueTree tree;
     UndoManager& undoManager;
@@ -201,8 +212,14 @@ public:
 
         addAndMakeVisible (undoButton);
         addAndMakeVisible (redoButton);
+        addAndMakeVisible (moveUpButton);
+        addAndMakeVisible (moveDownButton);
+        addAndMakeVisible (deleteButton);
         undoButton.onClick = [this] { undoManager.undo(); };
         redoButton.onClick = [this] { undoManager.redo(); };
+        moveUpButton.onClick = [this] { moveFocusedItem (-1); };
+        moveDownButton.onClick = [this] { moveFocusedItem (1); };
+        deleteButton.onClick = [this] { deleteSelectedItems(); };
 
         startTimer (500);
 
@@ -224,9 +241,10 @@ public:
         auto r = getLocalBounds().reduced (8);
 
         auto buttons = r.removeFromBottom (22);
-        undoButton.setBounds (buttons.removeFromLeft (100));
-        buttons.removeFromLeft (6);
-        redoButton.setBounds (buttons.removeFromLeft (100));
+        const auto buttonWidth = buttons.getWidth() / 5;
+
+        for (auto* button : { &undoButton, &redoButton, &moveUpButton, &moveDownButton, &deleteButton })
+            button->setBounds (buttons.removeFromLeft (buttonWidth).reduced (2, 0));
 
         r.removeFromBottom (4);
         tree.setBounds (r);
@@ -301,10 +319,19 @@ public:
 private:
     TreeView tree;
     TextButton undoButton  { "Undo" },
-               redoButton  { "Redo" };
+               redoButton  { "Redo" },
+               moveUpButton { "Move Up" },
+               moveDownButton { "Move Down" },
+               deleteButton { "Delete" };
 
     std::unique_ptr<ValueTreeItem> rootItem;
     UndoManager undoManager;
+
+    void moveFocusedItem (int delta)
+    {
+        if (auto* item = dynamic_cast<ValueTreeItem*> (tree.getFocusNavigationItem()))
+            item->moveBy (delta);
+    }
 
     void timerCallback() override
     {

@@ -61,14 +61,20 @@ class SimpleFFTDemo final : public AudioAppComponent,
 public:
     SimpleFFTDemo() :
          #ifdef JUCE_DEMO_RUNNER
+          #if JUCE_TVOS
+          AudioAppComponent (getSharedAudioDeviceManager (0, 2)),
+          #else
           AudioAppComponent (getSharedAudioDeviceManager (1, 0)),
+          #endif
          #endif
           forwardFFT (fftOrder),
           spectrogramImage (Image::RGB, 512, 512, true)
     {
         setOpaque (true);
 
-       #ifndef JUCE_DEMO_RUNNER
+       #if JUCE_TVOS
+        setAudioChannels (0, 2);
+       #elif ! defined (JUCE_DEMO_RUNNER)
         RuntimePermissions::request (RuntimePermissions::recordAudio,
                                      [this] (bool granted)
                                      {
@@ -89,9 +95,9 @@ public:
     }
 
     //==============================================================================
-    void prepareToPlay (int /*samplesPerBlockExpected*/, double /*newSampleRate*/) override
+    void prepareToPlay (int /*samplesPerBlockExpected*/, double newSampleRate) override
     {
-        // (nothing to do here)
+        syntheticPhaseDelta = (float) (MathConstants<double>::twoPi * 440.0 / newSampleRate);
     }
 
     void releaseResources() override
@@ -101,15 +107,23 @@ public:
 
     void getNextAudioBlock (const AudioSourceChannelInfo& bufferToFill) override
     {
+       #if JUCE_TVOS
+        for (auto i = 0; i < bufferToFill.numSamples; ++i)
+        {
+            pushNextSampleIntoFifo (std::sin (syntheticPhase));
+            syntheticPhase = std::fmod (syntheticPhase + syntheticPhaseDelta, MathConstants<float>::twoPi);
+        }
+       #else
         if (bufferToFill.buffer->getNumChannels() > 0)
         {
             const auto* channelData = bufferToFill.buffer->getReadPointer (0, bufferToFill.startSample);
 
             for (auto i = 0; i < bufferToFill.numSamples; ++i)
                 pushNextSampleIntoFifo (channelData[i]);
-
-            bufferToFill.clearActiveBufferRegion();
         }
+       #endif
+
+        bufferToFill.clearActiveBufferRegion();
     }
 
     //==============================================================================
@@ -191,6 +205,8 @@ private:
     float fftData [2 * fftSize];
     int fifoIndex = 0;
     bool nextFFTBlockReady = false;
+    float syntheticPhase = 0.0f;
+    float syntheticPhaseDelta = 0.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleFFTDemo)
 };

@@ -181,11 +181,11 @@ class StringComponent final : public Component,
                               private Timer
 {
 public:
-    StringComponent (int lengthInPixels, Colour stringColour)
-        : length (lengthInPixels), colour (stringColour)
+    StringComponent (int lengthInPixels, Colour stringColour, std::function<void (float)> pluckCallback)
+        : length (lengthInPixels), colour (stringColour), onPluck (std::move (pluckCallback))
     {
-        // ignore mouse-clicks so that our parent can get them instead.
-        setInterceptsMouseClicks (false, false);
+        setWantsKeyboardFocus (true);
+        setHasFocusOutline (true);
         setSize (length, height);
         startTimerHz (60);
     }
@@ -193,8 +193,14 @@ public:
     //==============================================================================
     void stringPlucked (float pluckPositionRelative)
     {
-        amplitude = maxAmplitude * std::sin (pluckPositionRelative * MathConstants<float>::pi);
+        pluckPosition = jlimit (minimumPluckPosition, maximumPluckPosition, pluckPositionRelative);
+        amplitude = maxAmplitude * std::sin (pluckPosition * MathConstants<float>::pi);
         phase = MathConstants<float>::pi;
+
+        if (onPluck != nullptr)
+            onPluck (pluckPosition);
+
+        repaint();
     }
 
     //==============================================================================
@@ -202,6 +208,12 @@ public:
     {
         g.setColour (colour);
         g.strokePath (generateStringPath(), PathStrokeType (2.0f));
+
+        if (hasKeyboardFocus (false))
+            g.fillEllipse ((float) getWidth() * pluckPosition - 4.0f,
+                           (float) height / 2.0f - 4.0f,
+                           8.0f,
+                           8.0f);
     }
 
     Path generateStringPath() const
@@ -220,6 +232,43 @@ public:
         updateAmplitude();
         updatePhase();
         repaint();
+    }
+
+    FocusNavigationResult handleFocusNavigation (FocusNavigationDirection direction) override
+    {
+        if (direction != FocusNavigationDirection::left && direction != FocusNavigationDirection::right)
+            return FocusNavigationResult::unhandled;
+
+        if ((direction == FocusNavigationDirection::left && pluckPosition <= minimumPluckPosition)
+            || (direction == FocusNavigationDirection::right && pluckPosition >= maximumPluckPosition))
+            return FocusNavigationResult::unhandled;
+
+        const auto delta = direction == FocusNavigationDirection::left ? -pluckPositionStep : pluckPositionStep;
+        const auto nextPosition = jlimit (minimumPluckPosition, maximumPluckPosition, pluckPosition + delta);
+
+        stringPlucked (nextPosition);
+        return FocusNavigationResult::handled;
+    }
+
+    bool keyPressed (const KeyPress& key) override
+    {
+        if (key.isKeyCode (KeyPress::returnKey) || key.isKeyCode (KeyPress::selectKey))
+        {
+            stringPlucked (pluckPosition);
+            return true;
+        }
+
+        return Component::keyPressed (key);
+    }
+
+    void mouseDown (const MouseEvent& event) override
+    {
+        mouseDrag (event);
+    }
+
+    void mouseDrag (const MouseEvent& event) override
+    {
+        stringPlucked (event.position.x / (float) getWidth());
     }
 
     void updateAmplitude()
@@ -249,6 +298,12 @@ private:
     float amplitude = 0.0f;
     const float maxAmplitude = 12.0f;
     float phase = 0.0f;
+    float pluckPosition = 0.5f;
+    std::function<void (float)> onPluck;
+
+    static constexpr float minimumPluckPosition = 0.1f;
+    static constexpr float maximumPluckPosition = 0.9f;
+    static constexpr float pluckPositionStep = 0.1f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StringComponent)
 };
@@ -329,27 +384,6 @@ public:
     }
 
 private:
-    void mouseDown (const MouseEvent& e) override
-    {
-        mouseDrag (e);
-    }
-
-    void mouseDrag (const MouseEvent& e) override
-    {
-        for (auto i = 0; i < stringLines.size(); ++i)
-        {
-            auto* stringLine = stringLines.getUnchecked (i);
-
-            if (stringLine->getBounds().contains (e.getPosition()))
-            {
-                auto position = (e.position.x - (float) stringLine->getX()) / (float) stringLine->getWidth();
-
-                stringLine->stringPlucked (position);
-                stringSynths.getUnchecked (i)->stringPlucked (position);
-            }
-        }
-    }
-
     //==============================================================================
     struct StringParameters
     {
@@ -369,10 +403,19 @@ private:
 
     void createStringComponents()
     {
+        auto stringIndex = 0;
+
         for (auto stringParams : getDefaultStringParameters())
         {
             stringLines.add (new StringComponent (stringParams.lengthInPixels,
-                                                  Colour::fromHSV (Random().nextFloat(), 0.6f, 0.9f, 1.0f)));
+                                                  Colour::fromHSV (Random().nextFloat(), 0.6f, 0.9f, 1.0f),
+                                                  [this, stringIndex] (float position)
+                                                  {
+                                                      if (isPositiveAndBelow (stringIndex, stringSynths.size()))
+                                                          stringSynths.getUnchecked (stringIndex)->stringPlucked (position);
+                                                  }));
+            stringLines.getLast()->setName ("String " + String (stringIndex + 1));
+            ++stringIndex;
         }
     }
 

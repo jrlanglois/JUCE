@@ -182,7 +182,6 @@ public:
         : testsList (getTestsList())
     {
         setOpaque (true);
-        setWantsKeyboardFocus (true);
 
         testsListModel.addChangeListener (this);
 
@@ -195,6 +194,14 @@ public:
         addAndMakeVisible (instructions);
         instructions.setMultiLine (true);
         instructions.setReadOnly (true);
+
+        for (auto* button : { &leftButton, &forwardButton, &rightButton })
+            addAndMakeVisible (button);
+
+        leftButton.onClick = [this] { applyForceKey ('a'); };
+        forwardButton.onClick = [this] { applyForceKey ('w'); };
+        rightButton.onClick = [this] { applyForceKey ('d'); };
+        updateForceControls();
 
         startTimerHz (60);
 
@@ -219,30 +226,14 @@ public:
         testsListBox.setBounds (area.removeFromLeft (150));
 
         area.removeFromLeft (4);
+        auto forceControls = area.removeFromTop (32);
+        leftButton.setBounds (forceControls.removeFromLeft (forceControls.getWidth() / 3).reduced (2));
+        forwardButton.setBounds (forceControls.removeFromLeft (forceControls.getWidth() / 2).reduced (2));
+        rightButton.setBounds (forceControls.reduced (2));
         instructions.setBounds (area);
 
         r.removeFromBottom (6);
         renderComponent.setBounds (r);
-    }
-
-    bool keyPressed (const KeyPress& key) override
-    {
-        if (renderComponent.currentTest.get() != nullptr)
-        {
-            // We override this to avoid the system beeping for an unused keypress
-            switch (key.getTextCharacter())
-            {
-                case 'a':
-                case 'w':
-                case 'd':
-                    return true;
-
-                default:
-                    break;
-            }
-        }
-
-        return false;
     }
 
 private:
@@ -252,6 +243,9 @@ private:
     Box2DRenderComponent renderComponent;
     ListBox testsListBox;
     TextEditor instructions;
+    TextButton leftButton { "Left" },
+               forwardButton { "Forward" },
+               rightButton { "Right" };
 
     static Test* createTest (int index)
     {
@@ -272,8 +266,7 @@ private:
         switch (index)
         {
             case applyForce:
-                return String ("Keys:") + newLine + "Left: \'a\'" + newLine
-                        + "Right: \'d\'" + newLine + "Forward: \'w\'";
+                return "Use the controls above, or the A, W, and D keys.";
 
             default:
                 break;
@@ -298,13 +291,24 @@ private:
             renderComponent.currentTest->Keyboard ((unsigned char) keyCode);
     }
 
+    void applyForceKey (int keyCode)
+    {
+        if (renderComponent.currentTest != nullptr)
+            renderComponent.currentTest->Keyboard ((unsigned char) keyCode);
+    }
+
+    void updateForceControls()
+    {
+        const auto shouldShow = testsListBox.getSelectedRow() == applyForce;
+
+        for (auto* button : { &leftButton, &forwardButton, &rightButton })
+            button->setVisible (shouldShow);
+    }
+
     void timerCallback() override
     {
         if (renderComponent.currentTest.get() == nullptr)
             return;
-
-        if (isShowing())
-            grabKeyboardFocus();
 
         checkKeys();
         renderComponent.currentTest->m_world->Step (1.0f / 60.0f, 6, 2);
@@ -319,6 +323,7 @@ private:
 
             renderComponent.currentTest.reset (createTest (index));
             instructions.setText (getInstructions (index));
+            updateForceControls();
 
             repaint();
         }
