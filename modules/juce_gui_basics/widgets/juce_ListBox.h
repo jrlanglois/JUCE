@@ -178,6 +178,19 @@ public:
     /** You can override this to return a custom mouse cursor for each row. */
     virtual MouseCursor getMouseCursorForRow (int row);
 
+    /** Returns whether a row may receive the list's directional navigation focus.
+
+        This is independent of the row's selected state. Override this to skip rows
+        that should not be reachable with directional navigation.
+    */
+    virtual bool isRowFocusNavigationEnabled (int rowNumber);
+
+    /** Called after the row with directional navigation focus changes.
+
+        The value will be -1 when no row has navigation focus.
+    */
+    virtual void focusNavigationRowChanged (int newFocusedRow);
+
 private:
    #if ! JUCE_DISABLE_ASSERTIONS
     friend class ListBox;
@@ -238,6 +251,12 @@ public:
 
         return model;
     }
+
+    /** Returns the row with directional navigation focus, or -1 if there is none.
+
+        Navigation focus is independent of row selection.
+    */
+    int getFocusNavigationRow() const noexcept;
 
     //==============================================================================
     /** Causes the list to refresh its content.
@@ -592,6 +611,8 @@ public:
     /** @internal */
     bool keyPressed (const KeyPress&) override;
     /** @internal */
+    FocusNavigationResult handleFocusNavigation (FocusNavigationDirection) override;
+    /** @internal */
     bool keyStateChanged (bool isKeyDown) override;
     /** @internal */
     void paint (Graphics&) override;
@@ -608,7 +629,15 @@ public:
     /** @internal */
     void colourChanged() override;
     /** @internal */
+    void lookAndFeelChanged() override;
+    /** @internal */
     void parentHierarchyChanged() override;
+    /** @internal */
+    void focusGained (FocusChangeType) override;
+    /** @internal */
+    void focusLost (FocusChangeType) override;
+    /** @internal */
+    void focusOfChildComponentChanged (FocusChangeType) override;
     /** @internal */
     void startDragAndDrop (const MouseEvent&, const SparseSet<int>& rowsToDrag,
                            const var& dragDescription, bool allowDraggingToOtherWindows);
@@ -634,10 +663,12 @@ private:
     std::unique_ptr<ListViewport> viewport;
     std::unique_ptr<Component> headerComponent;
     std::unique_ptr<MouseListener> mouseMoveSelector;
+    std::unique_ptr<FocusOutline> focusNavigationOutline;
     SparseSet<int> selected;
     int totalItems = 0, rowHeight = 22, minimumRowWidth = 0;
     int outlineThickness = 0;
     int lastRowSelected = -1;
+    int focusNavigationRow = -1;
     bool multipleSelection = false, alwaysFlipSelection = false, hasDoneInitialUpdate = false, selectOnMouseDown = true;
 
    #if ! JUCE_DISABLE_ASSERTIONS
@@ -649,6 +680,15 @@ private:
     bool hasAccessibleHeaderComponent() const;
     void selectRowInternal (int rowNumber, bool dontScrollToShowThisRow,
                             bool deselectOthersFirst, bool isMouseClick);
+    bool isRowFocusNavigationEligible (int rowNumber) const;
+    int findEligibleFocusNavigationRow (int startRow, int delta) const;
+    int findInitialFocusNavigationRow() const;
+    void setFocusNavigationRow (int rowNumber, bool reveal);
+    void updateFocusNavigationRowFromPointer (int rowNumber);
+    void validateFocusNavigationRow();
+    void refreshFocusNavigationOutline();
+    bool moveFocusNavigationRow (int delta);
+    bool activateFocusNavigationRow();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ListBox)
 };

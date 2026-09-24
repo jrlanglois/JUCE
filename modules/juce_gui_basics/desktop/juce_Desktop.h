@@ -514,7 +514,7 @@ private:
     void setKioskComponent (Component*, bool shouldBeEnabled, bool allowMenusAndBars);
 
     void triggerFocusCallback();
-    void updateFocusOutline();
+    void refreshFocusOutline();
     void handleAsyncUpdate() override;
 
     static Point<float> getMousePositionFloat();

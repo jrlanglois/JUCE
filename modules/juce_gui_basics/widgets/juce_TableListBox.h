@@ -178,6 +178,19 @@ public:
     */
     virtual void returnKeyPressed (int lastRowSelected);
 
+    /** Returns whether a row may receive the table's directional navigation focus.
+
+        This is independent of the row's selected state. Override this to skip rows
+        that should not be reachable with directional navigation.
+    */
+    virtual bool isRowFocusNavigationEnabled (int rowNumber);
+
+    /** Called after the row with directional navigation focus changes.
+
+        The value will be -1 when no row has navigation focus.
+    */
+    virtual void focusNavigationRowChanged (int newFocusedRow);
+
     /** Override this to be informed when the list is scrolled.
 
         This might be caused by the user moving the scrollbar, or by programmatic changes
@@ -327,6 +340,10 @@ public:
     /** @internal */
     void returnKeyPressed (int currentSelectedRow) override;
     /** @internal */
+    bool isRowFocusNavigationEnabled (int rowNumber) override;
+    /** @internal */
+    void focusNavigationRowChanged (int newFocusedRow) override;
+    /** @internal */
     void backgroundClicked (const MouseEvent&) override;
     /** @internal */
     void listWasScrolled() override;
@@ -358,6 +375,7 @@ private:
     bool autoSizeOptionsShown = true;
 
     void updateColumnComponents() const;
+    void updateFocusNavigationRowFromPointer (int rowNumber);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TableListBox)
 };

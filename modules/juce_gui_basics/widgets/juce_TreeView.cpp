@@ -335,6 +335,8 @@ public:
 
     void itemBeingDeleted (const TreeViewItem* item)
     {
+        owner.focusNavigationItemBeingDeleted (const_cast<TreeViewItem*> (item));
+
         const auto iter = std::find_if (itemComponents.begin(), itemComponents.end(),
                                         [item] (const auto& c)
                                         {
@@ -399,6 +401,8 @@ public:
             auto& treeItem = comp->getRepresentedItem();
             comp->setBounds ({ 0, treeItem.y, getWidth(), treeItem.itemHeight });
         }
+
+        owner.validateFocusNavigationItem();
     }
 
 private:
@@ -443,6 +447,7 @@ private:
         {
             auto& item = itemComponent->getRepresentedItem();
             auto pos = item.getItemPosition (false);
+            owner.updateFocusNavigationItemFromPointer (item);
 
             // (if the open/close buttons are hidden, we'll treat clicks to the left of the item
             // as selection clicks)
@@ -991,7 +996,10 @@ void TreeView::setRootItem (TreeViewItem* const newRootItem)
         }
 
         if (rootItem != nullptr)
+        {
+            setFocusNavigationItem (nullptr, false);
             rootItem->setOwnerView (nullptr);
+        }
 
         rootItem = newRootItem;
 
@@ -1005,6 +1013,7 @@ void TreeView::setRootItem (TreeViewItem* const newRootItem)
         }
 
         viewport->recalculatePositions (TreeViewport::Async::no, {});
+        validateFocusNavigationItem();
     }
 }
 
@@ -1091,6 +1100,11 @@ int TreeView::getNumSelectedItems (int maximumDepthToSearchTo) const noexcept
 TreeViewItem* TreeView::getSelectedItem (const int index) const noexcept
 {
     return rootItem != nullptr ? rootItem->getSelectedItemWithIndex (index) : nullptr;
+}
+
+TreeViewItem* TreeView::getFocusNavigationItem() const noexcept
+{
+    return focusNavigationItem;
 }
 
 int TreeView::getNumRowsInTree() const
@@ -1198,6 +1212,26 @@ void TreeView::resized()
 void TreeView::enablementChanged()
 {
     repaint();
+}
+
+void TreeView::lookAndFeelChanged()
+{
+    refreshFocusNavigationOutline();
+}
+
+void TreeView::focusGained (FocusChangeType)
+{
+    validateFocusNavigationItem();
+}
+
+void TreeView::focusLost (FocusChangeType)
+{
+    refreshFocusNavigationOutline();
+}
+
+void TreeView::focusOfChildComponentChanged (FocusChangeType)
+{
+    validateFocusNavigationItem();
 }
 
 void TreeView::moveSelectedRow (int delta)
@@ -1344,8 +1378,308 @@ void TreeView::moveByPages (int numPages)
     }
 }
 
+bool TreeView::isFocusNavigationItemEligible (const TreeViewItem* item) const
+{
+    return item != nullptr
+        && item->ownerView == this
+        && (item != rootItem || rootItemVisible)
+        && item->getDeepestOpenParentItem() == item
+        && item->isFocusNavigationEnabled();
+}
+
+TreeViewItem* TreeView::findEligibleFocusNavigationItem (int row, const int delta) const
+{
+    jassert (delta == -1 || delta == 1);
+
+    for (const auto numRows = getNumRowsInTree(); isPositiveAndBelow (row, numRows); row += delta)
+        if (auto* item = getItemOnRow (row); isFocusNavigationItemEligible (item))
+            return item;
+
+    return nullptr;
+}
+
+TreeViewItem* TreeView::findInitialFocusNavigationItem() const
+{
+    for (int i = getNumSelectedItems(); --i >= 0;)
+        if (auto* item = getSelectedItem (i); isFocusNavigationItemEligible (item))
+            return item;
+
+    return findEligibleFocusNavigationItem (0, 1);
+}
+
+void TreeView::setFocusNavigationItem (TreeViewItem* newItem, const bool reveal)
+{
+    if (! isFocusNavigationItemEligible (newItem))
+        newItem = nullptr;
+
+    auto* oldItem = std::exchange (focusNavigationItem, newItem);
+
+    if (reveal && focusNavigationItem != nullptr)
+        scrollToKeepItemVisible (focusNavigationItem);
+
+    if (oldItem != newItem)
+    {
+        if (oldItem != nullptr)
+            oldItem->focusNavigationChanged (false);
+
+        if (focusNavigationItem == newItem && newItem != nullptr)
+            newItem->focusNavigationChanged (true);
+    }
+
+    refreshFocusNavigationOutline();
+}
+
+void TreeView::updateFocusNavigationItemFromPointer (TreeViewItem& item)
+{
+    if (isFocusNavigationItemEligible (&item))
+        setFocusNavigationItem (&item, false);
+}
+
+void TreeView::validateFocusNavigationItem()
+{
+    if (focusNavigationItem != nullptr && ! isFocusNavigationItemEligible (focusNavigationItem))
+    {
+        auto* visibleAncestor = const_cast<TreeViewItem*> (focusNavigationItem->getDeepestOpenParentItem());
+
+        if (visibleAncestor == rootItem && ! rootItemVisible)
+            visibleAncestor = nullptr;
+
+        if (isFocusNavigationItemEligible (visibleAncestor))
+        {
+            setFocusNavigationItem (visibleAncestor, hasKeyboardFocus (true));
+        }
+        else
+        {
+            const auto oldRow = focusNavigationItem->getRowNumberInTree();
+            auto* replacement = findEligibleFocusNavigationItem (oldRow, 1);
+
+            if (replacement == nullptr)
+                replacement = findEligibleFocusNavigationItem (oldRow - 1, -1);
+
+            setFocusNavigationItem (replacement, hasKeyboardFocus (true));
+        }
+    }
+    else if (focusNavigationItem == nullptr
+             && hasKeyboardFocus (true)
+             && isDirectionalFocusNavigationEnabled())
+    {
+        setFocusNavigationItem (findInitialFocusNavigationItem(), true);
+    }
+    else
+    {
+        refreshFocusNavigationOutline();
+    }
+}
+
+void TreeView::refreshFocusNavigationOutline()
+{
+    focusNavigationOutline.reset();
+
+    if (! (isDirectionalFocusNavigationEnabled() && hasKeyboardFocus (false)))
+        return;
+
+    if (auto* itemComponent = getItemComponent (focusNavigationItem))
+    {
+        focusNavigationOutline = itemComponent->getLookAndFeel().createFocusOutlineForComponent (*itemComponent);
+
+        if (focusNavigationOutline != nullptr)
+            focusNavigationOutline->setOwner (itemComponent);
+    }
+}
+
+bool TreeView::moveFocusNavigationItem (const int delta)
+{
+    jassert (delta == -1 || delta == 1);
+
+    const auto startRow = focusNavigationItem != nullptr
+                        ? focusNavigationItem->getRowNumberInTree() + delta
+                        : (delta > 0 ? 0 : getNumRowsInTree() - 1);
+
+    auto* item = findEligibleFocusNavigationItem (startRow, delta);
+
+    if (item == nullptr)
+        return false;
+
+    setFocusNavigationItem (item, true);
+    return true;
+}
+
+bool TreeView::moveFocusNavigationItemByPages (const int numPages)
+{
+    jassert (numPages == -1 || numPages == 1);
+
+    if (! isFocusNavigationItemEligible (focusNavigationItem))
+    {
+        if (auto* item = findInitialFocusNavigationItem())
+        {
+            setFocusNavigationItem (item, true);
+            return true;
+        }
+
+        return false;
+    }
+
+    const auto delta = numPages < 0 ? -1 : 1;
+    const auto currentRow = focusNavigationItem->getRowNumberInTree();
+    const auto currentPosition = focusNavigationItem->getItemPosition (false);
+    const auto targetY = currentPosition.getY() + numPages * (getHeight() - currentPosition.getHeight());
+    TreeViewItem* candidate = nullptr;
+
+    for (auto row = currentRow + delta; isPositiveAndBelow (row, getNumRowsInTree()); row += delta)
+    {
+        auto* item = getItemOnRow (row);
+
+        if (! isFocusNavigationItemEligible (item))
+            continue;
+
+        candidate = item;
+
+        const auto itemY = item->getItemPosition (false).getY();
+
+        if ((delta < 0 && itemY <= targetY) || (delta > 0 && itemY >= targetY))
+            break;
+    }
+
+    if (candidate == nullptr)
+        return false;
+
+    setFocusNavigationItem (candidate, true);
+    return true;
+}
+
+bool TreeView::moveOutOfFocusNavigationItem()
+{
+    if (! isFocusNavigationItemEligible (focusNavigationItem))
+        return false;
+
+    if (focusNavigationItem->isOpen())
+    {
+        focusNavigationItem->setOpen (false);
+        return true;
+    }
+
+    for (auto* parent = focusNavigationItem->parentItem; parent != nullptr; parent = parent->parentItem)
+    {
+        if (parent == rootItem && ! rootItemVisible)
+            return false;
+
+        if (isFocusNavigationItemEligible (parent))
+        {
+            setFocusNavigationItem (parent, true);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool TreeView::moveIntoFocusNavigationItem()
+{
+    if (! isFocusNavigationItemEligible (focusNavigationItem)
+        || ! focusNavigationItem->mightContainSubItems())
+        return false;
+
+    if (! focusNavigationItem->isOpen())
+    {
+        focusNavigationItem->setOpen (true);
+        return true;
+    }
+
+    auto* item = findEligibleFocusNavigationItem (focusNavigationItem->getRowNumberInTree() + 1, 1);
+
+    for (auto* parent = item != nullptr ? item->parentItem : nullptr;
+         parent != nullptr;
+         parent = parent->parentItem)
+    {
+        if (parent == focusNavigationItem)
+        {
+            setFocusNavigationItem (item, true);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool TreeView::activateFocusNavigationItem()
+{
+    if (! isFocusNavigationItemEligible (focusNavigationItem))
+        return false;
+
+    const auto wasSelected = focusNavigationItem->isSelected();
+    focusNavigationItem->setSelected (true, true);
+
+    if (focusNavigationItem->mightContainSubItems())
+    {
+        focusNavigationItem->setOpen (! focusNavigationItem->isOpen());
+        return true;
+    }
+
+    return focusNavigationItem->canBeSelected()
+        && (! wasSelected || focusNavigationItem->isSelected());
+}
+
+void TreeView::focusNavigationItemBeingDeleted (TreeViewItem* item)
+{
+    for (auto* current = focusNavigationItem; current != nullptr; current = current->parentItem)
+    {
+        if (current == item)
+        {
+            focusNavigationItem = nullptr;
+            focusNavigationOutline.reset();
+            return;
+        }
+    }
+}
+
+void TreeView::focusNavigationSubtreeBeingRemoved (TreeViewItem* item)
+{
+    for (auto* current = focusNavigationItem; current != nullptr; current = current->parentItem)
+    {
+        if (current == item)
+        {
+            setFocusNavigationItem (nullptr, false);
+            return;
+        }
+    }
+}
+
 bool TreeView::keyPressed (const KeyPress& key)
 {
+    if (isDirectionalFocusNavigationEnabled())
+    {
+        if (key == KeyPress::upKey)       return moveFocusNavigationItem (-1);
+        if (key == KeyPress::downKey)     return moveFocusNavigationItem (1);
+        if (key == KeyPress::leftKey)     return moveOutOfFocusNavigationItem();
+        if (key == KeyPress::rightKey)    return moveIntoFocusNavigationItem();
+        if (key == KeyPress::returnKey || key == KeyPress::selectKey)
+            return activateFocusNavigationItem();
+        if (key == KeyPress::pageUpKey)   return moveFocusNavigationItemByPages (-1);
+        if (key == KeyPress::pageDownKey) return moveFocusNavigationItemByPages (1);
+
+        if (key == KeyPress::homeKey)
+        {
+            if (auto* item = findEligibleFocusNavigationItem (0, 1))
+            {
+                setFocusNavigationItem (item, true);
+                return true;
+            }
+
+            return false;
+        }
+
+        if (key == KeyPress::endKey)
+        {
+            if (auto* item = findEligibleFocusNavigationItem (getNumRowsInTree() - 1, -1))
+            {
+                setFocusNavigationItem (item, true);
+                return true;
+            }
+
+            return false;
+        }
+    }
+
     if (rootItem != nullptr)
     {
         if (key == KeyPress::upKey)       { moveSelectedRow (-1); return true; }
@@ -1360,6 +1694,29 @@ bool TreeView::keyPressed (const KeyPress& key)
     }
 
     return false;
+}
+
+FocusNavigationResult TreeView::handleFocusNavigation (const FocusNavigationDirection direction)
+{
+    if (! isDirectionalFocusNavigationEnabled())
+        return FocusNavigationResult::unhandled;
+
+    const auto handled = [&]
+    {
+        switch (direction)
+        {
+            case FocusNavigationDirection::up:    return moveFocusNavigationItem (-1);
+            case FocusNavigationDirection::down:  return moveFocusNavigationItem (1);
+            case FocusNavigationDirection::left:  return moveOutOfFocusNavigationItem();
+            case FocusNavigationDirection::right: return moveIntoFocusNavigationItem();
+        }
+
+        jassertfalse;
+        return false;
+    }();
+
+    return handled ? FocusNavigationResult::handled
+                   : FocusNavigationResult::unhandled;
 }
 
 void TreeView::updateVisibleItems (std::optional<Point<int>> viewportPosition)
@@ -1667,6 +2024,9 @@ bool TreeViewItem::removeSubItemFromList (int index, bool deleteItem)
 {
     if (auto* child = subItems[index])
     {
+        if (ownerView != nullptr)
+            ownerView->focusNavigationSubtreeBeingRemoved (child);
+
         child->parentItem = nullptr;
         subItems.remove (index, deleteItem);
 
@@ -1729,6 +2089,11 @@ void TreeViewItem::restoreToDefaultOpenness()
 bool TreeViewItem::isSelected() const noexcept
 {
     return selected;
+}
+
+bool TreeViewItem::hasFocusNavigation() const noexcept
+{
+    return ownerView != nullptr && ownerView->getFocusNavigationItem() == this;
 }
 
 void TreeViewItem::deselectAllRecursively (TreeViewItem* itemToIgnore)
@@ -2282,5 +2647,229 @@ void TreeViewItem::draw (Graphics& g, int width, bool isMouseOverButton)
         }
     }
 }
+
+#if JUCE_UNIT_TESTS
+
+struct TreeViewFocusNavigationTests final : UnitTest
+{
+    TreeViewFocusNavigationTests()
+        : UnitTest ("TreeView focus navigation", UnitTestCategories::gui)
+    {}
+
+    struct Item final : TreeViewItem
+    {
+        Item (String itemName, bool mayHaveChildren)
+            : name (std::move (itemName)), containsChildren (mayHaveChildren)
+        {}
+
+        bool mightContainSubItems() override                 { return containsChildren; }
+        String getUniqueName() const override                { return name; }
+        void paintItem (Graphics&, int, int) override        {}
+        bool canBeSelected() const override                  { return selectable; }
+        bool isFocusNavigationEnabled() const override       { return focusNavigationEnabled; }
+
+        void focusNavigationChanged (bool isNowFocused) override
+        {
+            if (isNowFocused)
+                ++numFocusGains;
+            else
+                ++numFocusLosses;
+        }
+
+        void itemSelectionChanged (bool isNowSelected) override
+        {
+            if (isNowSelected)
+                ++numSelections;
+        }
+
+        String name;
+        bool containsChildren = false;
+        bool selectable = true;
+        bool focusNavigationEnabled = true;
+        int numFocusGains = 0;
+        int numFocusLosses = 0;
+        int numSelections = 0;
+    };
+
+    void runTest() override
+    {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+
+        beginTest ("Navigation focus is observable, skips ineligible items, and does not select");
+        {
+            Item root ("Root", true);
+            auto* branch = new Item ("Branch", true);
+            auto* child = new Item ("Child", false);
+            auto* skipped = new Item ("Skipped", false);
+            auto* sibling = new Item ("Sibling", false);
+            skipped->focusNavigationEnabled = false;
+            branch->addSubItem (child);
+            root.addSubItem (branch);
+            root.addSubItem (skipped);
+            root.addSubItem (sibling);
+
+            TreeView tree;
+            tree.setBounds (0, 0, 240, 160);
+            tree.setRootItemVisible (false);
+            tree.setRootItem (&root);
+            tree.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (tree.keyPressed (KeyPress (KeyPress::homeKey)));
+            expect (tree.getFocusNavigationItem() == branch);
+            expect (branch->hasFocusNavigation());
+            expectEquals (branch->numFocusGains, 1);
+            expectEquals (tree.getNumSelectedItems(), 0);
+
+            expect (tree.handleFocusNavigation (FocusNavigationDirection::down)
+                    == FocusNavigationResult::handled);
+            expect (tree.getFocusNavigationItem() == sibling);
+            expectEquals (branch->numFocusLosses, 1);
+            expectEquals (sibling->numFocusGains, 1);
+            expectEquals (tree.getNumSelectedItems(), 0);
+
+            expect (tree.handleFocusNavigation (FocusNavigationDirection::down)
+                    == FocusNavigationResult::unhandled);
+        }
+
+        beginTest ("Left and Right collapse, parent, expand, and enter");
+        {
+            Item root ("Root", true);
+            auto* branch = new Item ("Branch", true);
+            auto* child = new Item ("Child", false);
+            branch->addSubItem (child);
+            root.addSubItem (branch);
+
+            TreeView tree;
+            tree.setBounds (0, 0, 240, 160);
+            tree.setRootItemVisible (false);
+            tree.setRootItem (&root);
+            tree.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (tree.keyPressed (KeyPress (KeyPress::homeKey)));
+            expect (! branch->isOpen());
+            expect (tree.handleFocusNavigation (FocusNavigationDirection::right)
+                    == FocusNavigationResult::handled);
+            expect (branch->isOpen());
+            expect (tree.getFocusNavigationItem() == branch);
+
+            expect (tree.handleFocusNavigation (FocusNavigationDirection::right)
+                    == FocusNavigationResult::handled);
+            expect (tree.getFocusNavigationItem() == child);
+            expect (tree.handleFocusNavigation (FocusNavigationDirection::left)
+                    == FocusNavigationResult::handled);
+            expect (tree.getFocusNavigationItem() == branch);
+            expect (tree.handleFocusNavigation (FocusNavigationDirection::left)
+                    == FocusNavigationResult::handled);
+            expect (! branch->isOpen());
+            expect (tree.handleFocusNavigation (FocusNavigationDirection::left)
+                    == FocusNavigationResult::unhandled);
+        }
+
+        beginTest ("A visible root participates in navigation");
+        {
+            Item root ("Root", true);
+            auto* child = new Item ("Child", false);
+            root.addSubItem (child);
+            root.setOpen (true);
+
+            TreeView tree;
+            tree.setRootItemVisible (true);
+            tree.setRootItem (&root);
+            tree.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (tree.keyPressed (KeyPress (KeyPress::homeKey)));
+            expect (tree.getFocusNavigationItem() == &root);
+            expect (tree.handleFocusNavigation (FocusNavigationDirection::right)
+                    == FocusNavigationResult::handled);
+            expect (tree.getFocusNavigationItem() == child);
+            expect (tree.handleFocusNavigation (FocusNavigationDirection::down)
+                    == FocusNavigationResult::unhandled);
+        }
+
+        beginTest ("Select applies sole selection before the item's activation");
+        {
+            Item root ("Root", true);
+            auto* first = new Item ("First", false);
+            auto* second = new Item ("Second", false);
+            auto* third = new Item ("Third", false);
+            root.addSubItem (first);
+            root.addSubItem (second);
+            root.addSubItem (third);
+
+            TreeView tree;
+            tree.setMultiSelectEnabled (true);
+            tree.setRootItemVisible (false);
+            tree.setRootItem (&root);
+            tree.setFocusNavigationMode (FocusNavigationMode::directional);
+            first->setSelected (true, false);
+            second->setSelected (true, false);
+
+            expect (tree.keyPressed (KeyPress (KeyPress::endKey)));
+            expect (tree.getFocusNavigationItem() == third);
+            expect (tree.keyPressed (KeyPress (KeyPress::selectKey)));
+            expectEquals (tree.getNumSelectedItems(), 1);
+            expect (third->isSelected());
+            expectEquals (third->numSelections, 1);
+        }
+
+        beginTest ("Dynamic eligibility moves to the next item and re-entry restores it");
+        {
+            Item root ("Root", true);
+            auto* first = new Item ("First", false);
+            auto* second = new Item ("Second", false);
+            root.addSubItem (first);
+            root.addSubItem (second);
+
+            TreeView tree;
+            tree.setRootItemVisible (false);
+            tree.setRootItem (&root);
+            tree.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (tree.keyPressed (KeyPress (KeyPress::homeKey)));
+            first->focusNavigationEnabled = false;
+            tree.focusGained (Component::focusChangedDirectly);
+            expect (tree.getFocusNavigationItem() == second);
+
+            tree.focusLost (Component::focusChangedDirectly);
+            tree.focusGained (Component::focusChangedDirectly);
+            expect (tree.getFocusNavigationItem() == second);
+        }
+
+        beginTest ("Removing the focused subtree clears its navigation state");
+        {
+            Item root ("Root", true);
+            root.addSubItem (new Item ("Child", false));
+
+            TreeView tree;
+            tree.setRootItemVisible (false);
+            tree.setRootItem (&root);
+            tree.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (tree.keyPressed (KeyPress (KeyPress::homeKey)));
+            expect (tree.getFocusNavigationItem() != nullptr);
+            root.removeSubItem (0);
+            expect (tree.getFocusNavigationItem() == nullptr);
+        }
+
+        beginTest ("Disabled directional navigation preserves selection-based arrows");
+        {
+            Item root ("Root", true);
+            root.addSubItem (new Item ("First", false));
+
+            TreeView tree;
+            tree.setRootItemVisible (false);
+            tree.setRootItem (&root);
+            tree.setFocusNavigationMode (FocusNavigationMode::disabled);
+
+            expect (tree.keyPressed (KeyPress (KeyPress::downKey)));
+            expectEquals (tree.getNumSelectedItems(), 1);
+            expect (tree.getFocusNavigationItem() == nullptr);
+        }
+    }
+};
+
+static TreeViewFocusNavigationTests treeViewFocusNavigationTests;
+
+#endif
 
 } // namespace juce

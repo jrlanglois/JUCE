@@ -45,6 +45,10 @@ class CodeTokeniser;
     This is designed to handle syntax highlighting and fast editing of very large
     files.
 
+    When directional focus navigation is enabled, Select enters an editing state.
+    Select or Return commits the edit, while Back, Menu, or Escape restores the
+    document to its state on entry and exits editing.
+
     @tags{GUI}
 */
 class JUCE_API  CodeEditorComponent   : public TextInputTarget,
@@ -382,6 +386,8 @@ public:
     /** @internal */
     bool keyPressed (const KeyPress&) override;
     /** @internal */
+    FocusNavigationResult handleFocusNavigation (FocusNavigationDirection) override;
+    /** @internal */
     void mouseDown (const MouseEvent&) override;
     /** @internal */
     void mouseDrag (const MouseEvent&) override;
@@ -422,12 +428,15 @@ private:
     int lineHeight = 0, linesOnScreen = 0, columnsOnScreen = 0;
     int scrollbarThickness = 16, columnToTryToMaintain = -1;
     bool readOnly = false, useSpacesForTabs = true, showLineNumbers = false, shouldFollowDocumentChanges = false;
+    bool directionalFocusEditingActive = false;
     double xOffset = 0;
     CodeDocument::Position caretPos, selectionStart, selectionEnd;
 
     std::unique_ptr<CaretComponent> caret;
     ScrollBar verticalScrollBar { true }, horizontalScrollBar { false };
     ApplicationCommandManager* appCommandManager = nullptr;
+    String directionalFocusEditingOriginalText;
+    std::unique_ptr<State> directionalFocusEditingState;
 
     class Pimpl;
     std::unique_ptr<Pimpl> pimpl;
@@ -467,6 +476,11 @@ private:
     //==============================================================================
     void insertText (const String&);
     virtual void updateCaretPosition();
+    void beginDirectionalFocusEditing();
+    bool endDirectionalFocusEditing (bool shouldCancel);
+    void resetDirectionalFocusEditing();
+    void recreateCaret();
+    void updateCaretVisibility();
     void updateScrollBars();
     void scrollToLineInternal (int line);
     void scrollToColumnInternal (double column);

@@ -240,6 +240,11 @@ TextEditor::TextEditor (const String& name, juce_wchar passwordChar)
     viewport->setScrollBarsShown (false, false);
 
     setWantsKeyboardFocus (true);
+
+   #if JUCE_TVOS
+    setHasFocusOutline (true);
+   #endif
+
     recreateCaret();
 }
 
@@ -322,6 +327,9 @@ void TextEditor::setReadOnly (bool shouldBeReadOnly)
 {
     if (readOnly != shouldBeReadOnly)
     {
+        if (shouldBeReadOnly)
+            resetDirectionalFocusEditing();
+
         readOnly = shouldBeReadOnly;
         enablementChanged();
         invalidateAccessibilityHandler();
@@ -343,7 +351,9 @@ bool TextEditor::isReadOnly() const noexcept
 
 bool TextEditor::isTextInputActive() const
 {
-    return ! isReadOnly() && (! clicksOutsideDismissVirtualKeyboard || globalMouseListener.lastMouseDownInEditor());
+    return ! isReadOnly()
+        && (! isDirectionalFocusNavigationEnabled() || directionalFocusEditingActive)
+        && (! clicksOutsideDismissVirtualKeyboard || globalMouseListener.lastMouseDownInEditor());
 }
 
 void TextEditor::setReturnKeyStartsNewLine (bool shouldStartNewLine)
@@ -428,6 +438,9 @@ void TextEditor::parentHierarchyChanged()
 
 void TextEditor::enablementChanged()
 {
+    if (! isEnabled())
+        resetDirectionalFocusEditing();
+
     recreateCaret();
     repaint();
 }
@@ -1559,6 +1572,7 @@ void TextEditor::performPopupMenuAction (const int menuItemID)
 //==============================================================================
 void TextEditor::mouseDown (const MouseEvent& e)
 {
+    beginDirectionalFocusEditing();
     beginDragAutoRepeat (100);
     newTransaction();
 
@@ -1889,8 +1903,95 @@ void TextEditor::setEscapeAndReturnKeysConsumed (bool shouldBeConsumed) noexcept
     consumeEscAndReturnKeys = shouldBeConsumed;
 }
 
+void TextEditor::beginDirectionalFocusEditing()
+{
+    if (! isDirectionalFocusNavigationEnabled()
+        || directionalFocusEditingActive
+        || isReadOnly())
+        return;
+
+    directionalFocusEditingOriginalText = getText();
+    directionalFocusEditingSelection = selection;
+    directionalFocusEditingActive = true;
+    recreateCaret();
+
+    if (auto* peer = getPeer())
+        peer->refreshTextInputTarget();
+
+    repaint();
+}
+
+bool TextEditor::endDirectionalFocusEditing (const bool shouldCancel)
+{
+    if (! directionalFocusEditingActive)
+        return false;
+
+    directionalFocusEditingActive = false;
+
+    if (shouldCancel)
+    {
+        setText (directionalFocusEditingOriginalText, true);
+        setHighlightedRegion (directionalFocusEditingSelection);
+    }
+
+    directionalFocusEditingOriginalText.clear();
+    directionalFocusEditingSelection = {};
+    recreateCaret();
+
+    if (auto* peer = getPeer())
+        peer->refreshTextInputTarget();
+
+    repaint();
+
+    if (shouldCancel)
+        escapePressed();
+    else
+        returnPressed();
+
+    return true;
+}
+
+void TextEditor::resetDirectionalFocusEditing()
+{
+    if (! directionalFocusEditingActive)
+        return;
+
+    directionalFocusEditingActive = false;
+    directionalFocusEditingOriginalText.clear();
+    directionalFocusEditingSelection = {};
+    recreateCaret();
+
+    if (auto* peer = getPeer())
+        peer->refreshTextInputTarget();
+
+    repaint();
+}
+
 bool TextEditor::keyPressed (const KeyPress& key)
 {
+    if (isDirectionalFocusNavigationEnabled())
+    {
+        if (key.isKeyCode (KeyPress::selectKey))
+        {
+            if (directionalFocusEditingActive)
+                return endDirectionalFocusEditing (false);
+
+            beginDirectionalFocusEditing();
+            return directionalFocusEditingActive;
+        }
+
+        if (directionalFocusEditingActive
+            && key.isKeyCode (KeyPress::returnKey))
+            return endDirectionalFocusEditing (false);
+
+        if (directionalFocusEditingActive
+            && (key.isKeyCode (KeyPress::escapeKey) || key.isKeyCode (KeyPress::menuKey)))
+            return endDirectionalFocusEditing (true);
+
+        if (! directionalFocusEditingActive)
+            return false;
+    }
+
     if (isReadOnly() && key != KeyPress ('c', ModifierKeys::commandModifier, 0)
                      && key != KeyPress ('a', ModifierKeys::commandModifier, 0))
         return false;
@@ -1934,8 +2035,18 @@ bool TextEditor::keyPressed (const KeyPress& key)
     return true;
 }
 
+FocusNavigationResult TextEditor::handleFocusNavigation (FocusNavigationDirection)
+{
+    return isDirectionalFocusNavigationEnabled() && directionalFocusEditingActive
+         ? FocusNavigationResult::blocked
+         : FocusNavigationResult::unhandled;
+}
+
 bool TextEditor::keyStateChanged (const bool isKeyDown)
 {
+    if (isDirectionalFocusNavigationEnabled() && ! directionalFocusEditingActive)
+        return false;
+
     if (! isKeyDown)
         return false;
 
@@ -1958,6 +2069,11 @@ void TextEditor::focusGained (FocusChangeType cause)
 {
     newTransaction();
 
+    if (cause == FocusChangeType::focusChangedByMouseClick)
+        beginDirectionalFocusEditing();
+
+    recreateCaret();
+
     if (selectAllTextWhenFocused)
     {
         moveCaretTo (0, false);
@@ -1976,6 +2092,7 @@ void TextEditor::focusGained (FocusChangeType cause)
 void TextEditor::focusLost (FocusChangeType)
 {
     newTransaction();
+    resetDirectionalFocusEditing();
 
     wasFocused = false;
     textHolder->stopTimer();
@@ -2432,5 +2549,125 @@ std::unique_ptr<AccessibilityHandler> TextEditor::createAccessibilityHandler()
 {
     return std::make_unique<EditorAccessibilityHandler> (*this);
 }
+
+#if JUCE_UNIT_TESTS
+
+struct TextEditorFocusNavigationTests final : UnitTest
+{
+    TextEditorFocusNavigationTests()
+        : UnitTest ("TextEditor focus navigation", UnitTestCategories::gui)
+    {}
+
+    void runTest() override
+    {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+
+        beginTest ("Text editors use the platform focus-outline default");
+        {
+            TextEditor editor;
+
+           #if JUCE_TVOS
+            expect (editor.hasFocusOutline());
+           #else
+            expect (! editor.hasFocusOutline());
+           #endif
+        }
+
+        beginTest ("Directional focus reaches an inactive editor before Select starts editing");
+        {
+            TextEditor editor;
+            editor.setText ("Text", false);
+            editor.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (! editor.isTextInputActive());
+            expect (! editor.keyPressed (KeyPress (KeyPress::rightKey)));
+            expect (editor.handleFocusNavigation (FocusNavigationDirection::right)
+                    == FocusNavigationResult::unhandled);
+
+            expect (editor.keyPressed (KeyPress (KeyPress::selectKey)));
+            expect (editor.isTextInputActive());
+            expect (editor.handleFocusNavigation (FocusNavigationDirection::right)
+                    == FocusNavigationResult::blocked);
+        }
+
+        beginTest ("Hardware arrows retain caret semantics while remote directions are blocked");
+        {
+            TextEditor editor;
+            editor.setText ("Text", false);
+            editor.setCaretPosition (1);
+            editor.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (editor.keyPressed (KeyPress (KeyPress::selectKey)));
+            expect (editor.keyPressed (KeyPress (KeyPress::leftKey)));
+            expectEquals (editor.getCaretPosition(), 0);
+            expect (editor.handleFocusNavigation (FocusNavigationDirection::left)
+                    == FocusNavigationResult::blocked);
+        }
+
+        beginTest ("Menu restores the entry text and selection");
+        {
+            TextEditor editor;
+            editor.setText ("Before", false);
+            editor.setHighlightedRegion ({ 1, 4 });
+            editor.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (editor.keyPressed (KeyPress (KeyPress::selectKey)));
+            expect (editor.keyPressed (KeyPress ('x', ModifierKeys(), 'x')));
+            expect (editor.getText() != "Before");
+            expect (editor.keyPressed (KeyPress (KeyPress::menuKey)));
+            expectEquals (editor.getText(), String ("Before"));
+            expect (editor.getHighlightedRegion() == Range<int> (1, 4));
+            expect (! editor.isTextInputActive());
+        }
+
+        beginTest ("Select and focus loss commit and leave editing");
+        {
+            TextEditor editor;
+            editor.setText ("Before", false);
+            editor.setCaretPosition (editor.getTotalNumChars());
+            editor.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (editor.keyPressed (KeyPress (KeyPress::selectKey)));
+            expect (editor.keyPressed (KeyPress ('!', ModifierKeys(), '!')));
+            expect (editor.keyPressed (KeyPress (KeyPress::selectKey)));
+            expectEquals (editor.getText(), String ("Before!"));
+            expect (! editor.isTextInputActive());
+
+            expect (editor.keyPressed (KeyPress (KeyPress::selectKey)));
+            expect (editor.keyPressed (KeyPress ('?', ModifierKeys(), '?')));
+            editor.focusLost (Component::focusChangedDirectly);
+            expectEquals (editor.getText(), String ("Before!?"));
+            expect (! editor.isTextInputActive());
+        }
+
+        beginTest ("Read-only editors do not enter directional editing");
+        {
+            TextEditor editor;
+            editor.setReadOnly (true);
+            editor.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (! editor.keyPressed (KeyPress (KeyPress::selectKey)));
+            expect (! editor.isTextInputActive());
+            expect (editor.handleFocusNavigation (FocusNavigationDirection::down)
+                    == FocusNavigationResult::unhandled);
+        }
+
+        beginTest ("Disabled directional navigation preserves direct text input");
+        {
+            TextEditor editor;
+            editor.setText ("Text", false);
+            editor.setCaretPosition (1);
+            editor.setFocusNavigationMode (FocusNavigationMode::disabled);
+
+            expect (editor.isTextInputActive());
+            expect (editor.keyPressed (KeyPress (KeyPress::leftKey)));
+            expectEquals (editor.getCaretPosition(), 0);
+        }
+    }
+};
+
+static TextEditorFocusNavigationTests textEditorFocusNavigationTests;
+
+#endif
 
 } // namespace juce

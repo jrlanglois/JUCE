@@ -53,11 +53,16 @@ MidiKeyboardComponent::MidiKeyboardComponent (MidiKeyboardState& stateToUse, Ori
     colourChanged();
     setWantsKeyboardFocus (true);
 
+   #if JUCE_TVOS
+    setHasFocusOutline (true);
+   #endif
+
     startTimerHz (20);
 }
 
 MidiKeyboardComponent::~MidiKeyboardComponent()
 {
+    releaseDirectionalNote();
     state.removeListener (this);
 }
 
@@ -76,6 +81,7 @@ void MidiKeyboardComponent::setMidiChannel (int midiChannelNumber)
     if (midiChannel != midiChannelNumber)
     {
         resetAnyKeysInUse();
+        releaseDirectionalNote();
         midiChannel = jlimit (1, 16, midiChannelNumber);
     }
 }
@@ -293,12 +299,111 @@ bool MidiKeyboardComponent::keyStateChanged (bool /*isKeyDown*/)
 
 bool MidiKeyboardComponent::keyPressed (const KeyPress& key)
 {
+    if (isDirectionalFocusNavigationEnabled()
+        && (key.isKeyCode (KeyPress::returnKey) || key.isKeyCode (KeyPress::selectKey)))
+    {
+        triggerDirectionalNote();
+        return true;
+    }
+
     return keyPresses.contains (key);
+}
+
+FocusNavigationResult MidiKeyboardComponent::handleFocusNavigation (FocusNavigationDirection direction)
+{
+    auto delta = 0;
+
+    switch (getOrientation())
+    {
+        case horizontalKeyboard:
+            if (direction == FocusNavigationDirection::left)       delta = -1;
+            else if (direction == FocusNavigationDirection::right) delta = 1;
+            break;
+
+        case verticalKeyboardFacingLeft:
+            if (direction == FocusNavigationDirection::up)         delta = -1;
+            else if (direction == FocusNavigationDirection::down)  delta = 1;
+            break;
+
+        case verticalKeyboardFacingRight:
+            if (direction == FocusNavigationDirection::up)         delta = 1;
+            else if (direction == FocusNavigationDirection::down)  delta = -1;
+            break;
+
+        default:
+            jassertfalse;
+            break;
+    }
+
+    if (delta == 0)
+        return FocusNavigationResult::unhandled;
+
+    const auto currentNote = jlimit (getRangeStart(), getRangeEnd(), directionalNote);
+    const auto nextNote = jlimit (getRangeStart(), getRangeEnd(), currentNote + delta);
+
+    if (nextNote == currentNote)
+        return FocusNavigationResult::unhandled;
+
+    setDirectionalNote (nextNote);
+    return FocusNavigationResult::handled;
+}
+
+void MidiKeyboardComponent::focusGained (FocusChangeType)
+{
+    setDirectionalNote (jlimit (getRangeStart(), getRangeEnd(), directionalNote));
 }
 
 void MidiKeyboardComponent::focusLost (FocusChangeType)
 {
     resetAnyKeysInUse();
+    releaseDirectionalNote();
+    repaintNote (directionalNote);
+}
+
+void MidiKeyboardComponent::setDirectionalNote (int midiNoteNumber)
+{
+    const auto nextNote = jlimit (getRangeStart(), getRangeEnd(), midiNoteNumber);
+
+    if (nextNote != directionalNote)
+    {
+        repaintNote (directionalNote);
+        directionalNote = nextNote;
+    }
+
+    if (! getLocalBounds().toFloat().intersects (getRectangleForKey (directionalNote)))
+        setLowestVisibleKey (directionalNote);
+
+    repaintNote (directionalNote);
+}
+
+void MidiKeyboardComponent::triggerDirectionalNote()
+{
+    releaseDirectionalNote();
+
+    directionalNoteDown = directionalNote;
+    directionalNoteDownChannel = midiChannel;
+    state.noteOn (directionalNoteDownChannel, directionalNoteDown, velocity);
+
+    Timer::callAfterDelay (200, [safeThis = SafePointer<MidiKeyboardComponent> (this),
+                                 note = directionalNoteDown,
+                                 channel = directionalNoteDownChannel]
+    {
+        if (safeThis != nullptr
+            && safeThis->directionalNoteDown == note
+            && safeThis->directionalNoteDownChannel == channel)
+        {
+            safeThis->releaseDirectionalNote();
+        }
+    });
+}
+
+void MidiKeyboardComponent::releaseDirectionalNote()
+{
+    if (directionalNoteDown < 0)
+        return;
+
+    state.noteOff (directionalNoteDownChannel, directionalNoteDown, 0.0f);
+    directionalNoteDown = -1;
 }
 
 //==============================================================================
@@ -467,13 +572,18 @@ void MidiKeyboardComponent::colourChanged()
 void MidiKeyboardComponent::drawWhiteKey (int midiNoteNumber, Graphics& g, Rectangle<float> area)
 {
     drawWhiteNote (midiNoteNumber, g, area, state.isNoteOnForChannels (midiInChannelMask, midiNoteNumber),
-                   mouseOverNotes.contains (midiNoteNumber), findColour (keySeparatorLineColourId), findColour (textLabelColourId));
+                   mouseOverNotes.contains (midiNoteNumber)
+                       || (hasKeyboardFocus (false) && midiNoteNumber == directionalNote),
+                   findColour (keySeparatorLineColourId),
+                   findColour (textLabelColourId));
 }
 
 void MidiKeyboardComponent::drawBlackKey (int midiNoteNumber, Graphics& g, Rectangle<float> area)
 {
     drawBlackNote (midiNoteNumber, g, area, state.isNoteOnForChannels (midiInChannelMask, midiNoteNumber),
-                   mouseOverNotes.contains (midiNoteNumber), findColour (blackNoteColourId));
+                   mouseOverNotes.contains (midiNoteNumber)
+                       || (hasKeyboardFocus (false) && midiNoteNumber == directionalNote),
+                   findColour (blackNoteColourId));
 }
 
 //==============================================================================
@@ -491,5 +601,47 @@ void MidiKeyboardComponent::handleNoteOff (MidiKeyboardState*, int /*midiChannel
 bool MidiKeyboardComponent::mouseDownOnKey    ([[maybe_unused]] int midiNoteNumber, [[maybe_unused]] const MouseEvent& e)  { return true; }
 bool MidiKeyboardComponent::mouseDraggedToKey ([[maybe_unused]] int midiNoteNumber, [[maybe_unused]] const MouseEvent& e)  { return true; }
 void MidiKeyboardComponent::mouseUpOnKey      ([[maybe_unused]] int midiNoteNumber, [[maybe_unused]] const MouseEvent& e)  {}
+
+#if JUCE_UNIT_TESTS
+
+struct MidiKeyboardComponentFocusNavigationTests final : UnitTest
+{
+    MidiKeyboardComponentFocusNavigationTests()
+        : UnitTest ("MidiKeyboardComponent focus navigation", UnitTestCategories::audio)
+    {}
+
+    void runTest() override
+    {
+        MidiKeyboardState state;
+        MidiKeyboardComponent keyboard (state, KeyboardComponentBase::horizontalKeyboard);
+        keyboard.setAvailableRange (60, 61);
+
+        beginTest ("Select and Return preserve existing behaviour when directional navigation is disabled");
+        keyboard.setFocusNavigationMode (FocusNavigationMode::disabled);
+        expect (! keyboard.keyPressed (KeyPress (KeyPress::selectKey)));
+        expect (! keyboard.keyPressed (KeyPress (KeyPress::returnKey)));
+        expect (! state.isNoteOn (1, 60));
+
+        keyboard.setFocusNavigationMode (FocusNavigationMode::directional);
+
+        beginTest ("Directions along the keyboard move between notes without wrapping");
+        expect (keyboard.handleFocusNavigation (FocusNavigationDirection::left)
+                == FocusNavigationResult::unhandled);
+        expect (keyboard.handleFocusNavigation (FocusNavigationDirection::right)
+                == FocusNavigationResult::handled);
+        expect (keyboard.handleFocusNavigation (FocusNavigationDirection::right)
+                == FocusNavigationResult::unhandled);
+        expect (keyboard.handleFocusNavigation (FocusNavigationDirection::up)
+                == FocusNavigationResult::unhandled);
+
+        beginTest ("Select plays the focused note");
+        expect (keyboard.keyPressed (KeyPress (KeyPress::selectKey)));
+        expect (state.isNoteOn (1, 61));
+    }
+};
+
+static MidiKeyboardComponentFocusNavigationTests midiKeyboardComponentFocusNavigationTests;
+
+#endif
 
 } // namespace juce

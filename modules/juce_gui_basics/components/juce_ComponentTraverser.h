@@ -72,6 +72,18 @@ public:
     */
     virtual Component* getPreviousComponent (Component* current) = 0;
 
+    /** Returns the component that should be used when moving from the specified
+        component in a cardinal direction.
+
+        The default implementation maps left and up to getPreviousComponent(), and
+        right and down to getNextComponent(). Custom traversers can override this
+        method to provide spatial or application-specific navigation.
+
+        This must return nullptr if there is no component in the requested direction.
+    */
+    virtual Component* getComponentInDirection (Component* current,
+                                                FocusNavigationDirection direction);
+
     /** Returns all of the traversable components within the given parent component in
         traversal order.
     */

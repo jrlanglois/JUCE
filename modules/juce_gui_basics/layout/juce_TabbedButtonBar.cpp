@@ -38,7 +38,11 @@ namespace juce
 TabBarButton::TabBarButton (const String& name, TabbedButtonBar& bar)
     : Button (name), owner (bar)
 {
+   #if JUCE_TVOS
+    setWantsKeyboardFocus (true);
+   #else
     setWantsKeyboardFocus (false);
+   #endif
 }
 
 TabBarButton::~TabBarButton() {}
@@ -179,6 +183,18 @@ void TabBarButton::resized()
     }
 }
 
+void TabBarButton::focusGained (FocusChangeType cause)
+{
+    Button::focusGained (cause);
+    owner.tabButtonFocusChanged (*this, true);
+}
+
+void TabBarButton::focusLost (FocusChangeType cause)
+{
+    Button::focusLost (cause);
+    owner.tabButtonFocusChanged (*this, false);
+}
+
 //==============================================================================
 class TabbedButtonBar::BehindFrontTabComp final : public Component
 {
@@ -203,11 +219,155 @@ public:
     JUCE_DECLARE_NON_COPYABLE (BehindFrontTabComp)
 };
 
+class TabbedButtonBar::FocusSelectionController final : private Timer,
+                                                        private FocusChangeListener,
+                                                        private ComponentListener
+{
+public:
+    explicit FocusSelectionController (TabbedButtonBar& ownerIn)
+        : owner (ownerIn)
+    {
+        Desktop::getInstance().addFocusChangeListener (this);
+        owner.addComponentListener (this);
+    }
+
+    ~FocusSelectionController() override
+    {
+        cancel();
+        Desktop::getInstance().removeFocusChangeListener (this);
+        owner.removeComponentListener (this);
+
+        for (auto* tab : owner.tabs)
+            tab->button->removeComponentListener (this);
+    }
+
+    void watch (TabBarButton& button)
+    {
+        button.addComponentListener (this);
+    }
+
+    void cancel()
+    {
+        stopTimer();
+        pendingSelection = nullptr;
+    }
+
+    void applyCurrentFocus()
+    {
+        applyFocus (Component::getCurrentlyFocusedComponent(), true);
+    }
+
+    void applyFocus (Component* focusedComponent, bool force = false)
+    {
+        if (! force && lastHandledFocus.get() == focusedComponent)
+            return;
+
+        lastHandledFocus = focusedComponent;
+        cancel();
+
+        auto* button = findTabButton (focusedComponent);
+
+        if (button == nullptr || ! button->isEnabled())
+            return;
+
+        switch (owner.focusSelectionMode)
+        {
+            case FocusSelectionMode::delayed:
+                if (owner.focusSelectionDelay > 0)
+                {
+                    pendingSelection = button;
+                    startTimer (owner.focusSelectionDelay);
+                    return;
+                }
+
+                select (*button);
+                return;
+
+            case FocusSelectionMode::immediate:
+                select (*button);
+                return;
+
+            case FocusSelectionMode::selectOnly:
+                return;
+        }
+
+        jassertfalse;
+    }
+
+private:
+    void globalFocusChanged (Component* focusedComponent) override
+    {
+        applyFocus (focusedComponent);
+    }
+
+    void timerCallback() override
+    {
+        const auto pending = pendingSelection;
+        cancel();
+        auto* button = findTabButton (pending.get());
+
+        if (button != nullptr
+            && button->isShowing()
+            && button->isEnabled()
+            && button->hasKeyboardFocus (false)
+            && owner.focusSelectionMode == FocusSelectionMode::delayed)
+        {
+            select (*button);
+        }
+    }
+
+    void select (TabBarButton& button)
+    {
+        if (const auto index = owner.indexOfTabButton (&button); index >= 0)
+            owner.setCurrentTabIndex (index);
+    }
+
+    void componentVisibilityChanged (Component& component) override
+    {
+        cancelIfPendingSelectionWasInvalidated (component);
+    }
+
+    void componentEnablementChanged (Component& component) override
+    {
+        cancelIfPendingSelectionWasInvalidated (component);
+    }
+
+    void componentBeingDeleted (Component& component) override
+    {
+        cancelIfPendingSelectionWasInvalidated (component);
+    }
+
+    void cancelIfPendingSelectionWasInvalidated (Component& component)
+    {
+        if (lastHandledFocus.get() == &component)
+            lastHandledFocus = nullptr;
+
+        if (&component == &owner || pendingSelection.get() == &component)
+            cancel();
+    }
+
+    TabBarButton* findTabButton (const Component* component) const
+    {
+        for (auto* tab : owner.tabs)
+            if (tab->button.get() == component)
+                return tab->button.get();
+
+        return nullptr;
+    }
+
+    TabbedButtonBar& owner;
+    WeakReference<Component> pendingSelection;
+    WeakReference<Component> lastHandledFocus;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FocusSelectionController)
+};
+
 
 //==============================================================================
 TabbedButtonBar::TabbedButtonBar (Orientation orientationToUse)
     : orientation (orientationToUse)
 {
+    focusSelectionController = std::make_unique<FocusSelectionController> (*this);
     setInterceptsMouseClicks (false, true);
     behindFrontTab.reset (new BehindFrontTabComp (*this));
     addAndMakeVisible (behindFrontTab.get());
@@ -216,6 +376,7 @@ TabbedButtonBar::TabbedButtonBar (Orientation orientationToUse)
 
 TabbedButtonBar::~TabbedButtonBar()
 {
+    focusSelectionController.reset();
     tabs.clear();
     extraTabsButton.reset();
 }
@@ -229,6 +390,35 @@ void TabbedButtonBar::setOrientation (const Orientation newOrientation)
         child->resized();
 
     resized();
+}
+
+void TabbedButtonBar::setFocusSelectionMode (FocusSelectionMode newMode)
+{
+    if (focusSelectionMode != newMode)
+    {
+        focusSelectionMode = newMode;
+        focusSelectionController->applyCurrentFocus();
+    }
+}
+
+void TabbedButtonBar::setFocusSelectionDelay (int delayMilliseconds)
+{
+    jassert (delayMilliseconds >= 0);
+    delayMilliseconds = jmax (0, delayMilliseconds);
+
+    if (focusSelectionDelay != delayMilliseconds)
+    {
+        focusSelectionDelay = delayMilliseconds;
+
+        if (focusSelectionMode == FocusSelectionMode::delayed)
+            focusSelectionController->applyCurrentFocus();
+    }
+}
+
+void TabbedButtonBar::tabButtonFocusChanged (TabBarButton& button, bool isNowFocused)
+{
+    if (focusSelectionController != nullptr)
+        focusSelectionController->applyFocus (isNowFocused ? &button : nullptr);
 }
 
 TabBarButton* TabbedButtonBar::createTabButton (const String& name, const int /*index*/)
@@ -271,6 +461,7 @@ void TabbedButtonBar::addTab (const String& tabName,
 
         tabs.insert (insertIndex, newTab);
         currentTabIndex = tabs.indexOf (currentTab);
+        focusSelectionController->watch (*newTab->button);
         addAndMakeVisible (newTab->button.get(), insertIndex);
 
         resized();
@@ -344,6 +535,9 @@ StringArray TabbedButtonBar::getTabNames() const
 
 void TabbedButtonBar::setCurrentTabIndex (int newIndex, bool shouldSendChangeMessage)
 {
+    if (focusSelectionController != nullptr)
+        focusSelectionController->cancel();
+
     if (currentTabIndex != newIndex)
     {
         if (! isPositiveAndBelow (newIndex, tabs.size()))
@@ -588,5 +782,74 @@ std::unique_ptr<AccessibilityHandler> TabbedButtonBar::createAccessibilityHandle
 {
     return std::make_unique<AccessibilityHandler> (*this, AccessibilityRole::group);
 }
+
+#if JUCE_UNIT_TESTS
+
+struct TabbedButtonBarFocusTests final : UnitTest
+{
+    TabbedButtonBarFocusTests()
+        : UnitTest ("TabbedButtonBar focus navigation", UnitTestCategories::gui)
+    {}
+
+    void runTest() override
+    {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+        TabbedButtonBar bar (TabbedButtonBar::TabsAtTop);
+        bar.setBounds (0, 0, 400, 40);
+        bar.addTab ("First", Colours::red, -1);
+        bar.addTab ("Second", Colours::blue, -1);
+
+        beginTest ("The platform defaults preserve existing non-tvOS behaviour");
+        expectEquals (bar.getFocusSelectionDelay(), 500);
+
+       #if JUCE_TVOS
+        expect (bar.getFocusSelectionMode() == TabbedButtonBar::FocusSelectionMode::delayed);
+        expect (bar.getTabButton (0)->getWantsKeyboardFocus());
+       #else
+        expect (bar.getFocusSelectionMode() == TabbedButtonBar::FocusSelectionMode::selectOnly);
+        expect (! bar.getTabButton (0)->getWantsKeyboardFocus());
+       #endif
+
+        beginTest ("The focus-selection policy and delay are configurable");
+        bar.setFocusSelectionMode (TabbedButtonBar::FocusSelectionMode::immediate);
+        bar.setFocusSelectionDelay (275);
+        expect (bar.getFocusSelectionMode() == TabbedButtonBar::FocusSelectionMode::immediate);
+        expectEquals (bar.getFocusSelectionDelay(), 275);
+
+        beginTest ("Immediate and zero-delay policies select synchronously");
+        auto* secondTab = bar.getTabButton (1);
+        bar.setCurrentTabIndex (0);
+        secondTab->focusGained (Component::focusChangedDirectly);
+        expectEquals (bar.getCurrentTabIndex(), 1);
+        secondTab->focusLost (Component::focusChangedDirectly);
+
+        bar.setCurrentTabIndex (0);
+        bar.setFocusSelectionDelay (0);
+        bar.setFocusSelectionMode (TabbedButtonBar::FocusSelectionMode::delayed);
+        secondTab->focusGained (Component::focusChangedDirectly);
+        expectEquals (bar.getCurrentTabIndex(), 1);
+        secondTab->focusLost (Component::focusChangedDirectly);
+
+        beginTest ("Select-only focus does not change the current tab");
+        bar.setCurrentTabIndex (0);
+        bar.setFocusSelectionMode (TabbedButtonBar::FocusSelectionMode::selectOnly);
+        secondTab->focusGained (Component::focusChangedDirectly);
+        expectEquals (bar.getCurrentTabIndex(), 0);
+        secondTab->focusLost (Component::focusChangedDirectly);
+
+        beginTest ("Tab buttons offer directional navigation to the dispatcher");
+        expect (bar.getTabButton (0)->handleFocusNavigation (FocusNavigationDirection::right)
+                == FocusNavigationResult::unhandled);
+
+        beginTest ("Activating a tab selects it immediately");
+        bar.setCurrentTabIndex (0);
+        secondTab->clicked (ModifierKeys {});
+        expectEquals (bar.getCurrentTabIndex(), 1);
+    }
+};
+
+static TabbedButtonBarFocusTests tabbedButtonBarFocusTests;
+
+#endif
 
 } // namespace juce

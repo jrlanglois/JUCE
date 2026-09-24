@@ -44,6 +44,10 @@ namespace juce
     notes by calling the noteOn() and noteOff() methods of its MPEInstrument object. Moving
     the mouse will update the pitchbend and timbre dimensions of the MPEInstrument.
 
+    When directional focus navigation is enabled, directions parallel to the keyboard's
+    orientation move a highlighted note cursor, and Return or Select plays that note.
+    On tvOS this component requests the standard focus outline by default.
+
     @see MPEInstrument
 
     @tags{Audio}
@@ -104,6 +108,12 @@ public:
     /** @internal */
     void mouseUp (const MouseEvent&) override;
     /** @internal */
+    bool keyPressed (const KeyPress&) override;
+    /** @internal */
+    FocusNavigationResult handleFocusNavigation (FocusNavigationDirection) override;
+    /** @internal */
+    void focusGained (FocusChangeType) override;
+    /** @internal */
     void focusLost (FocusChangeType) override;
     /** @internal */
     void colourChanged() override;
@@ -116,6 +126,12 @@ private:
     void drawKeyboardBackground (Graphics& g, Rectangle<float> area) override;
     void drawWhiteKey (int midiNoteNumber, Graphics& g, Rectangle<float> area) override;
     void drawBlackKey (int midiNoteNumber, Graphics& g, Rectangle<float> area) override;
+    void drawDirectionalFocus (int midiNoteNumber, Graphics& g, Rectangle<float> area);
+
+    void repaintNote (int midiNoteNumber);
+    void setDirectionalNote (int midiNoteNumber);
+    void triggerDirectionalNote();
+    void releaseDirectionalNote();
 
     void updateNoteData (MPENote&);
 
@@ -154,6 +170,9 @@ private:
     float velocity = 0.7f, pressure = 1.0f, lift = 0.0f;
     bool useMouseSourcePressureForStrike = false;
     int perNotePitchbendRange = 48;
+    int directionalNote = 60;
+    int directionalNoteDown = -1;
+    int directionalNoteDownChannel = 1;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MPEKeyboardComponent)

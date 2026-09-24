@@ -47,12 +47,16 @@ namespace juce
     A subclass of the viewport can be created which will receive calls to its
     visibleAreaChanged() method when the subcomponent changes position or size.
 
+    In a directional focus-navigation tree, the viewport automatically scrolls
+    to reveal a descendant that receives keyboard focus.
+
 
     @tags{GUI}
 */
 class JUCE_API  Viewport  : public Component,
                             private ComponentListener,
-                            private ScrollBar::Listener
+                            private ScrollBar::Listener,
+                            private FocusChangeListener
 {
 public:
     //==============================================================================
@@ -377,6 +381,7 @@ private:
 
     void updateVisibleArea();
     void deleteOrRemoveContentComp();
+    void globalFocusChanged (Component*) override;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Viewport)
 };

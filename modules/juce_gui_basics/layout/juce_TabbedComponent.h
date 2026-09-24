@@ -207,6 +207,8 @@ public:
     /** @internal */
     void lookAndFeelChanged() override;
     /** @internal */
+    FocusNavigationResult handleFocusNavigation (FocusNavigationDirection) override;
+    /** @internal */
     std::unique_ptr<AccessibilityHandler> createAccessibilityHandler() override;
 
 protected:

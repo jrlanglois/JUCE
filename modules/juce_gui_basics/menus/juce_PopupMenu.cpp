@@ -378,6 +378,11 @@ struct MenuWindow final : public Component, private AsyncUpdater
         setAlwaysOnTop (true);
         setFocusContainerType (FocusContainerType::focusContainer);
 
+        if (auto* modeSource = parent != nullptr ? parent : options.getTargetComponent())
+            setFocusNavigationMode (modeSource->isDirectionalFocusNavigationEnabled()
+                                        ? FocusNavigationMode::directional
+                                        : FocusNavigationMode::disabled);
+
         setLookAndFeel (findLookAndFeel (menu, parentWindow));
 
         auto& lf = getLookAndFeel();
@@ -693,13 +698,15 @@ struct MenuWindow final : public Component, private AsyncUpdater
         if (currentChild != nullptr && currentChild->customComponentKeyPressed (key))
             return true;
 
+        const auto isDirectionalNavigation = isDirectionalFocusNavigationEnabled();
+
         if (key.isKeyCode (KeyPress::downKey))
         {
-            selectNextItem (MenuSelectionDirection::forwards);
+            selectNextItem (MenuSelectionDirection::forwards, ! isDirectionalNavigation);
         }
         else if (key.isKeyCode (KeyPress::upKey))
         {
-            selectNextItem (MenuSelectionDirection::backwards);
+            selectNextItem (MenuSelectionDirection::backwards, ! isDirectionalNavigation);
         }
         else if (key.isKeyCode (KeyPress::leftKey))
         {
@@ -715,7 +722,7 @@ struct MenuWindow final : public Component, private AsyncUpdater
 
                 disableMouseMovesOnMenuAndAncestors();
             }
-            else if (componentAttachedTo != nullptr)
+            else if (! isDirectionalNavigation && componentAttachedTo != nullptr)
             {
                 componentAttachedTo->keyPressed (key);
             }
@@ -729,7 +736,7 @@ struct MenuWindow final : public Component, private AsyncUpdater
                 if (isSubMenuVisible())
                     activeSubMenu->selectNextItem (MenuSelectionDirection::current);
             }
-            else if (componentAttachedTo != nullptr)
+            else if (! isDirectionalNavigation && componentAttachedTo != nullptr)
             {
                 componentAttachedTo->keyPressed (key);
             }
@@ -738,7 +745,7 @@ struct MenuWindow final : public Component, private AsyncUpdater
         {
             triggerCurrentlyHighlightedItem();
         }
-        else if (key.isKeyCode (KeyPress::escapeKey))
+        else if (key.isKeyCode (KeyPress::escapeKey) || key.isKeyCode (KeyPress::menuKey))
         {
             dismissMenu (nullptr);
         }
@@ -1372,7 +1379,7 @@ struct MenuWindow final : public Component, private AsyncUpdater
         current
     };
 
-    void selectNextItem (MenuSelectionDirection direction)
+    bool selectNextItem (MenuSelectionDirection direction, bool shouldWrap = true)
     {
         disableMouseMovesOnMenuAndAncestors();
 
@@ -1394,18 +1401,26 @@ struct MenuWindow final : public Component, private AsyncUpdater
             if (preIncrement)
                 start += (direction == MenuSelectionDirection::backwards ? -1 : 1);
 
-            if (auto* mic = items.getUnchecked ((start + items.size()) % items.size()))
+            if (! shouldWrap && ! isPositiveAndBelow (start, items.size()))
+                return false;
+
+            const auto index = shouldWrap ? (start + items.size()) % items.size()
+                                          : start;
+
+            if (auto* mic = items.getUnchecked (index))
             {
                 if (canBeHighlightedByKeyboard (mic->item) || hasActiveSubMenu (mic->item))
                 {
                     setCurrentlyHighlightedChild (mic);
-                    return;
+                    return true;
                 }
             }
 
             if (! preIncrement)
                 preIncrement = true;
         }
+
+        return false;
     }
 
     void disableMouseMovesOnMenuAndAncestors()
@@ -1775,7 +1790,100 @@ struct NormalComponentWrapper final : public CustomComponent
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NormalComponentWrapper)
 };
 
+#if JUCE_UNIT_TESTS
+
+struct MenuWindowFocusNavigationTests final : UnitTest
+{
+    MenuWindowFocusNavigationTests()
+        : UnitTest ("PopupMenu focus navigation", UnitTestCategories::gui)
+    {}
+
+    struct KeyRecordingComponent final : Component
+    {
+        bool keyPressed (const KeyPress&) override
+        {
+            ++numKeyPresses;
+            return true;
+        }
+
+        int numKeyPresses = 0;
+    };
+
+    void runTest() override
+    {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+        Component parent;
+        KeyRecordingComponent target;
+        parent.setBounds (0, 0, 400, 300);
+        parent.addAndMakeVisible (target);
+        target.setBounds (20, 20, 100, 30);
+
+        PopupMenu menu;
+        menu.addItem (1, "First");
+        menu.addItem (2, "Second");
+        ApplicationCommandManager* manager = nullptr;
+        const auto makeOptions = [&]
+        {
+            return Options().withParentComponent (&parent)
+                            .withTargetComponent (&target)
+                            .withTargetScreenArea (target.getScreenBounds());
+        };
+
+        beginTest ("Directional menus own navigation and do not wrap at an edge");
+        {
+            target.setFocusNavigationMode (FocusNavigationMode::directional);
+            MenuWindow window (menu, nullptr, makeOptions(), true, &manager);
+            expect (window.isDirectionalFocusNavigationEnabled());
+
+            expect (window.keyPressed (KeyPress (KeyPress::downKey)));
+            expect (window.currentChild != nullptr);
+            expectEquals (window.currentChild != nullptr ? window.currentChild->item.itemID : 0, 1);
+            expect (window.keyPressed (KeyPress (KeyPress::downKey)));
+            expectEquals (window.currentChild != nullptr ? window.currentChild->item.itemID : 0, 2);
+            expect (window.keyPressed (KeyPress (KeyPress::downKey)));
+            expectEquals (window.currentChild != nullptr ? window.currentChild->item.itemID : 0, 2);
+
+            expect (window.keyPressed (KeyPress (KeyPress::upKey)));
+            expectEquals (window.currentChild != nullptr ? window.currentChild->item.itemID : 0, 1);
+            expect (window.keyPressed (KeyPress (KeyPress::upKey)));
+            expectEquals (window.currentChild != nullptr ? window.currentChild->item.itemID : 0, 1);
+            expect (window.keyPressed (KeyPress (KeyPress::leftKey)));
+            expectEquals (target.numKeyPresses, 0);
+        }
+
+        beginTest ("Disabled directional navigation preserves wrapping and key forwarding");
+        {
+            target.setFocusNavigationMode (FocusNavigationMode::disabled);
+            MenuWindow window (menu, nullptr, makeOptions(), true, &manager);
+            expect (! window.isDirectionalFocusNavigationEnabled());
+
+            expect (window.keyPressed (KeyPress (KeyPress::downKey)));
+            expect (window.keyPressed (KeyPress (KeyPress::downKey)));
+            expect (window.keyPressed (KeyPress (KeyPress::downKey)));
+            expectEquals (window.currentChild != nullptr ? window.currentChild->item.itemID : 0, 1);
+            expect (window.keyPressed (KeyPress (KeyPress::leftKey)));
+            expectEquals (target.numKeyPresses, 1);
+        }
+
+        beginTest ("Menu is consumed as a popup dismissal");
+        {
+            target.setFocusNavigationMode (FocusNavigationMode::directional);
+            MenuWindow window (menu, nullptr, makeOptions(), true, &manager);
+            expect (window.keyPressed (KeyPress (KeyPress::menuKey)));
+        }
+    }
 };
+
+static MenuWindowFocusNavigationTests menuWindowFocusNavigationTests;
+
+#endif
+
+};
+
+#if JUCE_UNIT_TESTS
+PopupMenu::HelperClasses::MenuWindowFocusNavigationTests
+    PopupMenu::HelperClasses::menuWindowFocusNavigationTests;
+#endif
 
 //==============================================================================
 PopupMenu::PopupMenu (const PopupMenu& other)

@@ -470,6 +470,13 @@ public:
                                                                                       .withMousePosition());
     }
 
+    void grabFocusNavigationTarget()
+    {
+        if (auto traverser = createKeyboardFocusTraverser())
+            if (auto* target = traverser->getDefaultComponent (this))
+                target->grabKeyboardFocus();
+    }
+
 private:
     AudioProcessorEditor& editor;
     AudioProcessorParameter& parameter;
@@ -544,13 +551,39 @@ struct ParamControlItem final : public TreeViewItem
 
     std::unique_ptr<Component> createItemComponent() override
     {
-        return std::make_unique<ParameterDisplayComponent> (editor, param);
+        auto result = std::make_unique<ParameterDisplayComponent> (editor, param);
+        component = result.get();
+        return result;
+    }
+
+    void focusNavigationChanged (bool isNowFocused) override
+    {
+        if (isNowFocused)
+            grabFocusNavigationTarget();
+    }
+
+    void grabFocusNavigationTarget()
+    {
+        if (auto* target = component.getComponent())
+            target->grabFocusNavigationTarget();
     }
 
     int getItemHeight() const override { return 40; }
 
     AudioProcessorEditor& editor;
     AudioProcessorParameter& param;
+    Component::SafePointer<ParameterDisplayComponent> component;
+};
+
+class ParameterTreeView final : public TreeView
+{
+    void focusGained (FocusChangeType cause) override
+    {
+        TreeView::focusGained (cause);
+
+        if (auto* item = dynamic_cast<ParamControlItem*> (getFocusNavigationItem()))
+            item->grabFocusNavigationTarget();
+    }
 };
 
 struct ParameterGroupItem final : public TreeViewItem
@@ -612,7 +645,7 @@ struct GenericAudioProcessorEditor::Pimpl
 
     LegacyAudioParametersWrapper legacyParameters;
     ParameterGroupItem groupItem;
-    TreeView view;
+    ParameterTreeView view;
 };
 
 //==============================================================================
@@ -640,5 +673,85 @@ void GenericAudioProcessorEditor::resized()
 {
     pimpl->view.setBounds (getLocalBounds());
 }
+
+#if JUCE_UNIT_TESTS
+
+struct GenericAudioProcessorEditorFocusNavigationTests final : UnitTest
+{
+    GenericAudioProcessorEditorFocusNavigationTests()
+        : UnitTest ("GenericAudioProcessorEditor focus navigation", UnitTestCategories::gui)
+    {}
+
+    struct TestProcessor final : AudioProcessor
+    {
+        TestProcessor()
+        {
+            addParameter (new AudioParameterFloat ({ "value", 1 }, "Value", 0.0f, 1.0f, 0.5f));
+        }
+
+        const String getName() const override                                { return {}; }
+        void prepareToPlay (double, int) override                            {}
+        void releaseResources() override                                     {}
+        void processBlock (AudioBuffer<float>&, MidiBuffer&) override        {}
+        using AudioProcessor::processBlock;
+        double getTailLengthSeconds() const override                         { return {}; }
+        bool acceptsMidi() const override                                    { return {}; }
+        bool producesMidi() const override                                   { return {}; }
+        AudioProcessorEditor* createEditor() override                        { return {}; }
+        bool hasEditor() const override                                      { return {}; }
+        int getNumPrograms() override                                        { return 1; }
+        int getCurrentProgram() override                                     { return {}; }
+        void setCurrentProgram (int) override                                {}
+        const String getProgramName (int) override                           { return {}; }
+        void changeProgramName (int, const String&) override                 {}
+        void getStateInformation (MemoryBlock&) override                     {}
+        void setStateInformation (const void*, int) override                 {}
+    };
+
+    void runTest() override
+    {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+
+        beginTest ("A focused parameter row hands focus to its interactive child");
+        {
+            TestProcessor processor;
+            GenericAudioProcessorEditor editor (processor);
+            editor.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            auto* slider = findSlider (editor);
+            expect (slider != nullptr);
+
+            if (slider != nullptr)
+            {
+                slider->setWantsKeyboardFocus (true);
+                editor.addToDesktop (ComponentPeer::windowIsTemporary);
+                editor.setVisible (true);
+                Component::unfocusAllComponents();
+                expect (editor.moveKeyboardFocus (FocusNavigationDirection::right),
+                        "The editor should enter its parameter tree");
+                expect (slider->hasKeyboardFocus (false),
+                        "The parameter row should hand focus to its slider");
+            }
+
+            Component::unfocusAllComponents();
+        }
+    }
+
+    static Slider* findSlider (Component& component)
+    {
+        if (auto* slider = dynamic_cast<Slider*> (&component))
+            return slider;
+
+        for (auto* child : component.getChildren())
+            if (auto* slider = findSlider (*child))
+                return slider;
+
+        return nullptr;
+    }
+};
+
+static GenericAudioProcessorEditorFocusNavigationTests genericAudioProcessorEditorFocusNavigationTests;
+
+#endif
 
 } // namespace juce

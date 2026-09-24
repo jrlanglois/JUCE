@@ -84,6 +84,15 @@ public:
     */
     Component* getPreviousComponent (Component* current) override;
 
+    /** Returns the best keyboard-focusable component in the requested direction.
+
+        The default implementation compares screen-space bounds, preferring
+        candidates that overlap the source on the perpendicular axis. It does
+        not wrap at an edge.
+    */
+    Component* getComponentInDirection (Component* current,
+                                        FocusNavigationDirection direction) override;
+
     /** Returns all of the components that can receive keyboard focus within the given
         parent component in traversal order.
 

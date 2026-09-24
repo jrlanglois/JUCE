@@ -53,6 +53,11 @@ namespace juce
     For most purposes, it's probably easier to use a Viewport or ListBox
     instead of handling a scrollbar directly.
 
+    Scrollbars do not request keyboard focus by default. If a scrollbar is made
+    focusable in a directional-navigation tree, Select enters an adjustment mode.
+    Directions along the scrollbar move it, perpendicular directions and range
+    boundaries remain trapped, and Select or focus loss exits adjustment.
+
     @see ScrollBar::Listener
 
     @tags{GUI}
@@ -406,6 +411,10 @@ public:
     /** @internal */
     bool keyPressed (const KeyPress&) override;
     /** @internal */
+    FocusNavigationResult handleFocusNavigation (FocusNavigationDirection) override;
+    /** @internal */
+    void focusLost (FocusChangeType) override;
+    /** @internal */
     void mouseWheelMove (const MouseEvent&, const MouseWheelDetails&) override;
     /** @internal */
     void lookAndFeelChanged() override;
@@ -434,6 +443,7 @@ private:
     int dragStartMousePos = 0, lastMousePos = 0;
     int initialDelayInMillisecs = 100, repeatDelayInMillisecs = 50, minimumDelayInMillisecs = 10;
     bool vertical, isDraggingThumb = false, autohides = true, userVisibilityFlag = false;
+    bool focusAdjustmentActive = false;
     class ScrollbarButton;
     std::unique_ptr<ScrollbarButton> upButton, downButton;
     ListenerList<Listener> listeners;
@@ -442,6 +452,7 @@ private:
     void updateThumbPosition();
     void timerCallback() override;
     bool getVisibility() const noexcept;
+    FocusNavigationResult adjustForFocusNavigation (FocusNavigationDirection);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ScrollBar)
 };

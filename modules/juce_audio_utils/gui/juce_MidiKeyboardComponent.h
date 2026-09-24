@@ -48,6 +48,10 @@ namespace juce
     these can be remapped if needed. It will only respond to keypresses when it has
     the keyboard focus, so to disable this feature you can call setWantsKeyboardFocus (false).
 
+    When directional focus navigation is enabled, directions parallel to the keyboard's
+    orientation move a highlighted note cursor, and Return or Select plays that note.
+    On tvOS this component requests the standard focus outline by default.
+
     The component is also a ChangeBroadcaster, so if you want to be informed when the
     keyboard is scrolled, you can register a ChangeListener for callbacks.
 
@@ -247,6 +251,10 @@ public:
     /** @internal */
     bool keyPressed (const KeyPress&) override;
     /** @internal */
+    FocusNavigationResult handleFocusNavigation (FocusNavigationDirection) override;
+    /** @internal */
+    void focusGained (FocusChangeType) override;
+    /** @internal */
     void focusLost (FocusChangeType) override;
     /** @internal */
     void colourChanged() override;
@@ -265,6 +273,9 @@ private:
     void updateNoteUnderMouse (Point<float>, bool isDown, int fingerNum);
     void updateNoteUnderMouse (const MouseEvent&, bool isDown);
     void repaintNote (int midiNoteNumber);
+    void setDirectionalNote (int midiNoteNumber);
+    void triggerDirectionalNote();
+    void releaseDirectionalNote();
 
     //==============================================================================
     MidiKeyboardState& state;
@@ -278,6 +289,9 @@ private:
     Array<KeyPress> keyPresses;
     Array<int> keyPressNotes;
     BigInteger keysPressed, keysCurrentlyDrawnDown;
+    int directionalNote = 60;
+    int directionalNoteDown = -1;
+    int directionalNoteDownChannel = 1;
 
     std::atomic<bool> noPendingUpdates { true };
 
