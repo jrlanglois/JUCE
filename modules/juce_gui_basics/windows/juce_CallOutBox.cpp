@@ -187,7 +187,8 @@ void CallOutBox::dismiss()
 
 bool CallOutBox::keyPressed (const KeyPress& key)
 {
-    if (key.isKeyCode (KeyPress::escapeKey))
+    if (key.isKeyCode (KeyPress::escapeKey)
+        || (isDirectionalFocusNavigationEnabled() && key.isKeyCode (KeyPress::menuKey)))
     {
         inputAttemptWhenModal();
         return true;
@@ -279,5 +280,36 @@ std::unique_ptr<AccessibilityHandler> CallOutBox::createAccessibilityHandler()
 {
     return std::make_unique<AccessibilityHandler> (*this, AccessibilityRole::dialogWindow);
 }
+
+#if JUCE_UNIT_TESTS
+
+struct CallOutBoxFocusNavigationTests final : UnitTest
+{
+    CallOutBoxFocusNavigationTests()
+        : UnitTest ("CallOutBox focus navigation", UnitTestCategories::gui)
+    {}
+
+    void runTest() override
+    {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+        Component parent, content;
+        parent.setBounds (0, 0, 400, 300);
+        content.setSize (100, 80);
+        CallOutBox callOut (content, { 100, 100, 20, 20 }, &parent);
+
+        beginTest ("Directional Menu dismisses the callout");
+        callOut.setFocusNavigationMode (FocusNavigationMode::directional);
+        expect (callOut.keyPressed (KeyPress (KeyPress::menuKey)));
+
+        beginTest ("Disabled directional navigation preserves the existing Menu result");
+        callOut.setFocusNavigationMode (FocusNavigationMode::disabled);
+        expect (! callOut.keyPressed (KeyPress (KeyPress::menuKey)));
+        expect (callOut.keyPressed (KeyPress (KeyPress::escapeKey)));
+    }
+};
+
+static CallOutBoxFocusNavigationTests callOutBoxFocusNavigationTests;
+
+#endif
 
 } // namespace juce

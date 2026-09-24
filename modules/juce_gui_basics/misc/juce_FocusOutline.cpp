@@ -191,4 +191,147 @@ void FocusOutline::updateOutlineWindow()
     }
 }
 
+#if JUCE_UNIT_TESTS
+
+struct FocusOutlineTests final : UnitTest
+{
+    FocusOutlineTests()
+        : UnitTest ("FocusOutline", UnitTestCategories::gui)
+    {}
+
+    struct RecordingProperties final : FocusOutline::OutlineWindowProperties
+    {
+        Rectangle<int> getOutlineBounds (Component&) override
+        {
+            ++numBoundsRequests;
+            return bounds;
+        }
+
+        void drawOutline (Graphics&, int width, int height) override
+        {
+            ++numDrawCalls;
+            lastDrawSize = { width, height };
+        }
+
+        Rectangle<int> bounds;
+        Point<int> lastDrawSize;
+        int numBoundsRequests = 0;
+        int numDrawCalls = 0;
+    };
+
+    void runTest() override
+    {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+        auto& desktop = Desktop::getInstance();
+        Component* root = nullptr;
+
+        for (auto i = 0; i < desktop.getNumComponents(); ++i)
+            if (auto* candidate = desktop.getComponent (i); candidate != nullptr && candidate->isShowing())
+            {
+                root = candidate;
+                break;
+            }
+
+        if (root == nullptr)
+        {
+            beginTest ("FocusOutline requires a visible test root");
+            logMessage ("No desktop component is available for the FocusOutline geometry tests");
+            return;
+        }
+
+        Component parent, owner;
+        parent.setBounds (0, 0, 100, 100);
+        owner.setBounds (10, 10, 30, 20);
+        root->addAndMakeVisible (parent);
+        parent.addAndMakeVisible (owner);
+
+        const auto getOutlineWindow = [&]() -> Component*
+        {
+            const auto ownerIndex = parent.getIndexOfChildComponent (&owner);
+            return parent.getChildComponent (ownerIndex + 1);
+        };
+
+        beginTest ("Stock bounds include the full three-pixel outline");
+        {
+            LookAndFeel_V4 lookAndFeel;
+            auto outline = lookAndFeel.createFocusOutlineForComponent (owner);
+            expect (outline != nullptr);
+
+            if (outline != nullptr)
+            {
+                outline->setOwner (&owner);
+
+                if (auto* window = getOutlineWindow())
+                {
+                    const auto expected = parent.getLocalArea (nullptr, owner.getScreenBounds().expanded (3));
+                    expect (window->getBounds() == expected);
+                }
+                else
+                {
+                    expect (false);
+                }
+            }
+        }
+
+        beginTest ("Stock bounds follow a transformed owner");
+        {
+            owner.setTransform (AffineTransform::rotation (0.2f));
+            LookAndFeel_V4 lookAndFeel;
+            auto outline = lookAndFeel.createFocusOutlineForComponent (owner);
+            expect (outline != nullptr);
+
+            if (outline != nullptr)
+            {
+                outline->setOwner (&owner);
+
+                if (auto* window = getOutlineWindow())
+                {
+                    const auto expected = parent.getLocalArea (nullptr, owner.getScreenBounds().expanded (3));
+                    expect (window->getBounds() == expected);
+                }
+                else
+                {
+                    expect (false);
+                }
+            }
+
+            owner.setTransform (AffineTransform());
+        }
+
+        beginTest ("Custom bounds and drawing remain LookAndFeel-owned");
+        {
+            owner.setBounds (0, 0, 30, 20);
+            auto properties = std::make_unique<RecordingProperties>();
+            auto* propertiesPointer = properties.get();
+            propertiesPointer->bounds = owner.getScreenBounds().expanded (12);
+            FocusOutline outline (std::move (properties));
+            outline.setOwner (&owner);
+
+            if (auto* window = getOutlineWindow())
+            {
+                const auto expected = parent.getLocalArea (nullptr, propertiesPointer->bounds);
+                expect (window->getBounds() == expected);
+                expect (! parent.getLocalBounds().contains (window->getBounds()));
+
+                window->createComponentSnapshot (window->getLocalBounds());
+                expectEquals (propertiesPointer->numDrawCalls, 1);
+                expect (propertiesPointer->lastDrawSize
+                        == Point<int> (window->getWidth(), window->getHeight()));
+            }
+            else
+            {
+                expect (false);
+            }
+
+            expect (propertiesPointer->numBoundsRequests > 0);
+        }
+
+        root->removeChildComponent (&parent);
+    }
+};
+
+static FocusOutlineTests focusOutlineTests;
+
+#endif
+
 } // namespace juce

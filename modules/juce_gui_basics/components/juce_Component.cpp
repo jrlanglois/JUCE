@@ -53,6 +53,38 @@ static Component* findFirstEnabledAncestor (Component* in)
 
 Component* Component::currentlyFocusedComponent = nullptr;
 
+class Component::KeyboardFocusHandoff
+{
+public:
+    struct Target
+    {
+        WeakReference<Component> component;
+        FocusChangeDirection direction = FocusChangeDirection::unknown;
+    };
+
+    void add (Component* candidate, FocusChangeDirection direction, const Component& excluded)
+    {
+        if (candidate == nullptr || candidate == &excluded || excluded.isParentOf (candidate))
+            return;
+
+        for (size_t i = 0; i < numTargets; ++i)
+            if (targets[i].component == candidate)
+                return;
+
+        jassert (numTargets < targets.size());
+
+        if (numTargets < targets.size())
+            targets[numTargets++] = { WeakReference<Component> (candidate), direction };
+    }
+
+    auto begin() const { return targets.begin(); }
+    auto end() const { return std::next (targets.begin(), static_cast<ptrdiff_t> (numTargets)); }
+
+private:
+    std::array<Target, 6> targets;
+    size_t numTargets = 0;
+};
+
 //==============================================================================
 class HierarchyChecker
 {
@@ -548,6 +580,8 @@ void Component::setVisible (bool shouldBeVisible)
         // thread, you'll need to use a MessageManagerLock object to make sure it's thread-safe.
         JUCE_ASSERT_MESSAGE_MANAGER_IS_LOCKED_OR_OFFSCREEN
 
+        const auto focusHandoff = ! shouldBeVisible ? createKeyboardFocusHandoff()
+                                                    : KeyboardFocusHandoff {};
         const WeakReference<Component> safePointer (this);
         flags.visibleFlag = shouldBeVisible;
 
@@ -561,15 +595,7 @@ void Component::setVisible (bool shouldBeVisible)
         if (! shouldBeVisible)
         {
             detail::ComponentHelpers::releaseAllCachedImageResources (*this);
-
-            if (hasKeyboardFocus (true))
-            {
-                if (parentComponent != nullptr)
-                    parentComponent->grabKeyboardFocus();
-
-                // ensure that keyboard focus is given away if it wasn't taken by parent
-                giveAwayKeyboardFocus();
-            }
+            applyKeyboardFocusHandoff (focusHandoff);
         }
 
         if (safePointer != nullptr)
@@ -2214,6 +2240,10 @@ void Component::sendLookAndFeelChange()
     {
         colourChanged();
 
+        if (safePointer != nullptr && currentlyFocusedComponent == this)
+            if (auto* desktop = Desktop::getInstanceWithoutCreating())
+                desktop->refreshFocusOutline();
+
         if (safePointer != nullptr)
         {
             for (int i = childComponentList.size(); --i >= 0;)
@@ -2858,7 +2888,29 @@ void Component::internalChildKeyboardFocusChange (FocusChangeType cause,
 
 void Component::setWantsKeyboardFocus (bool wantsFocus) noexcept
 {
+    if (flags.wantsKeyboardFocusFlag == wantsFocus)
+        return;
+
+    const auto focusHandoff = ! wantsFocus && currentlyFocusedComponent == this
+                                ? createKeyboardFocusHandoff()
+                                : KeyboardFocusHandoff {};
+
     flags.wantsKeyboardFocusFlag = wantsFocus;
+
+    if (! wantsFocus)
+        applyKeyboardFocusHandoff (focusHandoff);
+}
+
+void Component::setHasFocusOutline (bool shouldHaveFocusOutline) noexcept
+{
+    if (flags.hasFocusOutlineFlag == shouldHaveFocusOutline)
+        return;
+
+    flags.hasFocusOutlineFlag = shouldHaveFocusOutline;
+
+    if (currentlyFocusedComponent == this)
+        if (auto* desktop = Desktop::getInstanceWithoutCreating())
+            desktop->refreshFocusOutline();
 }
 
 void Component::setMouseClickGrabsKeyboardFocus (bool shouldGrabFocus)
@@ -2918,6 +2970,55 @@ Component* Component::findKeyboardFocusContainer() const
     return findContainer (this, &Component::isKeyboardFocusContainer);
 }
 
+static const Identifier focusNavigationModeId ("_jfnm");
+
+void Component::setFocusNavigationMode (FocusNavigationMode mode)
+{
+    if (mode == FocusNavigationMode::inherit)
+        properties.remove (focusNavigationModeId);
+    else
+        properties.set (focusNavigationModeId, static_cast<int> (mode));
+}
+
+FocusNavigationMode Component::getFocusNavigationMode() const noexcept
+{
+    return static_cast<FocusNavigationMode> (static_cast<int> (properties[focusNavigationModeId]));
+}
+
+FocusNavigationMode Component::getEffectiveFocusNavigationMode() const noexcept
+{
+   #if JUCE_TVOS
+    constexpr auto platformMode = FocusNavigationMode::directional;
+   #else
+    constexpr auto platformMode = FocusNavigationMode::disabled;
+   #endif
+
+    for (auto* component = this; component != nullptr; component = component->getParentComponent())
+    {
+        switch (component->getFocusNavigationMode())
+        {
+            case FocusNavigationMode::inherit:
+                break;
+
+            case FocusNavigationMode::platformDefault:
+                return platformMode;
+
+            case FocusNavigationMode::disabled:
+                return FocusNavigationMode::disabled;
+
+            case FocusNavigationMode::directional:
+                return FocusNavigationMode::directional;
+        }
+    }
+
+    return platformMode;
+}
+
+bool Component::isDirectionalFocusNavigationEnabled() const noexcept
+{
+    return getEffectiveFocusNavigationMode() == FocusNavigationMode::directional;
+}
+
 static const Identifier explicitFocusOrderId ("_jexfo");
 
 int Component::getExplicitFocusOrder() const
@@ -2944,6 +3045,101 @@ std::unique_ptr<ComponentTraverser> Component::createKeyboardFocusTraverser()
         return std::make_unique<KeyboardFocusTraverser>();
 
     return parentComponent->createKeyboardFocusTraverser();
+}
+
+Component::KeyboardFocusHandoff Component::createKeyboardFocusHandoff()
+{
+    KeyboardFocusHandoff handoff;
+    auto* focused = currentlyFocusedComponent;
+
+    if (focused == nullptr || (focused != this && ! isParentOf (focused)))
+        return handoff;
+
+    auto* root = focused->getTopLevelComponent();
+
+    if (auto traverser = focused->createKeyboardFocusTraverser())
+    {
+        handoff.add (traverser->getNextComponent (focused), FocusChangeDirection::forward, *this);
+        handoff.add (traverser->getPreviousComponent (focused), FocusChangeDirection::backward, *this);
+
+        auto* container = focused->findKeyboardFocusContainer();
+        handoff.add (traverser->getDefaultComponent (container != nullptr ? container : root),
+                     FocusChangeDirection::unknown,
+                     *this);
+    }
+
+    if (root != nullptr)
+    {
+        if (auto traverser = root->createKeyboardFocusTraverser())
+        {
+            const auto allComponents = traverser->getAllComponents (root);
+            auto firstExcluded = allComponents.size();
+            auto lastExcluded = allComponents.size();
+
+            for (size_t i = 0; i < allComponents.size(); ++i)
+            {
+                auto* candidate = allComponents[i];
+
+                if (candidate == this || isParentOf (candidate))
+                {
+                    firstExcluded = jmin (firstExcluded, i);
+                    lastExcluded = i;
+                }
+            }
+
+            if (lastExcluded != allComponents.size())
+            {
+                for (auto i = lastExcluded + 1; i < allComponents.size(); ++i)
+                {
+                    auto* candidate = allComponents[i];
+
+                    if (candidate != this && ! isParentOf (candidate))
+                    {
+                        handoff.add (candidate, FocusChangeDirection::forward, *this);
+                        break;
+                    }
+                }
+
+                for (auto i = firstExcluded; i-- > 0;)
+                {
+                    auto* candidate = allComponents[i];
+
+                    if (candidate != this && ! isParentOf (candidate))
+                    {
+                        handoff.add (candidate, FocusChangeDirection::backward, *this);
+                        break;
+                    }
+                }
+            }
+
+            handoff.add (traverser->getDefaultComponent (root), FocusChangeDirection::unknown, *this);
+        }
+    }
+
+    return handoff;
+}
+
+void Component::applyKeyboardFocusHandoff (const KeyboardFocusHandoff& handoff)
+{
+    if (! hasKeyboardFocus (true))
+        return;
+
+    for (const auto& target : handoff)
+    {
+        if (auto* component = target.component.get())
+        {
+            if (component->isShowing()
+                && component->isEnabled()
+                && component->getWantsKeyboardFocus()
+                && moveKeyboardFocusTo (component, target.direction))
+            {
+                return;
+            }
+        }
+    }
+
+    if (hasKeyboardFocus (true))
+        giveAwayKeyboardFocus();
 }
 
 void Component::takeKeyboardFocus (FocusChangeType cause, FocusChangeDirection direction)
@@ -3055,6 +3251,118 @@ void Component::giveAwayKeyboardFocus()
     giveAwayKeyboardFocusInternal (true);
 }
 
+Component* ComponentTraverser::getComponentInDirection (Component* current,
+                                                        FocusNavigationDirection direction)
+{
+    switch (direction)
+    {
+        case FocusNavigationDirection::left:
+        case FocusNavigationDirection::up:
+            return getPreviousComponent (current);
+
+        case FocusNavigationDirection::right:
+        case FocusNavigationDirection::down:
+            return getNextComponent (current);
+    }
+
+    jassertfalse;
+    return nullptr;
+}
+
+FocusNavigationResult Component::handleFocusNavigation (FocusNavigationDirection)
+{
+    return FocusNavigationResult::unhandled;
+}
+
+bool Component::moveKeyboardFocusTo (Component* target, FocusChangeDirection direction)
+{
+    if (target == nullptr || target == currentlyFocusedComponent)
+        return false;
+
+    auto* focusBeforeMove = currentlyFocusedComponent;
+
+    if (target->isCurrentlyBlockedByAnotherModalComponent())
+    {
+        const WeakReference<Component> safeThis (this);
+        const WeakReference<Component> safeTarget (target);
+        internalModalInputAttempt();
+
+        if (safeThis == nullptr
+            || safeTarget == nullptr
+            || target->isCurrentlyBlockedByAnotherModalComponent())
+        {
+            return currentlyFocusedComponent != focusBeforeMove;
+        }
+    }
+
+    target->grabKeyboardFocusInternal (focusChangedByTabKey, true, direction);
+    return currentlyFocusedComponent != focusBeforeMove;
+}
+
+bool Component::moveKeyboardFocus (FocusNavigationDirection direction)
+{
+    JUCE_ASSERT_MESSAGE_MANAGER_IS_LOCKED
+
+    const WeakReference<Component> root (getTopLevelComponent());
+
+    if (root == nullptr)
+        return false;
+
+    auto* focused = currentlyFocusedComponent;
+    const auto hasFocusedDescendant = focused != nullptr && root->isParentOf (focused);
+
+    if (! hasFocusedDescendant)
+        focused = nullptr;
+
+    auto* modeSource = focused != nullptr ? focused : root.get();
+
+    if (modeSource->getEffectiveFocusNavigationMode() != FocusNavigationMode::directional)
+        return false;
+
+    auto* focusBeforeMove = currentlyFocusedComponent;
+    const WeakReference<Component> safeFocused (focused);
+
+    for (auto* handler = focused; handler != nullptr;)
+    {
+        const WeakReference<Component> safeHandler (handler);
+        const WeakReference<Component> parent (handler->getParentComponent());
+        const auto result = handler->handleFocusNavigation (direction);
+
+        if (result != FocusNavigationResult::unhandled
+            || currentlyFocusedComponent != focusBeforeMove
+            || safeHandler == nullptr)
+            return currentlyFocusedComponent != focusBeforeMove;
+
+        if (handler == root.get())
+            break;
+
+        handler = parent.get();
+    }
+
+    if (root == nullptr || (focused != nullptr && safeFocused == nullptr))
+        return currentlyFocusedComponent != focusBeforeMove;
+
+    Component* target = nullptr;
+
+    if (focused == nullptr)
+    {
+        if (auto traverser = root->createKeyboardFocusTraverser())
+            target = traverser->getDefaultComponent (root.get());
+    }
+    else if (auto traverser = focused->createKeyboardFocusTraverser())
+    {
+        target = traverser->getComponentInDirection (focused, direction);
+    }
+
+    const auto focusChangeDirection = direction == FocusNavigationDirection::left
+                                           || direction == FocusNavigationDirection::up
+                                        ? FocusChangeDirection::backward
+                                        : FocusChangeDirection::forward;
+
+    return root != nullptr
+        && root->moveKeyboardFocusTo (target, focusChangeDirection);
+}
+
 void Component::moveKeyboardFocusToSibling (bool moveToNext)
 {
     // if component methods are being called from threads other than the message
@@ -3085,19 +3393,9 @@ void Component::moveKeyboardFocusToSibling (bool moveToNext)
 
             if (auto* nextComp = findComponentToFocus())
             {
-                if (nextComp->isCurrentlyBlockedByAnotherModalComponent())
-                {
-                    const WeakReference<Component> nextCompPointer (nextComp);
-                    internalModalInputAttempt();
-
-                    if (nextCompPointer == nullptr || nextComp->isCurrentlyBlockedByAnotherModalComponent())
-                        return;
-                }
-
-                nextComp->grabKeyboardFocusInternal (focusChangedByTabKey,
-                                                     true,
-                                                     moveToNext ? FocusChangeDirection::forward
-                                                                : FocusChangeDirection::backward);
+                moveKeyboardFocusTo (nextComp,
+                                     moveToNext ? FocusChangeDirection::forward
+                                                : FocusChangeDirection::backward);
                 return;
             }
         }
@@ -3134,6 +3432,8 @@ void Component::setEnabled (bool shouldBeEnabled)
 {
     if (flags.isDisabledFlag == shouldBeEnabled)
     {
+        const auto focusHandoff = ! shouldBeEnabled ? createKeyboardFocusHandoff()
+                                                   : KeyboardFocusHandoff {};
         flags.isDisabledFlag = ! shouldBeEnabled;
 
         // if any parent components are disabled, setting our flag won't make a difference,
@@ -3144,14 +3444,8 @@ void Component::setEnabled (bool shouldBeEnabled)
         BailOutChecker checker (this);
         componentListeners.callChecked (checker, [this] (ComponentListener& l) { l.componentEnablementChanged (*this); });
 
-        if (! shouldBeEnabled && hasKeyboardFocus (true))
-        {
-            if (parentComponent != nullptr)
-                parentComponent->grabKeyboardFocus();
-
-            // ensure that keyboard focus is given away if it wasn't taken by parent
-            giveAwayKeyboardFocus();
-        }
+        if (! shouldBeEnabled)
+            applyKeyboardFocusHandoff (focusHandoff);
     }
 }
 
@@ -3409,6 +3703,98 @@ struct ComponentTests  : public UnitTest
 
     private:
         bool isPainting{};
+    };
+
+    struct FocusNavigationTestComponent : Component
+    {
+        FocusNavigationResult handleFocusNavigation (FocusNavigationDirection direction) override
+        {
+            directions.push_back (direction);
+
+            if (callOrder != nullptr)
+                callOrder->push_back (name);
+
+            return result;
+        }
+
+        String name;
+        std::vector<String>* callOrder = nullptr;
+        std::vector<FocusNavigationDirection> directions;
+        FocusNavigationResult result = FocusNavigationResult::unhandled;
+    };
+
+    struct TraverserCallState
+    {
+        int numDefaultCalls = 0;
+        int numDirectionalCalls = 0;
+        Component* defaultComponent = nullptr;
+        Component* directionalComponent = nullptr;
+    };
+
+    class RecordingTraverser final : public ComponentTraverser
+    {
+    public:
+        explicit RecordingTraverser (TraverserCallState& stateIn) : state (stateIn) {}
+
+        Component* getDefaultComponent (Component*) override
+        {
+            ++state.numDefaultCalls;
+            return state.defaultComponent;
+        }
+
+        Component* getNextComponent (Component*) override                         { return nullptr; }
+        Component* getPreviousComponent (Component*) override                     { return nullptr; }
+        std::vector<Component*> getAllComponents (Component*) override             { return {}; }
+
+        Component* getComponentInDirection (Component*, FocusNavigationDirection) override
+        {
+            ++state.numDirectionalCalls;
+            return state.directionalComponent;
+        }
+
+    private:
+        TraverserCallState& state;
+    };
+
+    struct TraverserTestComponent : FocusNavigationTestComponent
+    {
+        std::unique_ptr<ComponentTraverser> createKeyboardFocusTraverser() override
+        {
+            return std::make_unique<RecordingTraverser> (traverserState);
+        }
+
+        TraverserCallState traverserState;
+    };
+
+    struct ModalTestComponent : Component
+    {
+        void inputAttemptWhenModal() override
+        {
+            ++numInputAttempts;
+        }
+
+        int numInputAttempts = 0;
+    };
+
+    struct CountingFocusOutlineLookAndFeel : LookAndFeel_V4
+    {
+        std::unique_ptr<FocusOutline> createFocusOutlineForComponent (Component&) override
+        {
+            ++numFocusOutlineCreations;
+            return nullptr;
+        }
+
+        int numFocusOutlineCreations = 0;
+    };
+
+    struct RecordingFocusChangeListener : FocusChangeListener
+    {
+        void globalFocusChanged (Component*) override
+        {
+            ++numFocusChanges;
+        }
+
+        int numFocusChanges = 0;
     };
 
     void paintComponentBounds (Component& componentToRepaint)
@@ -4286,6 +4672,270 @@ struct ComponentTests  : public UnitTest
             expectEquals (parent.numPaintCalls, 1);
             expectEquals (childA.numPaintCalls, 1);
             expectEquals (childB.numPaintCalls, 1);
+        });
+
+        testCase ("Focus-navigation modes resolve from the focused leaf towards the root", [&]
+        {
+            Component root, child;
+            root.addAndMakeVisible (child);
+
+           #if JUCE_TVOS
+            constexpr auto platformMode = FocusNavigationMode::directional;
+           #else
+            constexpr auto platformMode = FocusNavigationMode::disabled;
+           #endif
+
+            expect (root.getFocusNavigationMode() == FocusNavigationMode::inherit);
+            expect (child.getEffectiveFocusNavigationMode() == platformMode);
+
+            root.setFocusNavigationMode (FocusNavigationMode::directional);
+            expect (child.getEffectiveFocusNavigationMode() == FocusNavigationMode::directional);
+
+            child.setFocusNavigationMode (FocusNavigationMode::disabled);
+            expect (child.getEffectiveFocusNavigationMode() == FocusNavigationMode::disabled);
+
+            child.setFocusNavigationMode (FocusNavigationMode::platformDefault);
+            expect (child.getEffectiveFocusNavigationMode() == platformMode);
+
+            root.setFocusNavigationMode (FocusNavigationMode::disabled);
+            child.setFocusNavigationMode (FocusNavigationMode::directional);
+            expect (child.getEffectiveFocusNavigationMode() == FocusNavigationMode::directional);
+        });
+
+        testCase ("Directional requests bubble until handled or blocked", [&]
+        {
+            TraverserTestComponent root;
+            FocusNavigationTestComponent leaf;
+            std::vector<String> callOrder;
+
+            root.name = "root";
+            root.callOrder = &callOrder;
+            root.setFocusNavigationMode (FocusNavigationMode::directional);
+            leaf.name = "leaf";
+            leaf.callOrder = &callOrder;
+            root.addAndMakeVisible (leaf);
+
+            const ScopedValueSetter<Component*> focusedComponent (Component::currentlyFocusedComponent, &leaf);
+
+            expect (! root.moveKeyboardFocus (FocusNavigationDirection::right));
+            expect (callOrder == std::vector<String> ({ "leaf", "root" }));
+            expectEquals (root.traverserState.numDirectionalCalls, 1);
+
+            callOrder.clear();
+            root.traverserState.numDirectionalCalls = 0;
+            root.result = FocusNavigationResult::handled;
+
+            expect (! root.moveKeyboardFocus (FocusNavigationDirection::left));
+            expect (callOrder == std::vector<String> ({ "leaf", "root" }));
+            expectEquals (root.traverserState.numDirectionalCalls, 0);
+
+            callOrder.clear();
+            root.result = FocusNavigationResult::unhandled;
+            leaf.result = FocusNavigationResult::blocked;
+
+            expect (! root.moveKeyboardFocus (FocusNavigationDirection::up));
+            expect (callOrder == std::vector<String> ({ "leaf" }));
+            expectEquals (root.traverserState.numDirectionalCalls, 0);
+        });
+
+        testCase ("Disabled directional mode bypasses widget dispatch", [&]
+        {
+            FocusNavigationTestComponent root, leaf;
+            std::vector<String> callOrder;
+
+            root.setFocusNavigationMode (FocusNavigationMode::disabled);
+            root.callOrder = &callOrder;
+            leaf.callOrder = &callOrder;
+            root.addAndMakeVisible (leaf);
+
+            const ScopedValueSetter<Component*> focusedComponent (Component::currentlyFocusedComponent, &leaf);
+
+            expect (! root.moveKeyboardFocus (FocusNavigationDirection::down));
+            expect (callOrder.empty());
+        });
+
+        testCase ("A parentless root uses its default for entry and spatial traversal afterwards", [&]
+        {
+            TraverserTestComponent root, otherRoot;
+            FocusNavigationTestComponent child, otherChild;
+            root.setFocusNavigationMode (FocusNavigationMode::directional);
+            root.addAndMakeVisible (child);
+            otherRoot.addAndMakeVisible (otherChild);
+
+            {
+                const ScopedValueSetter<Component*> focusedComponent (Component::currentlyFocusedComponent, &otherChild);
+
+                expect (! root.moveKeyboardFocus (FocusNavigationDirection::right));
+                expectEquals (root.traverserState.numDefaultCalls, 1);
+                expectEquals (root.traverserState.numDirectionalCalls, 0);
+            }
+
+            root.traverserState = {};
+
+            {
+                const ScopedValueSetter<Component*> focusedComponent (Component::currentlyFocusedComponent, &child);
+
+                expect (! root.moveKeyboardFocus (FocusNavigationDirection::right));
+                expectEquals (root.traverserState.numDefaultCalls, 0);
+                expectEquals (root.traverserState.numDirectionalCalls, 1);
+            }
+        });
+
+        testCase ("A modal scope prevents a directional focus transfer", [&]
+        {
+            bool didMoveFocus = true;
+            bool sourceKeptFocus = false;
+            int numInputAttempts = 0;
+
+            expect (MessageManager::callSync ([&]
+            {
+                Component source, target;
+                ModalTestComponent modal;
+                const ScopedValueSetter<Component*> focusedComponent (Component::currentlyFocusedComponent, &source);
+
+                modal.enterModalState (false);
+
+                didMoveFocus = source.moveKeyboardFocusTo (&target, Component::FocusChangeDirection::forward);
+                numInputAttempts = modal.numInputAttempts;
+                sourceKeptFocus = Component::currentlyFocusedComponent == &source;
+
+                modal.exitModalState (0);
+            }));
+
+            expect (! didMoveFocus);
+            expectEquals (numInputAttempts, 1);
+            expect (sourceKeptFocus);
+        });
+
+        testCase ("Dynamic focus hand-off prefers next, previous, then default", [&]
+        {
+            Component parent, previous, focused, next;
+
+            for (auto* child : { &previous, &focused, &next })
+            {
+                parent.addAndMakeVisible (child);
+                child->setWantsKeyboardFocus (true);
+            }
+
+            previous.setBounds (0, 0, 10, 10);
+            focused.setBounds (20, 0, 10, 10);
+            next.setBounds (40, 0, 10, 10);
+
+            const ScopedValueSetter<Component*> focusedComponent (Component::currentlyFocusedComponent, &focused);
+            const auto handoff = focused.createKeyboardFocusHandoff();
+            std::vector<Component*> targets;
+
+            for (const auto& target : handoff)
+                targets.push_back (target.component.get());
+
+            expect (targets == std::vector<Component*> ({ &next, &previous }));
+        });
+
+        testCase ("Dynamic focus hand-off escapes an ineligible nested container", [&]
+        {
+            Component root, previous, container, focused, next;
+            root.addAndMakeVisible (previous);
+            root.addAndMakeVisible (container);
+            root.addAndMakeVisible (next);
+            container.addAndMakeVisible (focused);
+
+            for (auto* component : { &previous, &container, &focused, &next })
+                component->setWantsKeyboardFocus (true);
+
+            container.setFocusContainerType (Component::FocusContainerType::keyboardFocusContainer);
+            previous.setBounds (0, 0, 10, 10);
+            container.setBounds (20, 0, 10, 10);
+            focused.setBounds (0, 0, 10, 10);
+            next.setBounds (40, 0, 10, 10);
+
+            const ScopedValueSetter<Component*> focusedComponent (Component::currentlyFocusedComponent, &focused);
+            const auto handoff = container.createKeyboardFocusHandoff();
+            std::vector<Component*> targets;
+
+            for (const auto& target : handoff)
+                targets.push_back (target.component.get());
+
+            expect (targets == std::vector<Component*> ({ &next, &previous }));
+        });
+
+        testCase ("Changing the focused component's outline flag refreshes without a focus notification", [&]
+        {
+            Component component;
+            CountingFocusOutlineLookAndFeel lookAndFeel;
+            RecordingFocusChangeListener focusListener;
+            auto& desktop = Desktop::getInstance();
+
+            component.setLookAndFeel (&lookAndFeel);
+            desktop.addFocusChangeListener (&focusListener);
+
+            {
+                const ScopedValueSetter<Component*> focusedComponent (Component::currentlyFocusedComponent, &component);
+
+                component.setHasFocusOutline (true);
+                expectEquals (lookAndFeel.numFocusOutlineCreations, 1);
+                expectEquals (focusListener.numFocusChanges, 0);
+
+                component.setHasFocusOutline (true);
+                expectEquals (lookAndFeel.numFocusOutlineCreations, 1);
+
+                component.setHasFocusOutline (false);
+                expectEquals (lookAndFeel.numFocusOutlineCreations, 1);
+                expectEquals (focusListener.numFocusChanges, 0);
+            }
+
+            desktop.removeFocusChangeListener (&focusListener);
+            component.setLookAndFeel (nullptr);
+        });
+
+        testCase ("Replacing the focused component's LookAndFeel recreates a nullable outline", [&]
+        {
+            Component component;
+            CountingFocusOutlineLookAndFeel firstLookAndFeel, secondLookAndFeel;
+            component.setLookAndFeel (&firstLookAndFeel);
+            component.setHasFocusOutline (true);
+
+            {
+                const ScopedValueSetter<Component*> focusedComponent (Component::currentlyFocusedComponent, &component);
+
+                component.sendLookAndFeelChange();
+                expectEquals (firstLookAndFeel.numFocusOutlineCreations, 1);
+
+                component.setLookAndFeel (&secondLookAndFeel);
+                expectEquals (secondLookAndFeel.numFocusOutlineCreations, 1);
+            }
+
+            component.setLookAndFeel (nullptr);
+        });
+
+        testCase ("Replacing the default LookAndFeel recreates the inherited focus outline", [&]
+        {
+            auto& desktop = Desktop::getInstance();
+
+            if (desktop.getNumComponents() == 0)
+            {
+                logMessage ("No desktop component is available for the default LookAndFeel focus-outline test");
+                return;
+            }
+
+            auto* root = desktop.getComponent (0);
+            Component component;
+            CountingFocusOutlineLookAndFeel lookAndFeel;
+            auto* previousLookAndFeel = &desktop.getDefaultLookAndFeel();
+
+            root->addAndMakeVisible (component);
+            component.setHasFocusOutline (true);
+
+            {
+                const ScopedValueSetter<Component*> focusedComponent (Component::currentlyFocusedComponent, &component);
+
+                desktop.setDefaultLookAndFeel (&lookAndFeel);
+                expectEquals (lookAndFeel.numFocusOutlineCreations, 1);
+
+                component.setHasFocusOutline (false);
+                desktop.setDefaultLookAndFeel (previousLookAndFeel);
+            }
+
+            root->removeChildComponent (&component);
         });
     }
 };

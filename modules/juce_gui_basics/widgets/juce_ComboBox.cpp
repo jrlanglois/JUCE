@@ -40,6 +40,11 @@ ComboBox::ComboBox (const String& name)
       noChoicesMessage (TRANS ("(no choices)"))
 {
     setRepaintsOnMouseActivity (true);
+
+   #if JUCE_TVOS
+    setHasFocusOutline (true);
+   #endif
+
     lookAndFeelChanged();
     currentId.addListener (this);
 }
@@ -454,6 +459,10 @@ void ComboBox::lookAndFeelChanged()
 //==============================================================================
 bool ComboBox::keyPressed (const KeyPress& key)
 {
+    if (isDirectionalFocusNavigationEnabled()
+        && detail::getFocusNavigationDirectionForKeyPress (key).has_value())
+        return false;
+
     if (key == KeyPress::upKey || key == KeyPress::leftKey)
     {
         nudgeSelectedItem (-1);
@@ -477,6 +486,9 @@ bool ComboBox::keyPressed (const KeyPress& key)
 
 bool ComboBox::keyStateChanged (const bool isKeyDown)
 {
+    if (isDirectionalFocusNavigationEnabled())
+        return false;
+
     // only forward key events that aren't used by this component
     return isKeyDown
             && (KeyPress::isKeyCurrentlyDown (KeyPress::upKey)
@@ -723,5 +735,45 @@ std::unique_ptr<AccessibilityHandler> ComboBox::createAccessibilityHandler()
 {
     return std::make_unique<ComboBoxAccessibilityHandler> (*this);
 }
+
+#if JUCE_UNIT_TESTS
+
+struct ComboBoxFocusNavigationTests final : UnitTest
+{
+    ComboBoxFocusNavigationTests()
+        : UnitTest ("ComboBox focus navigation", UnitTestCategories::gui)
+    {}
+
+    void runTest() override
+    {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+        ComboBox comboBox;
+        comboBox.addItem ("First", 1);
+        comboBox.addItem ("Second", 2);
+        comboBox.setSelectedId (1, dontSendNotification);
+
+        beginTest ("A closed combo offers directions to directional traversal");
+        comboBox.setFocusNavigationMode (FocusNavigationMode::directional);
+        expect (! comboBox.keyPressed (KeyPress (KeyPress::rightKey)));
+        expectEquals (comboBox.getSelectedId(), 1);
+        expect (comboBox.handleFocusNavigation (FocusNavigationDirection::right)
+                == FocusNavigationResult::unhandled);
+
+        beginTest ("Disabled directional navigation preserves legacy selection");
+        comboBox.setFocusNavigationMode (FocusNavigationMode::disabled);
+        expect (comboBox.keyPressed (KeyPress (KeyPress::rightKey)));
+        expectEquals (comboBox.getSelectedId(), 2);
+
+       #if JUCE_TVOS
+        expect (comboBox.hasFocusOutline());
+       #else
+        expect (! comboBox.hasFocusOutline());
+       #endif
+    }
+};
+
+static ComboBoxFocusNavigationTests comboBoxFocusNavigationTests;
+
+#endif
 
 } // namespace juce

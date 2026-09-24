@@ -461,6 +461,10 @@ CodeEditorComponent::CodeEditorComponent (CodeDocument& doc, CodeTokeniser* cons
     setMouseCursor (MouseCursor::IBeamCursor);
     setWantsKeyboardFocus (true);
 
+   #if JUCE_TVOS
+    setHasFocusOutline (true);
+   #endif
+
     addAndMakeVisible (verticalScrollBar);
     verticalScrollBar.setSingleStepSize (1.0);
 
@@ -510,7 +514,8 @@ void CodeEditorComponent::loadContent (const String& newContent)
 
 bool CodeEditorComponent::isTextInputActive() const
 {
-    return true;
+    return ! isDirectionalFocusNavigationEnabled()
+        || (directionalFocusEditingActive && ! readOnly);
 }
 
 void CodeEditorComponent::setTemporaryUnderlining (const Array<Range<int>>&)
@@ -539,13 +544,11 @@ void CodeEditorComponent::setReadOnly (bool b) noexcept
 {
     if (readOnly != b)
     {
-        readOnly = b;
-
         if (b)
-            removeChildComponent (caret.get());
-        else
-            addAndMakeVisible (caret.get());
+            resetDirectionalFocusEditing();
 
+        readOnly = b;
+        updateCaretVisibility();
         invalidateAccessibilityHandler();
     }
 }
@@ -1360,8 +1363,95 @@ String CodeEditorComponent::getTextInRange (const Range<int>& range) const
 }
 
 //==============================================================================
+void CodeEditorComponent::beginDirectionalFocusEditing()
+{
+    if (! isDirectionalFocusNavigationEnabled()
+        || directionalFocusEditingActive
+        || readOnly)
+        return;
+
+    directionalFocusEditingOriginalText = document.getAllContent();
+    directionalFocusEditingState = std::make_unique<State> (*this);
+    directionalFocusEditingActive = true;
+    updateCaretVisibility();
+
+    if (auto* peer = getPeer())
+        peer->refreshTextInputTarget();
+
+    repaint();
+}
+
+bool CodeEditorComponent::endDirectionalFocusEditing (const bool shouldCancel)
+{
+    if (! directionalFocusEditingActive)
+        return false;
+
+    directionalFocusEditingActive = false;
+
+    if (shouldCancel)
+    {
+        document.applyChanges (directionalFocusEditingOriginalText);
+
+        if (directionalFocusEditingState != nullptr)
+            directionalFocusEditingState->restoreState (*this);
+
+        handleEscapeKey();
+    }
+
+    directionalFocusEditingOriginalText.clear();
+    directionalFocusEditingState.reset();
+    document.newTransaction();
+    updateCaretVisibility();
+
+    if (auto* peer = getPeer())
+        peer->refreshTextInputTarget();
+
+    repaint();
+    return true;
+}
+
+void CodeEditorComponent::resetDirectionalFocusEditing()
+{
+    if (! directionalFocusEditingActive)
+        return;
+
+    directionalFocusEditingActive = false;
+    directionalFocusEditingOriginalText.clear();
+    directionalFocusEditingState.reset();
+    document.newTransaction();
+    updateCaretVisibility();
+
+    if (auto* peer = getPeer())
+        peer->refreshTextInputTarget();
+
+    repaint();
+}
+
 bool CodeEditorComponent::keyPressed (const KeyPress& key)
 {
+    if (isDirectionalFocusNavigationEnabled())
+    {
+        if (key.isKeyCode (KeyPress::selectKey))
+        {
+            if (directionalFocusEditingActive)
+                return endDirectionalFocusEditing (false);
+
+            beginDirectionalFocusEditing();
+            return directionalFocusEditingActive;
+        }
+
+        if (directionalFocusEditingActive
+            && key.isKeyCode (KeyPress::returnKey))
+            return endDirectionalFocusEditing (false);
+
+        if (directionalFocusEditingActive
+            && (key.isKeyCode (KeyPress::escapeKey) || key.isKeyCode (KeyPress::menuKey)))
+            return endDirectionalFocusEditing (true);
+
+        if (! directionalFocusEditingActive)
+            return false;
+    }
+
     if (! TextEditorKeyMapper<CodeEditorComponent>::invokeKeyFunction (*this, key))
     {
         if (readOnly)
@@ -1378,6 +1468,13 @@ bool CodeEditorComponent::keyPressed (const KeyPress& key)
 
     pimpl->handleUpdateNowIfNeeded();
     return true;
+}
+
+FocusNavigationResult CodeEditorComponent::handleFocusNavigation (FocusNavigationDirection)
+{
+    return isDirectionalFocusNavigationEnabled() && directionalFocusEditingActive
+         ? FocusNavigationResult::blocked
+         : FocusNavigationResult::unhandled;
 }
 
 void CodeEditorComponent::handleReturnKey()
@@ -1480,8 +1577,30 @@ bool CodeEditorComponent::perform (const InvocationInfo& info)
 
 void CodeEditorComponent::lookAndFeelChanged()
 {
+    recreateCaret();
+}
+
+void CodeEditorComponent::recreateCaret()
+{
     caret.reset (getLookAndFeel().createCaretComponent (this));
-    addAndMakeVisible (caret.get());
+    updateCaretVisibility();
+}
+
+void CodeEditorComponent::updateCaretVisibility()
+{
+    if (caret == nullptr)
+        return;
+
+    if (! readOnly
+        && (! isDirectionalFocusNavigationEnabled() || directionalFocusEditingActive))
+    {
+        addAndMakeVisible (caret.get());
+        updateCaretPosition();
+    }
+    else
+    {
+        removeChildComponent (caret.get());
+    }
 }
 
 bool CodeEditorComponent::performCommand (const CommandID commandID)
@@ -1543,6 +1662,7 @@ static void codeEditorMenuCallback (int menuResult, CodeEditorComponent* editor)
 //==============================================================================
 void CodeEditorComponent::mouseDown (const MouseEvent& e)
 {
+    beginDirectionalFocusEditing();
     newTransaction();
     dragType = notDragging;
 
@@ -1625,8 +1745,20 @@ void CodeEditorComponent::mouseWheelMove (const MouseEvent& e, const MouseWheelD
 }
 
 //==============================================================================
-void CodeEditorComponent::focusGained (FocusChangeType)     { updateCaretPosition(); }
-void CodeEditorComponent::focusLost (FocusChangeType)       { updateCaretPosition(); }
+void CodeEditorComponent::focusGained (FocusChangeType cause)
+{
+    if (cause == FocusChangeType::focusChangedByMouseClick)
+        beginDirectionalFocusEditing();
+
+    updateCaretVisibility();
+    updateCaretPosition();
+}
+
+void CodeEditorComponent::focusLost (FocusChangeType)
+{
+    resetDirectionalFocusEditing();
+    updateCaretPosition();
+}
 
 //==============================================================================
 void CodeEditorComponent::setTabSize (const int numSpaces, const bool insertSpaces)
@@ -1853,5 +1985,117 @@ std::unique_ptr<AccessibilityHandler> CodeEditorComponent::createAccessibilityHa
 {
     return std::make_unique<CodeEditorAccessibilityHandler> (*this);
 }
+
+#if JUCE_UNIT_TESTS
+
+struct CodeEditorFocusNavigationTests final : UnitTest
+{
+    CodeEditorFocusNavigationTests()
+        : UnitTest ("CodeEditorComponent focus navigation", UnitTestCategories::gui)
+    {}
+
+    void runTest() override
+    {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+
+        beginTest ("Code editors use the platform focus-outline default");
+        {
+            CodeDocument document;
+            CodeEditorComponent editor (document, nullptr);
+
+           #if JUCE_TVOS
+            expect (editor.hasFocusOutline());
+           #else
+            expect (! editor.hasFocusOutline());
+           #endif
+        }
+
+        beginTest ("Directional focus reaches an inactive editor before Select starts editing");
+        {
+            CodeDocument document;
+            document.replaceAllContent ("Text");
+            CodeEditorComponent editor (document, nullptr);
+            editor.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (! editor.isTextInputActive());
+            expect (! editor.keyPressed (KeyPress (KeyPress::rightKey)));
+            expect (editor.handleFocusNavigation (FocusNavigationDirection::right)
+                    == FocusNavigationResult::unhandled);
+
+            expect (editor.keyPressed (KeyPress (KeyPress::selectKey)));
+            expect (editor.isTextInputActive());
+            expect (editor.handleFocusNavigation (FocusNavigationDirection::right)
+                    == FocusNavigationResult::blocked);
+        }
+
+        beginTest ("Menu restores document, caret, and selection state");
+        {
+            CodeDocument document;
+            document.replaceAllContent ("Before");
+            CodeEditorComponent editor (document, nullptr);
+            editor.setHighlightedRegion ({ 1, 4 });
+            editor.setFocusNavigationMode (FocusNavigationMode::directional);
+            const CodeEditorComponent::State originalState (editor);
+
+            expect (editor.keyPressed (KeyPress (KeyPress::selectKey)));
+            expect (editor.keyPressed (KeyPress ('x', ModifierKeys(), 'x')));
+            expect (document.getAllContent() != "Before");
+            expect (editor.keyPressed (KeyPress (KeyPress::menuKey)));
+            expectEquals (document.getAllContent(), String ("Before"));
+            expectEquals (CodeEditorComponent::State (editor).toString(), originalState.toString());
+            expect (! editor.isTextInputActive());
+        }
+
+        beginTest ("Select and focus loss commit and leave editing");
+        {
+            CodeDocument document;
+            document.replaceAllContent ("Before");
+            CodeEditorComponent editor (document, nullptr);
+            editor.moveCaretTo ({ document, document.getNumCharacters() }, false);
+            editor.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (editor.keyPressed (KeyPress (KeyPress::selectKey)));
+            expect (editor.keyPressed (KeyPress ('!', ModifierKeys(), '!')));
+            expect (editor.keyPressed (KeyPress (KeyPress::selectKey)));
+            expectEquals (document.getAllContent(), String ("Before!"));
+            expect (! editor.isTextInputActive());
+
+            expect (editor.keyPressed (KeyPress (KeyPress::selectKey)));
+            expect (editor.keyPressed (KeyPress ('?', ModifierKeys(), '?')));
+            editor.focusLost (Component::focusChangedDirectly);
+            expectEquals (document.getAllContent(), String ("Before!?"));
+            expect (! editor.isTextInputActive());
+        }
+
+        beginTest ("Read-only editors do not enter directional editing");
+        {
+            CodeDocument document;
+            CodeEditorComponent editor (document, nullptr);
+            editor.setReadOnly (true);
+            editor.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (! editor.keyPressed (KeyPress (KeyPress::selectKey)));
+            expect (! editor.isTextInputActive());
+            expect (editor.handleFocusNavigation (FocusNavigationDirection::down)
+                    == FocusNavigationResult::unhandled);
+        }
+
+        beginTest ("Disabled directional navigation preserves direct text input");
+        {
+            CodeDocument document;
+            document.replaceAllContent ("Text");
+            CodeEditorComponent editor (document, nullptr);
+            editor.setFocusNavigationMode (FocusNavigationMode::disabled);
+
+            expect (editor.isTextInputActive());
+            expect (editor.keyPressed (KeyPress ('x', ModifierKeys(), 'x')));
+            expectEquals (document.getAllContent(), String ("xText"));
+        }
+    }
+};
+
+static CodeEditorFocusNavigationTests codeEditorFocusNavigationTests;
+
+#endif
 
 } // namespace juce

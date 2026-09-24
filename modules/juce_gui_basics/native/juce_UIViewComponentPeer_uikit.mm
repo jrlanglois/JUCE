@@ -370,6 +370,7 @@ struct CADisplayLinkDeleter
 {
 @public
     UIViewComponentPeer* owner;
+    bool menuKeyWasConsumed;
 }
 
 - (instancetype) initWithOwner: (UIViewComponentPeer*) owner;
@@ -1231,7 +1232,9 @@ static std::optional<int> getKeyCodeForPress (UIPress* press)
 }
 
 API_AVAILABLE (ios (13.4), tvos (13.4))
-static bool attemptToConsumeKeys (JuceUIView* view, NSSet<UIPress*>* presses, bool& menuKeyWasConsumed)
+static bool attemptToConsumeKeys (UIViewComponentPeer* owner,
+                                  NSSet<UIPress*>* presses,
+                                  bool& menuKeyWasConsumed)
 {
     auto used = false;
 
@@ -1240,11 +1243,11 @@ static bool attemptToConsumeKeys (JuceUIView* view, NSSet<UIPress*>* presses, bo
         if (const auto code = getKeyCodeForPress (press))
         {
             auto pressWasUsed = false;
-            const auto handleCodepoint = [view, &pressWasUsed, code] (juce_wchar codepoint)
+            const auto handleCodepoint = [owner, &pressWasUsed, code] (juce_wchar codepoint)
             {
                 // These both need to fire; no short-circuiting!
-                pressWasUsed |= view->owner->handleKeyUpOrDown (true);
-                pressWasUsed |= view->owner->handleKeyPress (*code, codepoint);
+                pressWasUsed |= owner->handleKeyUpOrDown (true);
+                pressWasUsed |= owner->handleKeyPress (*code, codepoint);
             };
 
             if (auto* key = [press key])
@@ -1305,7 +1308,7 @@ static bool attemptToConsumeKeys (JuceUIView* view, NSSet<UIPress*>* presses, bo
                                     || (isEscape && owner->stringBeingComposed.isEmpty())
                                     || owner->findCurrentTextInputTarget() == nullptr;
             const auto wasConsumed = shouldConsume
-                                  && attemptToConsumeKeys (self, presses, wasMenuKeyConsumed);
+                                  && attemptToConsumeKeys (owner, presses, wasMenuKeyConsumed);
 
             self->menuKeyWasConsumed = wasMenuKeyConsumed;
             return wasConsumed;
@@ -1500,6 +1503,7 @@ static void postTraitChangeNotification (UITraitCollection* previousTraitCollect
 {
     [super initWithFrame: CGRectMake (0.0, 0.0, 1.0, 1.0)];
     owner = ownerIn;
+    menuKeyWasConsumed = false;
     self.delegate = self;
     self.borderStyle = UITextBorderStyleNone;
     self.backgroundColor = [UIColor clearColor];
@@ -1509,6 +1513,70 @@ static void postTraitChangeNotification (UITraitCollection* previousTraitCollect
     self.spellCheckingType = UITextSpellCheckingTypeNo;
     self.accessibilityElementsHidden = YES;
     return self;
+}
+
+- (void) pressesBegan: (NSSet<UIPress*>*) presses withEvent: (UIPressesEvent*) event
+{
+    if (@available (tvOS 13.4, *))
+    {
+        auto hasMenuPress = false;
+
+        updateModifiers ([event modifierFlags]);
+
+        for (UIPress* press in presses)
+        {
+            if ([press type] == UIPressTypeMenu)
+            {
+                hasMenuPress = true;
+                iOSGlobals::keysCurrentlyDown.setDown (KeyPress::menuKey, true);
+            }
+        }
+
+        if (hasMenuPress)
+        {
+            auto wasMenuKeyConsumed = false;
+            const auto wasConsumed = attemptToConsumeKeys (owner, presses, wasMenuKeyConsumed);
+            menuKeyWasConsumed = wasMenuKeyConsumed;
+
+            if (wasConsumed)
+                return;
+        }
+    }
+
+    [super pressesBegan: presses withEvent: event];
+}
+
+- (void) pressesEnded: (NSSet<UIPress*>*) presses withEvent: (UIPressesEvent*) event
+{
+    const auto handled = doKeysUp (owner, presses, event);
+    auto hasMenuPress = false;
+
+    for (UIPress* press in presses)
+        hasMenuPress |= [press type] == UIPressTypeMenu;
+
+    if (hasMenuPress)
+    {
+        const auto consumed = menuKeyWasConsumed;
+        menuKeyWasConsumed = false;
+
+        if (consumed)
+            return;
+
+        if (auto* app = JUCEApplicationBase::getInstance())
+            if (app->backButtonPressed())
+                return;
+    }
+
+    if (! handled)
+        [super pressesEnded: presses withEvent: event];
+}
+
+- (void) pressesCancelled: (NSSet<UIPress*>*) presses withEvent: (UIPressesEvent*) event
+{
+    menuKeyWasConsumed = false;
+
+    if (! doKeysUp (owner, presses, event))
+        [super pressesCancelled: presses withEvent: event];
 }
 
 - (void) synchroniseWithTextInputTarget
@@ -2588,6 +2656,29 @@ bool UIViewComponentPeer::hasFocusableComponent()
 
 void UIViewComponentPeer::moveKeyboardFocus (UIFocusHeading heading)
 {
+    const auto direction = [heading]() -> std::optional<FocusNavigationDirection>
+    {
+        if (heading == UIFocusHeadingLeft)
+            return FocusNavigationDirection::left;
+
+        if (heading == UIFocusHeadingRight)
+            return FocusNavigationDirection::right;
+
+        if (heading == UIFocusHeadingUp)
+            return FocusNavigationDirection::up;
+
+        if (heading == UIFocusHeadingDown)
+            return FocusNavigationDirection::down;
+
+        return {};
+    }();
+
+    if (direction.has_value() && isDirectionalFocusNavigationEnabled())
+    {
+        component.moveKeyboardFocus (*direction);
+        return;
+    }
+
     auto traverser = component.createKeyboardFocusTraverser();
 
     if (traverser == nullptr)

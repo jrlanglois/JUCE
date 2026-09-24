@@ -687,6 +687,7 @@ protected:
     //==============================================================================
     static void forceDisplayUpdate();
     void callVBlankListeners (double timestampSec);
+    bool isDirectionalFocusNavigationEnabled() const;
 
     Component& component;
     const int styleFlags;

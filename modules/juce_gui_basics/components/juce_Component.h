@@ -1425,6 +1425,32 @@ public:
     */
     Component* findKeyboardFocusContainer() const;
 
+    /** Sets the directional focus-navigation mode for this Component and its descendants.
+
+        Descendants whose mode is FocusNavigationMode::inherit use the nearest
+        ancestor mode. If every Component up to the peer root inherits, the platform
+        default is used.
+
+        @see getFocusNavigationMode, FocusNavigationMode
+    */
+    void setFocusNavigationMode (FocusNavigationMode mode);
+
+    /** Returns the focus-navigation mode set directly on this Component.
+
+        This returns FocusNavigationMode::inherit by default. It does not resolve
+        inherited or platform-default values.
+
+        @see setFocusNavigationMode, FocusNavigationMode
+    */
+    FocusNavigationMode getFocusNavigationMode() const noexcept;
+
+    /** Returns true if this Component's inherited focus-navigation mode resolves to directional.
+
+        Unlike getFocusNavigationMode(), this resolves ancestor and platform-default
+        modes.
+    */
+    bool isDirectionalFocusNavigationEnabled() const noexcept;
+
     //==============================================================================
     /** Sets a flag to indicate whether this component wants keyboard focus or not.
 
@@ -1523,6 +1549,31 @@ public:
     */
     void moveKeyboardFocusToSibling (bool moveToNext);
 
+    /** Handles a directional focus request offered to this Component.
+
+        The default implementation returns FocusNavigationResult::unhandled. A
+        subclass may return handled after performing a local action, or blocked
+        when it deliberately retains the request without changing state. Only an
+        unhandled request may bubble to an owner or become outward focus traversal.
+
+        Widget handling and focus transfer are separate. Returning handled or blocked
+        retains keyboard focus on the current Component.
+
+        @see moveKeyboardFocus, FocusNavigationDirection, FocusNavigationResult
+    */
+    virtual FocusNavigationResult handleFocusNavigation (FocusNavigationDirection direction);
+
+    /** Dispatches a directional focus request within this Component's navigation tree.
+
+        This offers the request to the focused Component and its owners before asking
+        the keyboard-focus traverser for a destination. It returns true only if
+        keyboard focus changed; a handled local action therefore returns false.
+
+        @see handleFocusNavigation, setFocusNavigationMode,
+             ComponentTraverser::getComponentInDirection
+    */
+    bool moveKeyboardFocus (FocusNavigationDirection direction);
+
     /** Returns the component that currently has the keyboard focus.
 
         @returns the focused component, or nullptr if nothing is focused.
@@ -1569,7 +1620,7 @@ public:
 
         @see FocusOutline, hasFocusOutline
     */
-    void setHasFocusOutline (bool hasFocusOutline) noexcept  { flags.hasFocusOutlineFlag = hasFocusOutline; }
+    void setHasFocusOutline (bool hasFocusOutline) noexcept;
 
     /** Returns true if this component should have a focus outline.
 
@@ -2650,6 +2701,9 @@ private:
     //==============================================================================
     friend class ComponentPeer;
     friend class detail::MouseInputSourceImpl;
+   #if JUCE_UNIT_TESTS
+    friend struct ComponentTests;
+   #endif
 
     /** @cond */
     static Component* currentlyFocusedComponent;
@@ -2723,6 +2777,11 @@ private:
     static void internalMouseWheel (SafePointer<Component>, MouseInputSource, Point<float>, Time, const MouseWheelDetails&);
     static void internalMagnifyGesture (SafePointer<Component>, MouseInputSource, Point<float>, Time, float);
     void internalBroughtToFront();
+    class KeyboardFocusHandoff;
+    KeyboardFocusHandoff createKeyboardFocusHandoff();
+    void applyKeyboardFocusHandoff (const KeyboardFocusHandoff&);
+    bool moveKeyboardFocusTo (Component*, FocusChangeDirection);
+    FocusNavigationMode getEffectiveFocusNavigationMode() const noexcept;
     void internalKeyboardFocusGain (FocusChangeType, const WeakReference<Component>&, FocusChangeDirection);
     void internalKeyboardFocusGain (FocusChangeType);
     void internalKeyboardFocusLoss (FocusChangeType);

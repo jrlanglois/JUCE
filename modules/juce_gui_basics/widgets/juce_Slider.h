@@ -722,6 +722,19 @@ public:
     /** Returns true if the scroll wheel can move the slider. */
     bool isScrollWheelEnabled() const noexcept;
 
+    /** Chooses whether Back/Menu or Escape cancels an active focus adjustment.
+
+        A single-value slider enters focus adjustment when Select is pressed while
+        directional focus navigation is active. If cancellation is enabled, Back/Menu
+        or Escape restores the value from the start of the adjustment and exits it.
+        If cancellation is disabled, which is the default, those keys remain unhandled
+        and leave both the value and adjustment state unchanged.
+    */
+    void setBackButtonCancelsAdjustment (bool shouldCancel) noexcept;
+
+    /** Returns true if Back/Menu or Escape cancels an active focus adjustment. */
+    bool doesBackButtonCancelAdjustment() const noexcept;
+
     /** Returns a number to indicate which thumb is currently being dragged by the mouse.
 
         This will return 0 for the main thumb, 1 for the minimum-value thumb, 2 for
@@ -1020,6 +1033,10 @@ public:
     void mouseEnter (const MouseEvent&) override;
     /** @internal */
     bool keyPressed (const KeyPress&) override;
+    /** @internal */
+    FocusNavigationResult handleFocusNavigation (FocusNavigationDirection) override;
+    /** @internal */
+    void focusLost (FocusChangeType) override;
     /** @internal */
     std::unique_ptr<AccessibilityHandler> createAccessibilityHandler() override;
 

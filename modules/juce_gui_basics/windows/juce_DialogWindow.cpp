@@ -62,6 +62,12 @@ bool DialogWindow::keyPressed (const KeyPress& key)
     if (key == KeyPress::escapeKey && escapeKeyPressed())
         return true;
 
+    if (isDirectionalFocusNavigationEnabled() && key.isKeyCode (KeyPress::menuKey))
+    {
+        escapeKeyPressed();
+        return true;
+    }
+
     return DocumentWindow::keyPressed (key);
 }
 
@@ -92,10 +98,19 @@ public:
                             ? Component::getApproximateScaleFactorForComponent (options.componentToCentreAround)
                             : 1.0f)
     {
+        auto* modeSource = options.componentToCentreAround != nullptr ? options.componentToCentreAround
+                                                                      : options.content.get();
+        const auto usesDirectionalNavigation = modeSource != nullptr
+                                             && modeSource->isDirectionalFocusNavigationEnabled();
+
         if (options.content.willDeleteObject())
             setContentOwned (options.content.release(), true);
         else
             setContentNonOwned (options.content.release(), true);
+
+        if (modeSource != nullptr)
+            setFocusNavigationMode (usesDirectionalNavigation ? FocusNavigationMode::directional
+                                                              : FocusNavigationMode::disabled);
 
         centreAroundComponent (options.componentToCentreAround, getWidth(), getHeight());
         setResizable (options.resizable, options.useBottomRightCornerResizer);
@@ -186,5 +201,62 @@ std::unique_ptr<AccessibilityHandler> DialogWindow::createAccessibilityHandler()
 {
     return std::make_unique<AccessibilityHandler> (*this, AccessibilityRole::dialogWindow);
 }
+
+#if JUCE_UNIT_TESTS
+
+struct DialogWindowFocusNavigationTests final : UnitTest
+{
+    DialogWindowFocusNavigationTests()
+        : UnitTest ("DialogWindow focus navigation", UnitTestCategories::gui)
+    {}
+
+    struct TestDialog final : DialogWindow
+    {
+        explicit TestDialog (bool escapeCloses)
+            : DialogWindow ("Dialog", Colours::black, escapeCloses, false)
+        {}
+
+        void closeButtonPressed() override {}
+        bool sendKeyPress (const KeyPress& key)    { return keyPressed (key); }
+    };
+
+    void runTest() override
+    {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+
+        beginTest ("Directional Menu closes or remains contained by the dialog");
+        {
+            TestDialog dismissible (true);
+            dismissible.setFocusNavigationMode (FocusNavigationMode::directional);
+            expect (dismissible.sendKeyPress (KeyPress (KeyPress::menuKey)));
+
+            TestDialog nonDismissible (false);
+            nonDismissible.setFocusNavigationMode (FocusNavigationMode::directional);
+            expect (nonDismissible.sendKeyPress (KeyPress (KeyPress::menuKey)));
+        }
+
+        beginTest ("Disabled directional navigation preserves the existing Menu result");
+        {
+            TestDialog dialog (false);
+            dialog.setFocusNavigationMode (FocusNavigationMode::disabled);
+            expect (! dialog.sendKeyPress (KeyPress (KeyPress::menuKey)));
+        }
+
+        beginTest ("LaunchOptions carries explicit directional mode into the new window");
+        {
+            Component content;
+            content.setSize (100, 80);
+            content.setFocusNavigationMode (FocusNavigationMode::directional);
+            DialogWindow::LaunchOptions options;
+            options.content.setNonOwned (&content);
+            std::unique_ptr<DialogWindow> dialog (options.create());
+            expect (dialog->getFocusNavigationMode() == FocusNavigationMode::directional);
+        }
+    }
+};
+
+static DialogWindowFocusNavigationTests dialogWindowFocusNavigationTests;
+
+#endif
 
 } // namespace juce

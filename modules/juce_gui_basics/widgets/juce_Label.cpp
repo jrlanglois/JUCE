@@ -120,6 +120,10 @@ void Label::setEditable (bool editOnSingleClick,
     setFocusContainerType (isKeyboardFocusable ? FocusContainerType::keyboardFocusContainer
                                                : FocusContainerType::none);
 
+   #if JUCE_TVOS
+    setHasFocusOutline (isKeyboardFocusable);
+   #endif
+
     invalidateAccessibilityHandler();
 }
 
@@ -235,6 +239,7 @@ void Label::showEditor()
         editor->setText (getText(), false);
         editor->setKeyboardType (keyboardType);
         editor->addListener (this);
+        editor->beginDirectionalFocusEditing();
         editor->grabKeyboardFocus();
 
         if (editor == nullptr) // may be deleted by a callback
@@ -378,10 +383,25 @@ void Label::focusGained (FocusChangeType cause)
 {
     if (editSingleClick
          && isEnabled()
+         && ! isDirectionalFocusNavigationEnabled()
          && cause == focusChangedByTabKey)
     {
         showEditor();
     }
+}
+
+bool Label::keyPressed (const KeyPress& key)
+{
+    if (isDirectionalFocusNavigationEnabled()
+        && isEditable()
+        && isEnabled()
+        && key.isKeyCode (KeyPress::selectKey))
+    {
+        showEditor();
+        return editor != nullptr;
+    }
+
+    return false;
 }
 
 void Label::enablementChanged()
@@ -421,6 +441,10 @@ public:
 
     Component* getNextComponent     (Component* c) override  { return KeyboardFocusTraverser::getNextComponent     (getComp (c)); }
     Component* getPreviousComponent (Component* c) override  { return KeyboardFocusTraverser::getPreviousComponent (getComp (c)); }
+    Component* getComponentInDirection (Component* c, FocusNavigationDirection direction) override
+    {
+        return KeyboardFocusTraverser::getComponentInDirection (getComp (c), direction);
+    }
 
     std::vector<Component*> getAllComponents (Component* parent) override
     {
@@ -588,5 +612,97 @@ std::unique_ptr<AccessibilityHandler> Label::createAccessibilityHandler()
 {
     return std::make_unique<LabelAccessibilityHandler> (*this);
 }
+
+#if JUCE_UNIT_TESTS
+
+struct LabelFocusNavigationTests final : UnitTest
+{
+    LabelFocusNavigationTests()
+        : UnitTest ("Label focus navigation", UnitTestCategories::gui)
+    {}
+
+    struct TestLabel final : Label
+    {
+        void sendFocusGained (Component::FocusChangeType cause)    { focusGained (cause); }
+        bool sendKeyPress (const KeyPress& key)                    { return keyPressed (key); }
+    };
+
+    void runTest() override
+    {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+
+        expect (MessageManager::callSync ([this] { runMessageThreadTests(); }));
+    }
+
+    void runMessageThreadTests()
+    {
+        beginTest ("Editable labels use the platform focus-outline default");
+        {
+            TestLabel label;
+            label.setEditable (true);
+            expect (label.getWantsKeyboardFocus());
+
+           #if JUCE_TVOS
+            expect (label.hasFocusOutline());
+           #else
+            expect (! label.hasFocusOutline());
+           #endif
+
+            label.setEditable (false);
+            expect (! label.getWantsKeyboardFocus());
+
+           #if JUCE_TVOS
+            expect (! label.hasFocusOutline());
+           #endif
+        }
+
+        beginTest ("Directional entry keeps the label inactive until Select");
+        {
+            TestLabel label;
+            label.setText ("Before", dontSendNotification);
+            label.setEditable (true);
+            label.setFocusNavigationMode (FocusNavigationMode::directional);
+            label.setBounds (0, 0, 100, 30);
+            label.addToDesktop (ComponentPeer::windowIsTemporary);
+            label.setVisible (true);
+
+            label.sendFocusGained (Component::focusChangedByTabKey);
+            expect (! label.isBeingEdited());
+            expect (label.sendKeyPress (KeyPress (KeyPress::selectKey)));
+            expect (label.isBeingEdited());
+
+            auto* editor = label.getCurrentTextEditor();
+            expect (editor != nullptr);
+
+            if (editor != nullptr)
+            {
+                expect (editor->isTextInputActive());
+                expect (editor->handleFocusNavigation (FocusNavigationDirection::right)
+                        == FocusNavigationResult::blocked);
+            }
+
+            label.hideEditor (true);
+            expectEquals (label.getText(), String ("Before"));
+        }
+
+        beginTest ("Disabled directional navigation preserves tab-to-edit behaviour");
+        {
+            TestLabel label;
+            label.setEditable (true);
+            label.setFocusNavigationMode (FocusNavigationMode::disabled);
+            label.setBounds (0, 0, 100, 30);
+            label.addToDesktop (ComponentPeer::windowIsTemporary);
+            label.setVisible (true);
+
+            label.sendFocusGained (Component::focusChangedByTabKey);
+            expect (label.isBeingEdited());
+            label.hideEditor (true);
+        }
+    }
+};
+
+static LabelFocusNavigationTests labelFocusNavigationTests;
+
+#endif
 
 } // namespace juce

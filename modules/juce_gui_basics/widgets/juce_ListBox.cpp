@@ -198,6 +198,7 @@ public:
 
     void performSelection (const MouseEvent& e, bool isMouseUp)
     {
+        owner.updateFocusNavigationRowFromPointer (getRow());
         owner.selectRowsBasedOnModifierKeys (getRow(), e.mods, isMouseUp);
 
         if (auto* m = owner.getListBoxModel())
@@ -429,6 +430,8 @@ public:
                                               jmax (owner.getWidth() - owner.outlineThickness * 2,
                                                     content.getWidth()),
                                               owner.headerComponent->getHeight());
+
+        owner.refreshFocusNavigationOutline();
     }
 
     void selectRow (const int row, const int rowH, const bool dontScroll,
@@ -582,6 +585,7 @@ void ListBox::setModel (ListBoxModel* const newModel)
 {
     if (model != newModel)
     {
+        setFocusNavigationRow (-1, false);
         assignModelPtr (newModel);
         repaint();
         updateContent();
@@ -670,6 +674,8 @@ void ListBox::updateContent()
         if (auto* handler = getAccessibilityHandler())
             handler->notifyAccessibilityEvent (AccessibilityEvent::rowSelectionChanged);
     }
+
+    validateFocusNavigationRow();
 }
 
 //==============================================================================
@@ -918,9 +924,190 @@ void ListBox::scrollToEnsureRowIsOnscreen (const int row)
 }
 
 //==============================================================================
+int ListBox::getFocusNavigationRow() const noexcept
+{
+    return focusNavigationRow;
+}
+
+bool ListBox::isRowFocusNavigationEligible (const int rowNumber) const
+{
+    return model != nullptr
+        && isPositiveAndBelow (rowNumber, totalItems)
+        && model->isRowFocusNavigationEnabled (rowNumber);
+}
+
+int ListBox::findEligibleFocusNavigationRow (int rowNumber, const int delta) const
+{
+    jassert (delta == -1 || delta == 1);
+
+    while (isPositiveAndBelow (rowNumber, totalItems))
+    {
+        if (isRowFocusNavigationEligible (rowNumber))
+            return rowNumber;
+
+        rowNumber += delta;
+    }
+
+    return -1;
+}
+
+int ListBox::findInitialFocusNavigationRow() const
+{
+    if (isRowFocusNavigationEligible (lastRowSelected))
+        return lastRowSelected;
+
+    for (int i = selected.size(); --i >= 0;)
+        if (isRowFocusNavigationEligible (selected[i]))
+            return selected[i];
+
+    return findEligibleFocusNavigationRow (0, 1);
+}
+
+void ListBox::setFocusNavigationRow (const int requestedRow, const bool reveal)
+{
+    const auto newRow = isRowFocusNavigationEligible (requestedRow) ? requestedRow : -1;
+
+    if (std::exchange (focusNavigationRow, newRow) != newRow)
+        if (model != nullptr)
+            model->focusNavigationRowChanged (newRow);
+
+    if (reveal && newRow >= 0)
+    {
+        scrollToEnsureRowIsOnscreen (newRow);
+        viewport->updateContents();
+    }
+
+    refreshFocusNavigationOutline();
+}
+
+void ListBox::updateFocusNavigationRowFromPointer (const int rowNumber)
+{
+    if (isRowFocusNavigationEligible (rowNumber))
+        setFocusNavigationRow (rowNumber, false);
+}
+
+void ListBox::validateFocusNavigationRow()
+{
+    if (focusNavigationRow >= 0 && ! isRowFocusNavigationEligible (focusNavigationRow))
+    {
+        const auto next = findEligibleFocusNavigationRow (focusNavigationRow + 1, 1);
+        setFocusNavigationRow (next >= 0 ? next
+                                        : findEligibleFocusNavigationRow (jmin (focusNavigationRow, totalItems) - 1, -1),
+                                     hasKeyboardFocus (true));
+    }
+    else if (focusNavigationRow < 0 && hasKeyboardFocus (true) && isDirectionalFocusNavigationEnabled())
+    {
+        setFocusNavigationRow (findInitialFocusNavigationRow(), true);
+    }
+    else
+    {
+        refreshFocusNavigationOutline();
+    }
+}
+
+void ListBox::refreshFocusNavigationOutline()
+{
+    focusNavigationOutline.reset();
+
+    if (! (isDirectionalFocusNavigationEnabled() && hasKeyboardFocus (false)))
+        return;
+
+    if (auto* rowComponent = viewport->getComponentForRowIfOnscreen (focusNavigationRow))
+    {
+        focusNavigationOutline = rowComponent->getLookAndFeel().createFocusOutlineForComponent (*rowComponent);
+
+        if (focusNavigationOutline != nullptr)
+            focusNavigationOutline->setOwner (rowComponent);
+    }
+}
+
+bool ListBox::moveFocusNavigationRow (const int delta)
+{
+    jassert (delta == -1 || delta == 1);
+
+    const auto start = focusNavigationRow >= 0 ? focusNavigationRow + delta
+                                               : (delta > 0 ? 0 : totalItems - 1);
+    const auto newRow = findEligibleFocusNavigationRow (start, delta);
+
+    if (newRow < 0)
+        return false;
+
+    setFocusNavigationRow (newRow, true);
+    return true;
+}
+
+bool ListBox::activateFocusNavigationRow()
+{
+    if (! isRowFocusNavigationEligible (focusNavigationRow))
+        return false;
+
+    selectRow (focusNavigationRow, false, true);
+
+    if (model != nullptr)
+        model->returnKeyPressed (focusNavigationRow);
+
+    return true;
+}
+
 bool ListBox::keyPressed (const KeyPress& key)
 {
     checkModelPtrIsValid();
+
+    if (isDirectionalFocusNavigationEnabled())
+    {
+        if (key.isKeyCode (KeyPress::upKey))
+            return moveFocusNavigationRow (-1);
+
+        if (key.isKeyCode (KeyPress::downKey))
+            return moveFocusNavigationRow (1);
+
+        if (key.isKeyCode (KeyPress::homeKey))
+        {
+            if (const auto row = findEligibleFocusNavigationRow (0, 1); row >= 0)
+            {
+                setFocusNavigationRow (row, true);
+                return true;
+            }
+
+            return false;
+        }
+
+        if (key.isKeyCode (KeyPress::endKey))
+        {
+            if (const auto row = findEligibleFocusNavigationRow (totalItems - 1, -1); row >= 0)
+            {
+                setFocusNavigationRow (row, true);
+                return true;
+            }
+
+            return false;
+        }
+
+        if (key.isKeyCode (KeyPress::pageUpKey) || key.isKeyCode (KeyPress::pageDownKey))
+        {
+            const auto delta = key.isKeyCode (KeyPress::pageUpKey) ? -1 : 1;
+            const auto currentRow = focusNavigationRow >= 0
+                                  ? focusNavigationRow
+                                  : (delta > 0 ? -1 : totalItems);
+            const auto targetRow = jlimit (0, jmax (0, totalItems - 1),
+                                           currentRow + delta * jmax (1, viewport->getHeight() / getRowHeight()));
+            auto row = findEligibleFocusNavigationRow (targetRow, delta);
+
+            if (row < 0)
+                row = findEligibleFocusNavigationRow (targetRow, -delta);
+
+            if (row >= 0 && row != focusNavigationRow)
+            {
+                setFocusNavigationRow (row, true);
+                return true;
+            }
+
+            return false;
+        }
+
+        if (key.isKeyCode (KeyPress::returnKey) || key.isKeyCode (KeyPress::selectKey))
+            return activateFocusNavigationRow();
+    }
 
     const int numVisibleRows = viewport->getHeight() / getRowHeight();
 
@@ -994,8 +1181,31 @@ bool ListBox::keyPressed (const KeyPress& key)
     return true;
 }
 
+FocusNavigationResult ListBox::handleFocusNavigation (const FocusNavigationDirection direction)
+{
+    if (! isDirectionalFocusNavigationEnabled())
+        return FocusNavigationResult::unhandled;
+
+    switch (direction)
+    {
+        case FocusNavigationDirection::up:   return moveFocusNavigationRow (-1) ? FocusNavigationResult::handled
+                                                                                : FocusNavigationResult::unhandled;
+        case FocusNavigationDirection::down: return moveFocusNavigationRow (1)  ? FocusNavigationResult::handled
+                                                                                : FocusNavigationResult::unhandled;
+        case FocusNavigationDirection::left:
+        case FocusNavigationDirection::right:
+            return FocusNavigationResult::unhandled;
+    }
+
+    jassertfalse;
+    return FocusNavigationResult::unhandled;
+}
+
 bool ListBox::keyStateChanged (const bool isKeyDown)
 {
+    if (isDirectionalFocusNavigationEnabled())
+        return false;
+
     return isKeyDown
             && (KeyPress::isKeyCurrentlyDown (KeyPress::upKey)
                 || KeyPress::isKeyCurrentlyDown (KeyPress::pageUpKey)
@@ -1066,9 +1276,30 @@ void ListBox::colourChanged()
     repaint();
 }
 
+void ListBox::lookAndFeelChanged()
+{
+    refreshFocusNavigationOutline();
+}
+
 void ListBox::parentHierarchyChanged()
 {
     colourChanged();
+    refreshFocusNavigationOutline();
+}
+
+void ListBox::focusGained (FocusChangeType)
+{
+    validateFocusNavigationRow();
+}
+
+void ListBox::focusLost (FocusChangeType)
+{
+    refreshFocusNavigationOutline();
+}
+
+void ListBox::focusOfChildComponentChanged (FocusChangeType)
+{
+    validateFocusNavigationRow();
 }
 
 void ListBox::setOutlineThickness (int newThickness)
@@ -1261,5 +1492,145 @@ void ListBoxModel::listWasScrolled() {}
 var ListBoxModel::getDragSourceDescription (const SparseSet<int>&)      { return {}; }
 String ListBoxModel::getTooltipForRow (int)                             { return {}; }
 MouseCursor ListBoxModel::getMouseCursorForRow (int)                    { return MouseCursor::NormalCursor; }
+bool ListBoxModel::isRowFocusNavigationEnabled (int)                    { return true; }
+void ListBoxModel::focusNavigationRowChanged (int)                      {}
+
+#if JUCE_UNIT_TESTS
+
+struct ListBoxFocusNavigationTests final : UnitTest
+{
+    ListBoxFocusNavigationTests()
+        : UnitTest ("ListBox focus navigation", UnitTestCategories::gui)
+    {}
+
+    struct Model final : ListBoxModel
+    {
+        int getNumRows() override                                      { return numRows; }
+        void paintListBoxItem (int, Graphics&, int, int, bool) override {}
+
+        bool isRowFocusNavigationEnabled (int row) override
+        {
+            return ! ineligibleRows.contains (row);
+        }
+
+        void focusNavigationRowChanged (int row) override
+        {
+            focusChanges.add (row);
+        }
+
+        void returnKeyPressed (int row) override
+        {
+            activatedRows.add (row);
+        }
+
+        int numRows = 5;
+        Array<int> ineligibleRows;
+        Array<int> focusChanges;
+        Array<int> activatedRows;
+    };
+
+    void runTest() override
+    {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+
+        beginTest ("Navigation focus skips ineligible rows without changing selection");
+        {
+            Model model;
+            model.ineligibleRows.add (1);
+            ListBox list ("List", &model);
+            list.setBounds (0, 0, 200, 120);
+            list.setFocusNavigationMode (FocusNavigationMode::directional);
+            list.updateContent();
+
+            expectEquals (list.getFocusNavigationRow(), -1);
+            expect (list.handleFocusNavigation (FocusNavigationDirection::down)
+                    == FocusNavigationResult::handled);
+            expectEquals (list.getFocusNavigationRow(), 0);
+            expectEquals (list.getNumSelectedRows(), 0);
+            expect (list.handleFocusNavigation (FocusNavigationDirection::down)
+                    == FocusNavigationResult::handled);
+            expectEquals (list.getFocusNavigationRow(), 2);
+            expectEquals (list.getNumSelectedRows(), 0);
+            expect (model.focusChanges == Array<int> ({ 0, 2 }));
+        }
+
+        beginTest ("Collection edges are offered to the surrounding focus scope");
+        {
+            Model model;
+            model.ineligibleRows.addArray ({ 1, 2, 3 });
+            ListBox list ("List", &model);
+            list.setFocusNavigationMode (FocusNavigationMode::directional);
+            list.updateContent();
+
+            expect (list.keyPressed (KeyPress (KeyPress::endKey)));
+            expectEquals (list.getFocusNavigationRow(), 4);
+            expect (list.handleFocusNavigation (FocusNavigationDirection::down)
+                    == FocusNavigationResult::unhandled);
+            expect (list.handleFocusNavigation (FocusNavigationDirection::left)
+                    == FocusNavigationResult::unhandled);
+
+            expect (list.keyPressed (KeyPress (KeyPress::homeKey)));
+            expectEquals (list.getFocusNavigationRow(), 0);
+            expect (list.handleFocusNavigation (FocusNavigationDirection::up)
+                    == FocusNavigationResult::unhandled);
+        }
+
+        beginTest ("Select makes the navigation row the sole selection and activates it");
+        {
+            Model model;
+            ListBox list ("List", &model);
+            list.setMultipleSelectionEnabled (true);
+            list.setFocusNavigationMode (FocusNavigationMode::directional);
+            list.updateContent();
+            list.selectRow (0);
+            list.selectRow (1, false, false);
+
+            expect (list.keyPressed (KeyPress (KeyPress::endKey)));
+            expectEquals (list.getFocusNavigationRow(), 4);
+            expectEquals (list.getNumSelectedRows(), 2);
+            expect (list.keyPressed (KeyPress (KeyPress::selectKey)));
+            expectEquals (list.getNumSelectedRows(), 1);
+            expect (list.isRowSelected (4));
+            expect (model.activatedRows == Array<int> ({ 4 }));
+        }
+
+        beginTest ("Dynamic eligibility hands navigation focus to the next row");
+        {
+            Model model;
+            ListBox list ("List", &model);
+            list.setFocusNavigationMode (FocusNavigationMode::directional);
+            list.updateContent();
+
+            expect (list.keyPressed (KeyPress (KeyPress::homeKey)));
+            expect (list.handleFocusNavigation (FocusNavigationDirection::down)
+                    == FocusNavigationResult::handled);
+            expectEquals (list.getFocusNavigationRow(), 1);
+
+            model.ineligibleRows.add (1);
+            list.updateContent();
+            expectEquals (list.getFocusNavigationRow(), 2);
+
+            list.focusLost (Component::focusChangedDirectly);
+            list.focusGained (Component::focusChangedDirectly);
+            expectEquals (list.getFocusNavigationRow(), 2);
+        }
+
+        beginTest ("Disabled directional navigation preserves selection-based arrows");
+        {
+            Model model;
+            ListBox list ("List", &model);
+            list.setFocusNavigationMode (FocusNavigationMode::disabled);
+            list.updateContent();
+
+            expect (list.keyPressed (KeyPress (KeyPress::downKey)));
+            expectEquals (list.getSelectedRow(), 0);
+            expectEquals (list.getFocusNavigationRow(), -1);
+        }
+    }
+};
+
+static ListBoxFocusNavigationTests listBoxFocusNavigationTests;
+
+#endif
 
 } // namespace juce

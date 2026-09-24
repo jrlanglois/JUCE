@@ -126,6 +126,10 @@ public:
     void resized() override;
     /** @internal */
     void childBoundsChanged (Component*) override;
+    /** @internal */
+    void focusGained (FocusChangeType) override;
+    /** @internal */
+    void focusLost (FocusChangeType) override;
 
 protected:
     friend class TabbedButtonBar;
@@ -175,6 +179,24 @@ public:
         TabsAtRight
     };
 
+    /** Controls when keyboard focus selects a tab.
+
+        This policy is independent of directional focus movement. In delayed mode,
+        a focused tab is selected after the delay set by setFocusSelectionDelay().
+        In immediate mode it is selected as soon as it receives focus. In selectOnly
+        mode, moving focus does not select a tab; Return or Select still activates it.
+
+        The default is delayed on tvOS and selectOnly on other platforms.
+
+        @see setFocusSelectionMode, setFocusSelectionDelay
+    */
+    enum class FocusSelectionMode
+    {
+        delayed,
+        immediate,
+        selectOnly
+    };
+
     //==============================================================================
     /** Creates a TabbedButtonBar with a given orientation.
         You can change the orientation later if you need to.
@@ -203,6 +225,26 @@ public:
 
     /** Returns the thickness of the bar, which may be its width or height, depending on the orientation. */
     int getThickness() const noexcept                   { return isVertical() ? getWidth() : getHeight(); }
+
+    /** Sets the policy used when a tab receives keyboard focus.
+
+        Changing the policy cancels any pending delayed selection. If a tab is
+        currently focused, the new policy is then applied to that tab.
+    */
+    void setFocusSelectionMode (FocusSelectionMode);
+
+    /** Returns the policy used when a tab receives keyboard focus. */
+    FocusSelectionMode getFocusSelectionMode() const noexcept       { return focusSelectionMode; }
+
+    /** Sets the delay used by FocusSelectionMode::delayed, in milliseconds.
+
+        The value must be non-negative. A delay of zero selects the focused tab
+        immediately.
+    */
+    void setFocusSelectionDelay (int delayMilliseconds);
+
+    /** Returns the delay used by FocusSelectionMode::delayed, in milliseconds. */
+    int getFocusSelectionDelay() const noexcept                     { return focusSelectionDelay; }
 
     /** Changes the minimum scale factor to which the tabs can be compressed when trying to
         fit a lot of tabs on-screen.
@@ -356,6 +398,8 @@ protected:
     virtual TabBarButton* createTabButton (const String& tabName, int tabIndex);
 
 private:
+    friend class TabBarButton;
+
     struct TabInfo
     {
         std::unique_ptr<TabBarButton> button;
@@ -370,11 +414,22 @@ private:
     int currentTabIndex = -1;
 
     class BehindFrontTabComp;
+    class FocusSelectionController;
     std::unique_ptr<BehindFrontTabComp> behindFrontTab;
     std::unique_ptr<Button> extraTabsButton;
+    std::unique_ptr<FocusSelectionController> focusSelectionController;
 
     void showExtraItemsMenu();
     void updateTabPositions (bool animate);
+    void tabButtonFocusChanged (TabBarButton&, bool isNowFocused);
+
+   #if JUCE_TVOS
+    FocusSelectionMode focusSelectionMode = FocusSelectionMode::delayed;
+   #else
+    FocusSelectionMode focusSelectionMode = FocusSelectionMode::selectOnly;
+   #endif
+
+    int focusSelectionDelay = 500;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TabbedButtonBar)
 };

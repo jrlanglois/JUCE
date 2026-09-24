@@ -32,6 +32,34 @@ implementations were out of step, and the Windows implementation did not detect
 
 ## Change
 
+`Component`, `ComponentTraverser`, `ListBoxModel`, `TableListBoxModel`, and
+`TreeViewItem` now provide non-pure virtual functions for directional focus
+navigation. `TabbedButtonBar`, `ScrollBar`, `ListBox`, and `TreeView` now store
+focus interaction state, `TextEditor` and `CodeEditorComponent` now store
+directional editing state, and `Viewport` observes global focus changes.
+
+**Possible Issues**
+
+Adding virtual functions changes the vtable layouts of those classes. The new
+widget state and `Viewport` listener base change the affected widget object
+layouts. Applications that update JUCE headers without rebuilding every JUCE
+module and client binary may fail to link or may exhibit undefined behaviour.
+
+**Workaround**
+
+Perform a clean rebuild of JUCE and all code that links against it. Existing
+subclasses do not need to implement the new functions.
+
+**Rationale**
+
+Directional focus navigation needs widget-level handling, replaceable spatial
+traversal, configurable tab-selection timing, and automatic viewport reveal
+without requiring every existing subclass to adopt a new pure virtual contract.
+Collection navigation also needs per-row and per-item eligibility and change
+notifications without coupling navigation focus to selection.
+
+## Change
+
 `JUCE_IOS` is now defined only for iOS builds. tvOS builds define `JUCE_TVOS`
 instead, and all Apple targets define `JUCE_APPLE`.
 

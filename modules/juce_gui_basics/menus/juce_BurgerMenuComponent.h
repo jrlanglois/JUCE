@@ -97,6 +97,8 @@ private:
     int getNumRows() override;
     void paintListBoxItem (int, Graphics&, int, int, bool) override;
     void listBoxItemClicked (int, const MouseEvent&) override;
+    bool isRowFocusNavigationEnabled (int) override;
+    void returnKeyPressed (int) override;
     Component* refreshComponentForRow (int, bool, Component*) override;
     void resized() override;
     void menuBarItemsChanged (MenuBarModel*) override;
@@ -104,6 +106,7 @@ private:
     void mouseUp (const MouseEvent&) override;
     void handleCommandMessage (int) override;
     void addMenuBarItemsForMenu (PopupMenu&, int);
+    void activateRow (int);
     static bool hasSubMenu (const PopupMenu::Item&);
 
     //==============================================================================

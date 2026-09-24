@@ -17,6 +17,7 @@ about changes and bugfixes please see the git log and BREAKING_CHANGES.md.
 ## Version 9.0.2
 
   - Added tvOS support to CMake, Projucer, JUCE modules, and DemoRunner
+  - Added configurable directional keyboard and remote focus navigation
   - Enabled MP3AudioFormat by default
   - Fixed reading MP3 VBR files with padding after the ID3v2 header
   - Fixed parsing WAV files with a missing final pad byte

@@ -87,10 +87,16 @@ MPEKeyboardComponent::MPEKeyboardComponent (MPEInstrument& instr, Orientation or
     setKeyWidth (25.0f);
 
     instrument.addListener (this);
+    setWantsKeyboardFocus (true);
+
+   #if JUCE_TVOS
+    setHasFocusOutline (true);
+   #endif
 }
 
 MPEKeyboardComponent::~MPEKeyboardComponent()
 {
+    releaseDirectionalNote();
     instrument.removeListener (this);
 }
 
@@ -127,9 +133,11 @@ void MPEKeyboardComponent::drawWhiteKey (int midiNoteNumber, Graphics& g, Rectan
                 break;
         }
     }
+
+    drawDirectionalFocus (midiNoteNumber, g, area);
 }
 
-void MPEKeyboardComponent::drawBlackKey (int /*midiNoteNumber*/, Graphics& g, Rectangle<float> area)
+void MPEKeyboardComponent::drawBlackKey (int midiNoteNumber, Graphics& g, Rectangle<float> area)
 {
     g.setColour (findColour (whiteNoteColourId));
     g.fillRect (area);
@@ -146,6 +154,19 @@ void MPEKeyboardComponent::drawBlackKey (int /*midiNoteNumber*/, Graphics& g, Re
         g.fillRoundedRectangle (area.toFloat().reduced (area.getWidth() / 4.0f,
                                                         (area.getHeight() / 2.0f) - (getBlackNoteWidth() / 12.0f)), 1.0f);
     }
+
+    drawDirectionalFocus (midiNoteNumber, g, area);
+}
+
+void MPEKeyboardComponent::drawDirectionalFocus (int midiNoteNumber,
+                                                 Graphics& g,
+                                                 Rectangle<float> area)
+{
+    if (! hasKeyboardFocus (false) || midiNoteNumber != directionalNote)
+        return;
+
+    g.setColour (findColour (noteCircleOutlineColourId));
+    g.drawRect (area.reduced (1.0f), 2.0f);
 }
 
 void MPEKeyboardComponent::colourChanged()
@@ -304,8 +325,67 @@ void MPEKeyboardComponent::mouseUp (const MouseEvent& e)
     sourceIDMap.erase (e.source.getIndex());
 }
 
+bool MPEKeyboardComponent::keyPressed (const KeyPress& key)
+{
+    if (isDirectionalFocusNavigationEnabled()
+        && (key.isKeyCode (KeyPress::returnKey) || key.isKeyCode (KeyPress::selectKey)))
+    {
+        triggerDirectionalNote();
+        return true;
+    }
+
+    return false;
+}
+
+FocusNavigationResult MPEKeyboardComponent::handleFocusNavigation (FocusNavigationDirection direction)
+{
+    auto delta = 0;
+
+    switch (getOrientation())
+    {
+        case horizontalKeyboard:
+            if (direction == FocusNavigationDirection::left)       delta = -1;
+            else if (direction == FocusNavigationDirection::right) delta = 1;
+            break;
+
+        case verticalKeyboardFacingLeft:
+            if (direction == FocusNavigationDirection::up)         delta = -1;
+            else if (direction == FocusNavigationDirection::down)  delta = 1;
+            break;
+
+        case verticalKeyboardFacingRight:
+            if (direction == FocusNavigationDirection::up)         delta = 1;
+            else if (direction == FocusNavigationDirection::down)  delta = -1;
+            break;
+
+        default:
+            jassertfalse;
+            break;
+    }
+
+    if (delta == 0)
+        return FocusNavigationResult::unhandled;
+
+    const auto currentNote = jlimit (getRangeStart(), getRangeEnd(), directionalNote);
+    const auto nextNote = jlimit (getRangeStart(), getRangeEnd(), currentNote + delta);
+
+    if (nextNote == currentNote)
+        return FocusNavigationResult::unhandled;
+
+    setDirectionalNote (nextNote);
+    return FocusNavigationResult::handled;
+}
+
+void MPEKeyboardComponent::focusGained (FocusChangeType)
+{
+    setDirectionalNote (jlimit (getRangeStart(), getRangeEnd(), directionalNote));
+}
+
 void MPEKeyboardComponent::focusLost (FocusChangeType)
 {
+    releaseDirectionalNote();
+    repaintNote (directionalNote);
+
     for (auto& comp : noteComponents)
     {
         auto note = instrument.getNoteWithID (comp->sourceID);
@@ -316,9 +396,75 @@ void MPEKeyboardComponent::focusLost (FocusChangeType)
     }
 }
 
+void MPEKeyboardComponent::repaintNote (int midiNoteNumber)
+{
+    if (getRangeStart() <= midiNoteNumber && midiNoteNumber <= getRangeEnd())
+        repaint (getRectangleForKey (midiNoteNumber).getSmallestIntegerContainer());
+}
+
+void MPEKeyboardComponent::setDirectionalNote (int midiNoteNumber)
+{
+    const auto nextNote = jlimit (getRangeStart(), getRangeEnd(), midiNoteNumber);
+
+    if (nextNote != directionalNote)
+    {
+        repaintNote (directionalNote);
+        directionalNote = nextNote;
+    }
+
+    if (! getLocalBounds().toFloat().intersects (getRectangleForKey (directionalNote)))
+        setLowestVisibleKey (directionalNote);
+
+    repaintNote (directionalNote);
+}
+
+void MPEKeyboardComponent::triggerDirectionalNote()
+{
+    releaseDirectionalNote();
+
+    if (channelAssigner == nullptr)
+        return;
+
+    directionalNoteDown = directionalNote;
+    directionalNoteDownChannel = channelAssigner->findMidiChannelForNewNote (directionalNoteDown);
+    instrument.noteOn (directionalNoteDownChannel,
+                       directionalNoteDown,
+                       MPEValue::fromUnsignedFloat (velocity));
+
+    Timer::callAfterDelay (200, [safeThis = SafePointer<MPEKeyboardComponent> (this),
+                                 note = directionalNoteDown,
+                                 channel = directionalNoteDownChannel]
+    {
+        if (safeThis != nullptr
+            && safeThis->directionalNoteDown == note
+            && safeThis->directionalNoteDownChannel == channel)
+        {
+            safeThis->releaseDirectionalNote();
+        }
+    });
+}
+
+void MPEKeyboardComponent::releaseDirectionalNote()
+{
+    if (directionalNoteDown < 0)
+        return;
+
+    if (channelAssigner != nullptr)
+    {
+        instrument.noteOff (directionalNoteDownChannel,
+                            directionalNoteDown,
+                            MPEValue::fromUnsignedFloat (lift));
+        channelAssigner->noteOff (directionalNoteDown);
+    }
+
+    directionalNoteDown = -1;
+}
+
 //==============================================================================
 void MPEKeyboardComponent::updateZoneLayout()
 {
+    releaseDirectionalNote();
+
     {
         const ScopedLock noteLock (activeNotesLock);
         activeNotes.clear();
@@ -525,5 +671,50 @@ void MPEKeyboardComponent::zoneLayoutChanged()
             ref->updateZoneLayout();
     });
 }
+
+#if JUCE_UNIT_TESTS
+
+struct MPEKeyboardComponentFocusNavigationTests final : UnitTest
+{
+    MPEKeyboardComponentFocusNavigationTests()
+        : UnitTest ("MPEKeyboardComponent focus navigation", UnitTestCategories::audio)
+    {}
+
+    void runTest() override
+    {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+        MPEInstrument instrument { MPEZone (MPEZone::Type::lower, 15) };
+        MPEKeyboardComponent keyboard (instrument, KeyboardComponentBase::horizontalKeyboard);
+        keyboard.setAvailableRange (60, 61);
+
+        beginTest ("Select and Return preserve existing behaviour when directional navigation is disabled");
+        keyboard.setFocusNavigationMode (FocusNavigationMode::disabled);
+        expect (! keyboard.keyPressed (KeyPress (KeyPress::selectKey)));
+        expect (! keyboard.keyPressed (KeyPress (KeyPress::returnKey)));
+        expectEquals (instrument.getNumPlayingNotes(), 0);
+
+        keyboard.setFocusNavigationMode (FocusNavigationMode::directional);
+
+        beginTest ("Directions along the keyboard move between notes without wrapping");
+        expect (keyboard.handleFocusNavigation (FocusNavigationDirection::left)
+                == FocusNavigationResult::unhandled);
+        expect (keyboard.handleFocusNavigation (FocusNavigationDirection::right)
+                == FocusNavigationResult::handled);
+        expect (keyboard.handleFocusNavigation (FocusNavigationDirection::right)
+                == FocusNavigationResult::unhandled);
+        expect (keyboard.handleFocusNavigation (FocusNavigationDirection::up)
+                == FocusNavigationResult::unhandled);
+
+        beginTest ("Select plays and focus loss releases the focused note");
+        expect (keyboard.keyPressed (KeyPress (KeyPress::selectKey)));
+        expectEquals (instrument.getNumPlayingNotes(), 1);
+        keyboard.focusLost (Component::focusChangedDirectly);
+        expectEquals (instrument.getNumPlayingNotes(), 0);
+    }
+};
+
+static MPEKeyboardComponentFocusNavigationTests mpeKeyboardComponentFocusNavigationTests;
+
+#endif
 
 } // namespace juce

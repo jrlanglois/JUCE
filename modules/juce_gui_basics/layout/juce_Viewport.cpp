@@ -167,10 +167,14 @@ Viewport::Viewport (const String& name)
     setWantsKeyboardFocus (true);
 
     recreateScrollbars();
+    Desktop::getInstance().addFocusChangeListener (this);
 }
 
 Viewport::~Viewport()
 {
+    if (auto* desktop = Desktop::getInstanceWithoutCreating())
+        desktop->removeFocusChangeListener (this);
+
     deleteOrRemoveContentComp();
 }
 
@@ -627,6 +631,10 @@ static bool isLeftRightKeyPress (const KeyPress& key)
 
 bool Viewport::keyPressed (const KeyPress& key)
 {
+    if (isDirectionalFocusNavigationEnabled()
+        && detail::getFocusNavigationDirectionForKeyPress (key).has_value())
+        return false;
+
     const bool isUpDownKey = isUpDownKeyPress (key);
 
     if (getVerticalScrollBar().isVisible() && isUpDownKey)
@@ -638,6 +646,33 @@ bool Viewport::keyPressed (const KeyPress& key)
         return getHorizontalScrollBar().keyPressed (key);
 
     return false;
+}
+
+void Viewport::globalFocusChanged (Component* focusedComponent)
+{
+    if (! isDirectionalFocusNavigationEnabled()
+        || contentComp == nullptr
+        || focusedComponent == nullptr
+        || (focusedComponent != contentComp && ! contentComp->isParentOf (focusedComponent)))
+        return;
+
+    const auto focusedBounds = contentComp->getLocalArea (focusedComponent,
+                                                          focusedComponent->getLocalBounds()).expanded (3);
+    const auto visibleArea = getViewArea();
+    auto newPosition = visibleArea.getPosition();
+
+    if (focusedBounds.getX() < visibleArea.getX())
+        newPosition.x = focusedBounds.getX();
+    else if (focusedBounds.getRight() > visibleArea.getRight())
+        newPosition.x = focusedBounds.getRight() - visibleArea.getWidth();
+
+    if (focusedBounds.getY() < visibleArea.getY())
+        newPosition.y = focusedBounds.getY();
+    else if (focusedBounds.getBottom() > visibleArea.getBottom())
+        newPosition.y = focusedBounds.getBottom() - visibleArea.getHeight();
+
+    if (newPosition != visibleArea.getPosition())
+        setViewPosition (newPosition);
 }
 
 bool Viewport::respondsToKey (const KeyPress& key)

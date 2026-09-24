@@ -333,6 +333,8 @@ protected:
     /** @internal */
     void inputAttemptWhenModal() override;
     /** @internal */
+    bool keyPressed (const KeyPress&) override;
+    /** @internal */
     void focusGained (FocusChangeType) override;
     /** @internal */
     void enablementChanged() override;

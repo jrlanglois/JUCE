@@ -223,7 +223,7 @@ void Desktop::addFocusChangeListener    (FocusChangeListener* l)   { focusListen
 void Desktop::removeFocusChangeListener (FocusChangeListener* l)   { focusListeners.remove (l); }
 void Desktop::triggerFocusCallback()                               { triggerAsyncUpdate(); }
 
-void Desktop::updateFocusOutline()
+void Desktop::refreshFocusOutline()
 {
     if (auto* currentFocus = Component::getCurrentlyFocusedComponent())
     {
@@ -250,7 +250,7 @@ void Desktop::handleAsyncUpdate()
         l.globalFocusChanged (currentFocus.get());
     });
 
-    updateFocusOutline();
+    refreshFocusOutline();
 }
 
 //==============================================================================

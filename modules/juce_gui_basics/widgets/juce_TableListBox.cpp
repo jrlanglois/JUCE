@@ -175,6 +175,7 @@ public:
 
     void performSelection (const MouseEvent& e, bool isMouseUp)
     {
+        owner.updateFocusNavigationRowFromPointer (getRow());
         owner.selectRowsBasedOnModifierKeys (getRow(), e.mods, isMouseUp);
 
         auto columnId = owner.getHeader().getColumnIdAtX (e.x);
@@ -374,6 +375,7 @@ void TableListBox::setModel (TableListBoxModel* newModel)
 {
     if (model != newModel)
     {
+        ListBox::setFocusNavigationRow (-1, false);
         model = newModel;
         updateContent();
     }
@@ -501,6 +503,22 @@ void TableListBox::returnKeyPressed (int row)
 {
     if (model != nullptr)
         model->returnKeyPressed (row);
+}
+
+bool TableListBox::isRowFocusNavigationEnabled (const int rowNumber)
+{
+    return model != nullptr && model->isRowFocusNavigationEnabled (rowNumber);
+}
+
+void TableListBox::focusNavigationRowChanged (const int newFocusedRow)
+{
+    if (model != nullptr)
+        model->focusNavigationRowChanged (newFocusedRow);
+}
+
+void TableListBox::updateFocusNavigationRowFromPointer (const int rowNumber)
+{
+    ListBox::updateFocusNavigationRowFromPointer (rowNumber);
 }
 
 void TableListBox::backgroundClicked (const MouseEvent& e)
@@ -674,6 +692,8 @@ int TableListBoxModel::getColumnAutoSizeWidth (int)                     { return
 void TableListBoxModel::selectedRowsChanged (int)                       {}
 void TableListBoxModel::deleteKeyPressed (int)                          {}
 void TableListBoxModel::returnKeyPressed (int)                          {}
+bool TableListBoxModel::isRowFocusNavigationEnabled (int)               { return true; }
+void TableListBoxModel::focusNavigationRowChanged (int)                 {}
 void TableListBoxModel::listWasScrolled()                               {}
 
 String TableListBoxModel::getCellTooltip (int /*rowNumber*/, int /*columnId*/)    { return {}; }
@@ -684,5 +704,54 @@ Component* TableListBoxModel::refreshComponentForCell (int, int, bool, [[maybe_u
     jassert (existingComponentToUpdate == nullptr); // indicates a failure in the code that recycles the components
     return nullptr;
 }
+
+#if JUCE_UNIT_TESTS
+
+struct TableListBoxFocusNavigationTests final : UnitTest
+{
+    TableListBoxFocusNavigationTests()
+        : UnitTest ("TableListBox focus navigation", UnitTestCategories::gui)
+    {}
+
+    struct Model final : TableListBoxModel
+    {
+        int getNumRows() override                                                { return 3; }
+        void paintRowBackground (Graphics&, int, int, int, bool) override        {}
+        void paintCell (Graphics&, int, int, int, int, bool) override            {}
+        bool isRowFocusNavigationEnabled (int row) override                      { return row != 1; }
+        void focusNavigationRowChanged (int row) override                        { focusChanges.add (row); }
+        void returnKeyPressed (int row) override                                 { activatedRows.add (row); }
+
+        Array<int> focusChanges;
+        Array<int> activatedRows;
+    };
+
+    void runTest() override
+    {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+        Model model;
+        TableListBox table ("Table", &model);
+        table.setFocusNavigationMode (FocusNavigationMode::directional);
+        table.updateContent();
+
+        beginTest ("The table model receives the inherited row-focus contract");
+        expect (table.handleFocusNavigation (FocusNavigationDirection::down)
+                == FocusNavigationResult::handled);
+        expectEquals (table.getFocusNavigationRow(), 0);
+        expect (table.handleFocusNavigation (FocusNavigationDirection::down)
+                == FocusNavigationResult::handled);
+        expectEquals (table.getFocusNavigationRow(), 2);
+        expect (model.focusChanges == Array<int> ({ 0, 2 }));
+
+        beginTest ("Table activation uses the focused row");
+        expect (table.keyPressed (KeyPress (KeyPress::selectKey)));
+        expect (table.isRowSelected (2));
+        expect (model.activatedRows == Array<int> ({ 2 }));
+    }
+};
+
+static TableListBoxFocusNavigationTests tableListBoxFocusNavigationTests;
+
+#endif
 
 } // namespace juce

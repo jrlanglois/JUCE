@@ -1197,6 +1197,7 @@ static constexpr int translateAndroidKeyCode (int keyCode) noexcept
         case 20:  return KeyPress::downKey;           // KEYCODE_DPAD_DOWN
         case 21:  return KeyPress::leftKey;           // KEYCODE_DPAD_LEFT
         case 22:  return KeyPress::rightKey;          // KEYCODE_DPAD_RIGHT
+        case 23:  return KeyPress::selectKey;         // KEYCODE_DPAD_CENTER
         case 29:  return 'A';
         case 30:  return 'B';
         case 31:  return 'C';

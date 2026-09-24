@@ -186,6 +186,17 @@ Component* ComponentPeer::getTargetForKeyPress()
     return c;
 }
 
+bool ComponentPeer::isDirectionalFocusNavigationEnabled() const
+{
+    auto* focused = Component::getCurrentlyFocusedComponent();
+    auto* modeSource = focused != nullptr
+                        && (focused == &component || component.isParentOf (focused))
+                     ? focused
+                     : &component;
+
+    return modeSource->getEffectiveFocusNavigationMode() == FocusNavigationMode::directional;
+}
+
 bool ComponentPeer::handleKeyPress (const int keyCode, const juce_wchar textCharacter)
 {
     return handleKeyPress (KeyPress (keyCode,
@@ -218,6 +229,21 @@ bool ComponentPeer::handleKeyPress (const KeyPress& keyInfo)
 
         if (keyWasUsed || deletionChecker == nullptr)
             break;
+    }
+
+    if (! keyWasUsed)
+    {
+        if (const auto direction = detail::getFocusNavigationDirectionForKeyPress (keyInfo))
+        {
+            if (auto* target = getTargetForKeyPress())
+            {
+                if (target->getEffectiveFocusNavigationMode() == FocusNavigationMode::directional)
+                {
+                    target->getTopLevelComponent()->moveKeyboardFocus (*direction);
+                    return true;
+                }
+            }
+        }
     }
 
     if (! keyWasUsed && keyInfo.isKeyCode (KeyPress::tabKey))

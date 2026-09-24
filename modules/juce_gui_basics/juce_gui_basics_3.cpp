@@ -43,6 +43,7 @@
 
 #include "juce_gui_basics.h"
 
+#include "detail/juce_DirectionalFocusHelpers.h"
 #include "detail/juce_ViewportHelpers.h"
 #include "detail/juce_ToolbarItemDragAndDropOverlayComponent.h"
 #include "detail/juce_ButtonAccessibilityHandler.h"

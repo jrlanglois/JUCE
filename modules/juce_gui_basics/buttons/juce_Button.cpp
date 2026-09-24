@@ -87,6 +87,11 @@ Button::Button (const String& name)  : Component (name), text (name)
     callbackHelper.reset (new CallbackHelper (*this));
 
     setWantsKeyboardFocus (true);
+
+   #if JUCE_TVOS
+    setHasFocusOutline (true);
+   #endif
+
     isOn.addListener (callbackHelper.get());
 }
 
@@ -726,5 +731,58 @@ std::unique_ptr<AccessibilityHandler> Button::createAccessibilityHandler()
 {
     return std::make_unique<detail::ButtonAccessibilityHandler> (*this, AccessibilityRole::button);
 }
+
+#if JUCE_UNIT_TESTS
+
+struct ButtonFocusOutlineTests final : UnitTest
+{
+    ButtonFocusOutlineTests()
+        : UnitTest ("Button focus outline", UnitTestCategories::gui)
+    {}
+
+    struct TestButton final : Button
+    {
+        TestButton() : Button ("Test") {}
+        void paintButton (Graphics&, bool, bool) override {}
+        bool sendKeyPress (const KeyPress& key)    { return keyPressed (key); }
+    };
+
+    void runTest() override
+    {
+        beginTest ("Buttons keep keyboard eligibility and use the platform outline default");
+
+        TestButton button;
+        expect (button.getWantsKeyboardFocus());
+
+       #if JUCE_TVOS
+        expect (button.hasFocusOutline());
+       #else
+        expect (! button.hasFocusOutline());
+       #endif
+
+        button.setHasFocusOutline (! button.hasFocusOutline());
+
+       #if JUCE_TVOS
+        expect (! button.hasFocusOutline());
+       #else
+        expect (button.hasFocusOutline());
+       #endif
+
+        beginTest ("Buttons activate with Return and Select and offer directions outward");
+        expect (button.sendKeyPress (KeyPress (KeyPress::returnKey)));
+        expect (button.sendKeyPress (KeyPress (KeyPress::selectKey)));
+        expect (! button.sendKeyPress (KeyPress (KeyPress::leftKey)));
+        expect (button.handleFocusNavigation (FocusNavigationDirection::left)
+                == FocusNavigationResult::unhandled);
+
+        button.setEnabled (false);
+        expect (! button.sendKeyPress (KeyPress (KeyPress::returnKey)));
+        expect (! button.sendKeyPress (KeyPress (KeyPress::selectKey)));
+    }
+};
+
+static ButtonFocusOutlineTests buttonFocusOutlineTests;
+
+#endif
 
 } // namespace juce

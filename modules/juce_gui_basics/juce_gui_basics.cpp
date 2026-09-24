@@ -146,6 +146,7 @@
 
 #include "detail/juce_AccessibilityHelpers.h"
 #include "detail/juce_ComponentHelpers.h"
+#include "detail/juce_DirectionalFocusHelpers.h"
 #include "detail/juce_FocusHelpers.h"
 #include "detail/juce_PointerState.h"
 #include "detail/juce_CustomMouseCursorInfo.h"

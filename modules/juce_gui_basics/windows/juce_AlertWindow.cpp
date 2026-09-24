@@ -61,6 +61,11 @@ AlertWindow::AlertWindow (const String& title,
 {
     setAlwaysOnTop (WindowUtils::areThereAnyAlwaysOnTopWindows());
 
+    if (associatedComponent != nullptr)
+        setFocusNavigationMode (associatedComponent->isDirectionalFocusNavigationEnabled()
+                                    ? FocusNavigationMode::directional
+                                    : FocusNavigationMode::disabled);
+
     accessibleMessageLabel.setColour (Label::textColourId,       Colours::transparentBlack);
     accessibleMessageLabel.setColour (Label::backgroundColourId, Colours::transparentBlack);
     accessibleMessageLabel.setColour (Label::outlineColourId,    Colours::transparentBlack);
@@ -581,6 +586,14 @@ bool AlertWindow::keyPressed (const KeyPress& key)
         return true;
     }
 
+    if (isDirectionalFocusNavigationEnabled() && key.isKeyCode (KeyPress::menuKey))
+    {
+        if (escapeKeyCancels || buttons.size() > 0)
+            exitModalState (0);
+
+        return true;
+    }
+
     if ((key.isKeyCode (KeyPress::returnKey) || key.isKeyCode (KeyPress::selectKey)) && buttons.size() == 1)
     {
         buttons.getUnchecked (0)->triggerClick();
@@ -726,5 +739,57 @@ std::unique_ptr<AccessibilityHandler> AlertWindow::createAccessibilityHandler()
 {
     return std::make_unique<AccessibilityHandler> (*this, AccessibilityRole::dialogWindow);
 }
+
+#if JUCE_UNIT_TESTS
+
+struct AlertWindowFocusNavigationTests final : UnitTest
+{
+    AlertWindowFocusNavigationTests()
+        : UnitTest ("AlertWindow focus navigation", UnitTestCategories::gui)
+    {}
+
+    struct TestAlertWindow final : AlertWindow
+    {
+        using AlertWindow::AlertWindow;
+
+        bool sendKeyPress (const KeyPress& key)    { return keyPressed (key); }
+    };
+
+    void runTest() override
+    {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+
+        beginTest ("Directional Menu is contained by dismissible and non-dismissible alerts");
+        {
+            TestAlertWindow nonDismissible ("Title", "Message", MessageBoxIconType::NoIcon);
+            nonDismissible.setFocusNavigationMode (FocusNavigationMode::directional);
+            expect (nonDismissible.sendKeyPress (KeyPress (KeyPress::menuKey)));
+
+            TestAlertWindow dismissible ("Title", "Message", MessageBoxIconType::NoIcon);
+            dismissible.addButton ("OK", 1);
+            dismissible.setFocusNavigationMode (FocusNavigationMode::directional);
+            expect (dismissible.sendKeyPress (KeyPress (KeyPress::menuKey)));
+        }
+
+        beginTest ("Associated alerts inherit the source tree's effective mode");
+        {
+            Component source;
+            source.setFocusNavigationMode (FocusNavigationMode::directional);
+            TestAlertWindow alert ("Title", "Message", MessageBoxIconType::NoIcon, &source);
+            expect (alert.getFocusNavigationMode() == FocusNavigationMode::directional);
+        }
+
+        beginTest ("Disabled directional navigation preserves the existing Menu result");
+        {
+            TestAlertWindow alert ("Title", "Message", MessageBoxIconType::NoIcon);
+            alert.setFocusNavigationMode (FocusNavigationMode::disabled);
+            expect (! alert.sendKeyPress (KeyPress (KeyPress::menuKey)));
+        }
+    }
+};
+
+static AlertWindowFocusNavigationTests alertWindowFocusNavigationTests;
+
+#endif
 
 } // namespace juce

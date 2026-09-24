@@ -42,6 +42,10 @@ namespace juce
     A TextEditor can either be in single- or multi-line mode, and supports mixed
     fonts and colours.
 
+    When directional focus navigation is enabled, Select enters an editing state.
+    Select or Return commits the edit, while Back, Menu, or Escape restores the
+    text and selection to their state on entry and exits editing.
+
     @see TextEditor::Listener, Label
 
     @tags{GUI}
@@ -148,10 +152,19 @@ public:
     */
     void setCaretVisible (bool shouldBeVisible);
 
-    /** Returns true if the caret is enabled.
+    /** Returns true if the caret is currently enabled for display.
+
+        In directional focus mode, the caret is hidden until Select enters editing,
+        regardless of the value supplied to setCaretVisible().
+
         @see setCaretVisible
     */
-    bool isCaretVisible() const noexcept                            { return caretVisible && ! isReadOnly(); }
+    bool isCaretVisible() const noexcept
+    {
+        return caretVisible
+            && ! isReadOnly()
+            && (! isDirectionalFocusNavigationEnabled() || directionalFocusEditingActive);
+    }
 
     //==============================================================================
     /** Enables or disables scrollbars (this only applies when in multi-line mode).
@@ -736,6 +749,8 @@ public:
     /** @internal */
     bool keyPressed (const KeyPress&) override;
     /** @internal */
+    FocusNavigationResult handleFocusNavigation (FocusNavigationDirection) override;
+    /** @internal */
     bool keyStateChanged (bool) override;
     /** @internal */
     void focusGained (FocusChangeType) override;
@@ -777,6 +792,8 @@ protected:
 
 private:
     //==============================================================================
+    friend class Label;
+
     struct TextHolderComponent;
     struct TextEditorViewport;
     struct InsertAction;
@@ -825,10 +842,13 @@ private:
     bool consumeEscAndReturnKeys = true;
     bool underlineWhitespace = true;
     bool clicksOutsideDismissVirtualKeyboard = false;
+    bool directionalFocusEditingActive = false;
 
     UndoManager undoManager;
     std::unique_ptr<CaretComponent> caret;
     Range<int> selection;
+    Range<int> directionalFocusEditingSelection;
+    String directionalFocusEditingOriginalText;
     int leftIndent = 4, topIndent = 4;
     unsigned int lastTransactionTime = 0;
     Font currentFont { withDefaultMetrics (FontOptions { 14.0f }) };
@@ -931,6 +951,9 @@ private:
     bool moveCaretWithTransaction (int newPos, bool selecting);
     void drawContent (Graphics&);
     void checkLayout();
+    void beginDirectionalFocusEditing();
+    bool endDirectionalFocusEditing (bool shouldCancel);
+    void resetDirectionalFocusEditing();
     int getWordWrapWidth() const;
     int getMaximumTextWidth() const;
     int getMaximumTextHeight() const;

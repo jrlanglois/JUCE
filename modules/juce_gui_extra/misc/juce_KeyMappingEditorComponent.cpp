@@ -45,7 +45,10 @@ public:
           commandID (command),
           keyNum (keyIndex)
     {
+       #if ! JUCE_TVOS
         setWantsKeyboardFocus (false);
+       #endif
+
         setTriggeredOnMouseDown (keyNum >= 0);
 
         setTooltip (keyIndex < 0 ? TRANS ("Adds a new key-mapping")
@@ -115,6 +118,9 @@ public:
                            MessageBoxIconType::NoIcon),
               owner (kec)
         {
+            setFocusNavigationMode (owner.isDirectionalFocusNavigationEnabled()
+                                        ? FocusNavigationMode::directional
+                                        : FocusNavigationMode::disabled);
             addButton (TRANS ("OK"), 1);
             addButton (TRANS ("Cancel"), 0);
 
@@ -128,6 +134,12 @@ public:
 
         bool keyPressed (const KeyPress& key) override
         {
+            if (isDirectionalFocusNavigationEnabled() && key.isKeyCode (KeyPress::menuKey))
+            {
+                exitModalState (0);
+                return true;
+            }
+
             lastPress = key;
             String message (TRANS ("Key") + ": " + owner.getDescriptionForKeyPress (key));
 
@@ -140,7 +152,29 @@ public:
                         << ')';
 
             setMessage (message);
+
+            if (isDirectionalFocusNavigationEnabled())
+            {
+                isCapturingKey = false;
+
+                for (auto i = 0; i < getNumButtons(); ++i)
+                {
+                    auto* button = getButton (i);
+                    button->setWantsKeyboardFocus (true);
+                    button->setHasFocusOutline (true);
+                }
+
+                if (auto* button = getButton (0))
+                    button->grabKeyboardFocus();
+            }
+
             return true;
+        }
+
+        FocusNavigationResult handleFocusNavigation (FocusNavigationDirection) override
+        {
+            return isCapturingKey ? FocusNavigationResult::blocked
+                                  : FocusNavigationResult::unhandled;
         }
 
         bool keyStateChanged (bool) override
@@ -152,9 +186,53 @@ public:
 
     private:
         KeyMappingEditorComponent& owner;
+        bool isCapturingKey = true;
 
         JUCE_DECLARE_NON_COPYABLE (KeyEntryWindow)
     };
+
+   #if JUCE_UNIT_TESTS
+    struct KeyEntryWindowFocusNavigationTests final : UnitTest
+    {
+        KeyEntryWindowFocusNavigationTests()
+            : UnitTest ("KeyMappingEditorComponent focus navigation", UnitTestCategories::gui)
+        {}
+
+        void runTest() override
+        {
+            ScopedJuceInitialiser_GUI libraryInitialiser;
+            ApplicationCommandManager manager;
+            KeyMappingEditorComponent editor (*manager.getKeyMappings(), false);
+            editor.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            beginTest ("Key capture blocks directions until a key has been captured");
+            KeyEntryWindow window (editor);
+            window.setVisible (true);
+            expect (window.getFocusNavigationMode() == FocusNavigationMode::directional);
+            expect (window.handleFocusNavigation (FocusNavigationDirection::right)
+                    == FocusNavigationResult::blocked);
+
+            for (auto i = 0; i < window.getNumButtons(); ++i)
+                expect (! window.getButton (i)->getWantsKeyboardFocus());
+
+            expect (window.keyPressed (KeyPress ('x')));
+            expect (window.handleFocusNavigation (FocusNavigationDirection::right)
+                    == FocusNavigationResult::unhandled);
+
+            for (auto i = 0; i < window.getNumButtons(); ++i)
+            {
+                expect (window.getButton (i)->getWantsKeyboardFocus());
+                expect (window.getButton (i)->hasFocusOutline());
+            }
+
+            beginTest ("Menu cancels active key capture");
+            KeyEntryWindow cancellationWindow (editor);
+            expect (cancellationWindow.keyPressed (KeyPress (KeyPress::menuKey)));
+        }
+    };
+
+    static KeyEntryWindowFocusNavigationTests keyEntryWindowFocusNavigationTests;
+   #endif
 
     void setNewKey (const KeyPress& newKey, bool dontAskUser)
     {
@@ -220,6 +298,11 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ChangeKeyButton)
 };
+
+#if JUCE_UNIT_TESTS
+KeyMappingEditorComponent::ChangeKeyButton::KeyEntryWindowFocusNavigationTests
+    KeyMappingEditorComponent::ChangeKeyButton::keyEntryWindowFocusNavigationTests;
+#endif
 
 //==============================================================================
 class KeyMappingEditorComponent::ItemComponent final : public Component

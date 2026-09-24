@@ -193,6 +193,12 @@ public:
     */
     bool isSelected() const noexcept;
 
+    /** Returns true if this item has its TreeView's directional navigation focus.
+
+        Navigation focus is independent of selection.
+    */
+    bool hasFocusNavigation() const noexcept;
+
     /** Selects or deselects the item.
 
         If shouldNotify == sendNotification, then a callback will be made
@@ -314,6 +320,12 @@ public:
         user to select this item.
     */
     virtual bool canBeSelected() const                        { return true; }
+
+    /** Returns whether this item may receive directional navigation focus. */
+    virtual bool isFocusNavigationEnabled() const             { return true; }
+
+    /** Called after this item's directional navigation focus state changes. */
+    virtual void focusNavigationChanged (bool)   {}
 
     /** Creates a component that will be used to represent this item.
 
@@ -783,6 +795,12 @@ public:
     */
     TreeViewItem* getSelectedItem (int index) const noexcept;
 
+    /** Returns the item with directional navigation focus, or nullptr if there is none.
+
+        Navigation focus is independent of item selection.
+    */
+    TreeViewItem* getFocusNavigationItem() const noexcept;
+
     /** Moves the selected row up or down by the specified number of rows. */
     void moveSelectedRow (int deltaRows);
 
@@ -907,9 +925,19 @@ public:
     /** @internal */
     bool keyPressed (const KeyPress&) override;
     /** @internal */
+    FocusNavigationResult handleFocusNavigation (FocusNavigationDirection) override;
+    /** @internal */
     void colourChanged() override;
     /** @internal */
+    void lookAndFeelChanged() override;
+    /** @internal */
     void enablementChanged() override;
+    /** @internal */
+    void focusGained (FocusChangeType) override;
+    /** @internal */
+    void focusLost (FocusChangeType) override;
+    /** @internal */
+    void focusOfChildComponentChanged (FocusChangeType) override;
     /** @internal */
     bool isInterestedInFileDrag (const StringArray&) override;
     /** @internal */
@@ -955,9 +983,25 @@ private:
     void moveOutOfSelectedItem();
     void moveIntoSelectedItem();
     void moveByPages (int);
+    bool isFocusNavigationItemEligible (const TreeViewItem*) const;
+    TreeViewItem* findEligibleFocusNavigationItem (int startRow, int delta) const;
+    TreeViewItem* findInitialFocusNavigationItem() const;
+    void setFocusNavigationItem (TreeViewItem*, bool reveal);
+    void updateFocusNavigationItemFromPointer (TreeViewItem&);
+    void validateFocusNavigationItem();
+    void refreshFocusNavigationOutline();
+    bool moveFocusNavigationItem (int delta);
+    bool moveFocusNavigationItemByPages (int numPages);
+    bool moveOutOfFocusNavigationItem();
+    bool moveIntoFocusNavigationItem();
+    bool activateFocusNavigationItem();
+    void focusNavigationSubtreeBeingRemoved (TreeViewItem*);
+    void focusNavigationItemBeingDeleted (TreeViewItem*);
 
     std::unique_ptr<TreeViewport> viewport;
     TreeViewItem* rootItem = nullptr;
+    TreeViewItem* focusNavigationItem = nullptr;
+    std::unique_ptr<FocusOutline> focusNavigationOutline;
     std::unique_ptr<InsertPointHighlight> dragInsertPointHighlight;
     std::unique_ptr<TargetGroupHighlight> dragTargetGroupHighlight;
     int indentSize = -1;

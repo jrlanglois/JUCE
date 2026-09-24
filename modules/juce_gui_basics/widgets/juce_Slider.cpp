@@ -43,6 +43,14 @@ static double getStepSize (const Slider& slider)
                                                 : slider.getRange().getLength() * 0.01;
 }
 
+static bool isSingleValueSliderStyle (Slider::SliderStyle style) noexcept
+{
+    return style != Slider::TwoValueHorizontal
+        && style != Slider::TwoValueVertical
+        && style != Slider::ThreeValueHorizontal
+        && style != Slider::ThreeValueVertical;
+}
+
 class Slider::Pimpl   : public AsyncUpdater, // this needs to be public otherwise it will cause an
                                              // error when JUCE_DLL_BUILD=1
                         private Value::Listener
@@ -1026,27 +1034,27 @@ public:
         popupDisplay.reset();
     }
 
-    bool keyPressed (const KeyPress& key)
+    double getKeyboardInterval() const
     {
-        if (key.getModifiers().isAnyModifierKeyDown())
+        if (auto* accessibility = owner.getAccessibilityHandler())
+            if (auto* valueInterface = accessibility->getValueInterface())
+                return valueInterface->getRange().getInterval();
+
+        return getStepSize (owner);
+    }
+
+    bool keyPressedLegacy (const KeyPress& key)
+    {
+        if (key.getModifiers().isAnyModifierKeyDown() || ! isSingleValueSliderStyle (style))
             return false;
-
-        const auto getInterval = [this]
-        {
-            if (auto* accessibility = owner.getAccessibilityHandler())
-                if (auto* valueInterface = accessibility->getValueInterface())
-                    return valueInterface->getRange().getInterval();
-
-            return getStepSize (owner);
-        };
 
         const auto valueChange = [&]
         {
             if (key == KeyPress::rightKey || key == KeyPress::upKey)
-                return getInterval();
+                return getKeyboardInterval();
 
             if (key == KeyPress::leftKey || key == KeyPress::downKey)
-                return -getInterval();
+                return -getKeyboardInterval();
 
             return 0.0;
         }();
@@ -1056,6 +1064,83 @@ public:
 
         setValue (getValue() + valueChange, sendNotificationSync);
         return true;
+    }
+
+    bool beginFocusAdjustment()
+    {
+        if (focusAdjustmentActive || ! isSingleValueSliderStyle (style))
+            return false;
+
+        focusAdjustmentStartValue = getValue();
+        focusAdjustmentActive = true;
+        owner.repaint();
+        return true;
+    }
+
+    bool isFocusAdjustmentActive() const noexcept
+    {
+        return focusAdjustmentActive;
+    }
+
+    bool endFocusAdjustment (bool restoreInitialValue)
+    {
+        if (! focusAdjustmentActive)
+            return false;
+
+        focusAdjustmentActive = false;
+
+        if (restoreInitialValue)
+            setValue (focusAdjustmentStartValue, sendNotificationSync);
+
+        owner.repaint();
+        return true;
+    }
+
+    FocusNavigationResult handleFocusNavigation (FocusNavigationDirection direction)
+    {
+        if (! focusAdjustmentActive || ! isSingleValueSliderStyle (style))
+            return FocusNavigationResult::unhandled;
+
+        const auto getValueChange = [this, direction]() -> std::optional<double>
+        {
+            if (isHorizontal())
+            {
+                if (direction == FocusNavigationDirection::left)
+                    return -getKeyboardInterval();
+
+                if (direction == FocusNavigationDirection::right)
+                    return getKeyboardInterval();
+
+                return {};
+            }
+
+            if (isVertical())
+            {
+                if (direction == FocusNavigationDirection::up)
+                    return getKeyboardInterval();
+
+                if (direction == FocusNavigationDirection::down)
+                    return -getKeyboardInterval();
+
+                return {};
+            }
+
+            if (direction == FocusNavigationDirection::left
+                || direction == FocusNavigationDirection::down)
+                return -getKeyboardInterval();
+
+            return getKeyboardInterval();
+        };
+
+        const auto valueChange = getValueChange();
+
+        if (! valueChange.has_value())
+            return FocusNavigationResult::blocked;
+
+        const auto previousValue = getValue();
+        setValue (previousValue + *valueChange, sendNotificationSync);
+        return approximatelyEqual (previousValue, getValue()) ? FocusNavigationResult::blocked
+                                                              : FocusNavigationResult::handled;
     }
 
     void showPopupDisplay()
@@ -1317,6 +1402,7 @@ public:
     NormalisableRange<double> normRange { 0.0, 10.0 };
     double doubleClickReturnValue = 0;
     double valueWhenLastDragged = 0, valueOnMouseDown = 0, lastAngle = 0;
+    double focusAdjustmentStartValue = 0;
     double velocityModeSensitivity = 1.0, velocityModeOffset = 0, minMaxDiff = 0;
     int velocityModeThreshold = 1;
     RotaryParameters rotaryParams;
@@ -1349,6 +1435,8 @@ public:
     bool incDecDragged = false;
     bool scrollWheelEnabled = true;
     bool snapsToMousePos = true;
+    bool focusAdjustmentActive = false;
+    bool backButtonCancelsAdjustment = false;
 
     int popupHoverTimeout = 2000;
     double lastPopupDismissal = 0.0;
@@ -1463,6 +1551,14 @@ void Slider::init (SliderStyle style, TextEntryBoxPosition textBoxPos)
 
     pimpl.reset (new Pimpl (*this, style, textBoxPos));
 
+   #if JUCE_TVOS
+    if (isSingleValueSliderStyle (style))
+    {
+        setWantsKeyboardFocus (true);
+        setHasFocusOutline (true);
+    }
+   #endif
+
     Slider::lookAndFeelChanged();
     updateText();
 
@@ -1477,7 +1573,28 @@ void Slider::removeListener (Listener* l)    { pimpl->listeners.remove (l); }
 
 //==============================================================================
 Slider::SliderStyle Slider::getSliderStyle() const noexcept     { return pimpl->style; }
-void Slider::setSliderStyle (SliderStyle newStyle)              { pimpl->setSliderStyle (newStyle); }
+
+void Slider::setSliderStyle (SliderStyle newStyle)
+{
+   #if JUCE_TVOS
+    const auto oldDefault = isSingleValueSliderStyle (getSliderStyle());
+    const auto wasUsingDefaultKeyboardFocus = getWantsKeyboardFocus() == oldDefault;
+    const auto wasUsingDefaultFocusOutline = hasFocusOutline() == oldDefault;
+   #endif
+
+    pimpl->endFocusAdjustment (false);
+    pimpl->setSliderStyle (newStyle);
+
+   #if JUCE_TVOS
+    const auto newDefault = isSingleValueSliderStyle (newStyle);
+
+    if (wasUsingDefaultKeyboardFocus)
+        setWantsKeyboardFocus (newDefault);
+
+    if (wasUsingDefaultFocusOutline)
+        setHasFocusOutline (newDefault);
+   #endif
+}
 
 void Slider::setRotaryParameters (RotaryParameters p) noexcept
 {
@@ -1578,7 +1695,14 @@ Component* Slider::getCurrentPopupDisplay() const noexcept      { return pimpl->
 //==============================================================================
 void Slider::colourChanged()        { lookAndFeelChanged(); }
 void Slider::lookAndFeelChanged()   { pimpl->lookAndFeelChanged (getLookAndFeel()); }
-void Slider::enablementChanged()    { repaint(); pimpl->updateTextBoxEnablement(); }
+void Slider::enablementChanged()
+{
+    if (! isEnabled())
+        pimpl->endFocusAdjustment (false);
+
+    repaint();
+    pimpl->updateTextBoxEnablement();
+}
 
 //==============================================================================
 NormalisableRange<double> Slider::getNormalisableRange() const noexcept { return pimpl->normRange; }
@@ -1714,6 +1838,16 @@ void Slider::setPopupMenuEnabled (bool menuEnabled)         { pimpl->menuEnabled
 void Slider::setScrollWheelEnabled (bool enabled)           { pimpl->scrollWheelEnabled = enabled; }
 
 bool Slider::isScrollWheelEnabled() const noexcept          { return pimpl->scrollWheelEnabled; }
+void Slider::setBackButtonCancelsAdjustment (bool shouldCancel) noexcept
+{
+    pimpl->backButtonCancelsAdjustment = shouldCancel;
+}
+
+bool Slider::doesBackButtonCancelAdjustment() const noexcept
+{
+    return pimpl->backButtonCancelsAdjustment;
+}
+
 bool Slider::isHorizontal() const noexcept                  { return pimpl->isHorizontal(); }
 bool Slider::isVertical() const noexcept                    { return pimpl->isVertical(); }
 bool Slider::isRotary() const noexcept                      { return pimpl->isRotary(); }
@@ -1739,7 +1873,47 @@ void Slider::mouseExit (const MouseEvent&)      { pimpl->mouseExit(); }
 void Slider::mouseEnter (const MouseEvent&)     { pimpl->mouseMove(); }
 
 /** @internal */
-bool Slider::keyPressed (const KeyPress& k)     { return pimpl->keyPressed (k); }
+bool Slider::keyPressed (const KeyPress& key)
+{
+    if (pimpl->isFocusAdjustmentActive() && ! isDirectionalFocusNavigationEnabled())
+        pimpl->endFocusAdjustment (false);
+
+    if (pimpl->isFocusAdjustmentActive())
+    {
+        if (key.isKeyCode (KeyPress::selectKey))
+            return pimpl->endFocusAdjustment (false);
+
+        if (key.isKeyCode (KeyPress::escapeKey) || key.isKeyCode (KeyPress::menuKey))
+            return pimpl->backButtonCancelsAdjustment && pimpl->endFocusAdjustment (true);
+
+        if (const auto direction = detail::getFocusNavigationDirectionForKeyPress (key))
+            return pimpl->handleFocusNavigation (*direction) != FocusNavigationResult::unhandled;
+
+        return false;
+    }
+
+    if (isDirectionalFocusNavigationEnabled())
+    {
+        if (key.isKeyCode (KeyPress::selectKey))
+            return pimpl->beginFocusAdjustment();
+
+        if (detail::getFocusNavigationDirectionForKeyPress (key).has_value())
+            return false;
+    }
+
+    return pimpl->keyPressedLegacy (key);
+}
+
+FocusNavigationResult Slider::handleFocusNavigation (FocusNavigationDirection direction)
+{
+    return pimpl->handleFocusNavigation (direction);
+}
+
+void Slider::focusLost (FocusChangeType cause)
+{
+    pimpl->endFocusAdjustment (false);
+    Component::focusLost (cause);
+}
 
 void Slider::modifierKeysChanged (const ModifierKeys& modifiers)
 {
@@ -1835,5 +2009,191 @@ std::unique_ptr<AccessibilityHandler> Slider::createAccessibilityHandler()
 {
     return std::make_unique<SliderAccessibilityHandler> (*this);
 }
+
+#if JUCE_UNIT_TESTS
+
+struct SliderFocusNavigationTests final : UnitTest
+{
+    SliderFocusNavigationTests()
+        : UnitTest ("Slider focus navigation", UnitTestCategories::gui)
+    {}
+
+    void runTest() override
+    {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+
+        beginTest ("Single-value sliders use the tvOS focus default");
+        {
+            Slider slider;
+
+           #if JUCE_TVOS
+            expect (slider.getWantsKeyboardFocus());
+            expect (slider.hasFocusOutline());
+           #else
+            expect (! slider.getWantsKeyboardFocus());
+            expect (! slider.hasFocusOutline());
+           #endif
+
+            slider.setSliderStyle (Slider::TwoValueHorizontal);
+            expect (! slider.getWantsKeyboardFocus());
+            expect (! slider.hasFocusOutline());
+        }
+
+        beginTest ("Directions adjust only after Select in directional mode");
+        {
+            Slider slider;
+            slider.setRange (0.0, 2.0, 1.0);
+            slider.setValue (1.0, dontSendNotification);
+            slider.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (! slider.keyPressed (KeyPress (KeyPress::rightKey)));
+            expectEquals (slider.getValue(), 1.0);
+            expect (slider.keyPressed (KeyPress (KeyPress::selectKey)));
+            expect (slider.handleFocusNavigation (FocusNavigationDirection::right)
+                    == FocusNavigationResult::handled);
+            expectEquals (slider.getValue(), 2.0);
+            expect (slider.handleFocusNavigation (FocusNavigationDirection::right)
+                    == FocusNavigationResult::blocked);
+            expect (slider.handleFocusNavigation (FocusNavigationDirection::up)
+                    == FocusNavigationResult::blocked);
+            expect (slider.keyPressed (KeyPress (KeyPress::selectKey)));
+            expect (slider.handleFocusNavigation (FocusNavigationDirection::left)
+                    == FocusNavigationResult::unhandled);
+        }
+
+        beginTest ("Back cancellation is opt-in");
+        {
+            Slider slider;
+            slider.setRange (0.0, 2.0, 1.0);
+            slider.setValue (1.0, dontSendNotification);
+            slider.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (! slider.doesBackButtonCancelAdjustment());
+            expect (slider.keyPressed (KeyPress (KeyPress::selectKey)));
+            expect (slider.keyPressed (KeyPress (KeyPress::rightKey)));
+            expect (! slider.keyPressed (KeyPress (KeyPress::escapeKey)));
+            expectEquals (slider.getValue(), 2.0);
+            expect (slider.handleFocusNavigation (FocusNavigationDirection::left)
+                    == FocusNavigationResult::handled);
+
+            slider.setBackButtonCancelsAdjustment (true);
+            expect (slider.doesBackButtonCancelAdjustment());
+            expect (slider.keyPressed (KeyPress (KeyPress::rightKey)));
+            expect (slider.keyPressed (KeyPress (KeyPress::menuKey)));
+            expectEquals (slider.getValue(), 1.0);
+            expect (slider.handleFocusNavigation (FocusNavigationDirection::left)
+                    == FocusNavigationResult::unhandled);
+        }
+
+        beginTest ("Vertical sliders use Up and Down while blocking perpendicular directions");
+        {
+            Slider slider (Slider::LinearVertical, Slider::NoTextBox);
+            slider.setRange (0.0, 2.0, 1.0);
+            slider.setValue (1.0, dontSendNotification);
+            slider.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (slider.keyPressed (KeyPress (KeyPress::selectKey)));
+            expect (slider.handleFocusNavigation (FocusNavigationDirection::up)
+                    == FocusNavigationResult::handled);
+            expectEquals (slider.getValue(), 2.0);
+            expect (slider.handleFocusNavigation (FocusNavigationDirection::up)
+                    == FocusNavigationResult::blocked);
+            expect (slider.handleFocusNavigation (FocusNavigationDirection::left)
+                    == FocusNavigationResult::blocked);
+            expect (slider.handleFocusNavigation (FocusNavigationDirection::down)
+                    == FocusNavigationResult::handled);
+            expectEquals (slider.getValue(), 1.0);
+        }
+
+        beginTest ("Rotary and IncDec sliders accept both directional axes");
+        {
+            for (const auto style : { Slider::Rotary, Slider::IncDecButtons })
+            {
+                Slider slider (style, Slider::NoTextBox);
+                slider.setRange (0.0, 4.0, 1.0);
+                slider.setValue (2.0, dontSendNotification);
+                slider.setFocusNavigationMode (FocusNavigationMode::directional);
+
+                expect (slider.keyPressed (KeyPress (KeyPress::selectKey)));
+                expect (slider.handleFocusNavigation (FocusNavigationDirection::right)
+                        == FocusNavigationResult::handled);
+                expectEquals (slider.getValue(), 3.0);
+                expect (slider.handleFocusNavigation (FocusNavigationDirection::up)
+                        == FocusNavigationResult::handled);
+                expectEquals (slider.getValue(), 4.0);
+                expect (slider.handleFocusNavigation (FocusNavigationDirection::left)
+                        == FocusNavigationResult::handled);
+                expect (slider.handleFocusNavigation (FocusNavigationDirection::down)
+                        == FocusNavigationResult::handled);
+                expectEquals (slider.getValue(), 2.0);
+            }
+        }
+
+        beginTest ("Minimum and maximum limits remain trapped during adjustment");
+        {
+            Slider slider;
+            slider.setRange (0.0, 2.0, 1.0);
+            slider.setValue (0.0, dontSendNotification);
+            slider.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (slider.keyPressed (KeyPress (KeyPress::selectKey)));
+            expect (slider.handleFocusNavigation (FocusNavigationDirection::left)
+                    == FocusNavigationResult::blocked);
+            expectEquals (slider.getValue(), 0.0);
+            slider.setValue (2.0, dontSendNotification);
+            expect (slider.handleFocusNavigation (FocusNavigationDirection::right)
+                    == FocusNavigationResult::blocked);
+            expectEquals (slider.getValue(), 2.0);
+        }
+
+        beginTest ("Focus loss commits and exits adjustment");
+        {
+            Slider slider;
+            slider.setRange (0.0, 2.0, 1.0);
+            slider.setValue (1.0, dontSendNotification);
+            slider.setFocusNavigationMode (FocusNavigationMode::directional);
+
+            expect (slider.keyPressed (KeyPress (KeyPress::selectKey)));
+            expect (slider.keyPressed (KeyPress (KeyPress::rightKey)));
+            slider.focusLost (Component::focusChangedDirectly);
+            expectEquals (slider.getValue(), 2.0);
+            expect (slider.handleFocusNavigation (FocusNavigationDirection::left)
+                    == FocusNavigationResult::unhandled);
+        }
+
+        beginTest ("Multi-value sliders require subclass-defined thumb semantics");
+        {
+            for (const auto style : { Slider::TwoValueHorizontal,
+                                      Slider::TwoValueVertical,
+                                      Slider::ThreeValueHorizontal,
+                                      Slider::ThreeValueVertical })
+            {
+                Slider slider (style, Slider::NoTextBox);
+                slider.setFocusNavigationMode (FocusNavigationMode::directional);
+                slider.setWantsKeyboardFocus (true);
+
+                expect (! slider.keyPressed (KeyPress (KeyPress::selectKey)));
+                expect (! slider.keyPressed (KeyPress (KeyPress::rightKey)));
+                expect (slider.handleFocusNavigation (FocusNavigationDirection::right)
+                        == FocusNavigationResult::unhandled);
+            }
+        }
+
+        beginTest ("Disabled directional navigation preserves legacy arrow adjustment");
+        {
+            Slider slider;
+            slider.setRange (0.0, 2.0, 1.0);
+            slider.setValue (1.0, dontSendNotification);
+            slider.setFocusNavigationMode (FocusNavigationMode::disabled);
+
+            expect (slider.keyPressed (KeyPress (KeyPress::rightKey)));
+            expectEquals (slider.getValue(), 2.0);
+        }
+    }
+};
+
+static SliderFocusNavigationTests sliderFocusNavigationTests;
+
+#endif
 
 } // namespace juce

@@ -59,6 +59,42 @@ namespace TabbedComponentHelpers
 
         return Rectangle<int>();
     }
+
+    static bool directionMovesTowardsTabBar (TabbedButtonBar::Orientation orientation,
+                                             FocusNavigationDirection direction)
+    {
+        switch (orientation)
+        {
+            case TabbedButtonBar::TabsAtTop:    return direction == FocusNavigationDirection::up;
+            case TabbedButtonBar::TabsAtBottom: return direction == FocusNavigationDirection::down;
+            case TabbedButtonBar::TabsAtLeft:   return direction == FocusNavigationDirection::left;
+            case TabbedButtonBar::TabsAtRight:  return direction == FocusNavigationDirection::right;
+        }
+
+        jassertfalse;
+        return false;
+    }
+
+    static bool directionMovesTowardsContent (TabbedButtonBar::Orientation orientation,
+                                              FocusNavigationDirection direction)
+    {
+        switch (orientation)
+        {
+            case TabbedButtonBar::TabsAtTop:    return direction == FocusNavigationDirection::down;
+            case TabbedButtonBar::TabsAtBottom: return direction == FocusNavigationDirection::up;
+            case TabbedButtonBar::TabsAtLeft:   return direction == FocusNavigationDirection::right;
+            case TabbedButtonBar::TabsAtRight:  return direction == FocusNavigationDirection::left;
+        }
+
+        jassertfalse;
+        return false;
+    }
+
+    static bool contains (const Component& parent, const Component* possibleChild)
+    {
+        return possibleChild != nullptr
+            && (&parent == possibleChild || parent.isParentOf (possibleChild));
+    }
 }
 
 //==============================================================================
@@ -285,12 +321,55 @@ void TabbedComponent::lookAndFeelChanged()
           comp->lookAndFeelChanged();
 }
 
+FocusNavigationResult TabbedComponent::handleFocusNavigation (FocusNavigationDirection direction)
+{
+    auto* focused = getCurrentlyFocusedComponent();
+    auto* content = getCurrentContentComponent();
+
+    if (focused == nullptr || content == nullptr)
+        return FocusNavigationResult::unhandled;
+
+    if (TabbedComponentHelpers::contains (*content, focused)
+        && TabbedComponentHelpers::directionMovesTowardsTabBar (getOrientation(), direction))
+    {
+        if (auto traverser = focused->createKeyboardFocusTraverser())
+            if (TabbedComponentHelpers::contains (*content,
+                                                   traverser->getComponentInDirection (focused, direction)))
+                return FocusNavigationResult::unhandled;
+
+        for (int i = 0; i < tabs->getNumTabs(); ++i)
+            if (auto* tab = tabs->getTabButton (i))
+                tab->setWantsKeyboardFocus (true);
+
+        if (auto* tab = tabs->getTabButton (getCurrentTabIndex());
+            tab != nullptr && tab->isShowing() && tab->isEnabled())
+        {
+            tab->grabKeyboardFocus();
+
+            if (tab->hasKeyboardFocus (false))
+                return FocusNavigationResult::handled;
+        }
+    }
+    else if (TabbedComponentHelpers::contains (*tabs, focused)
+             && TabbedComponentHelpers::directionMovesTowardsContent (getOrientation(), direction))
+    {
+        content->grabKeyboardFocus();
+
+        if (content->hasKeyboardFocus (true))
+            return FocusNavigationResult::handled;
+    }
+
+    return FocusNavigationResult::unhandled;
+}
+
 void TabbedComponent::changeCallback (int newCurrentTabIndex, const String& newTabName)
 {
     auto* newPanelComp = getTabContentComponent (getCurrentTabIndex());
 
     if (newPanelComp != panelComponent)
     {
+        const auto shouldFocusNewPanel = ! tabs->hasKeyboardFocus (true);
+
         if (panelComponent != nullptr)
         {
             panelComponent->setVisible (false);
@@ -306,7 +385,10 @@ void TabbedComponent::changeCallback (int newCurrentTabIndex, const String& newT
             addChildComponent (panelComponent);
             panelComponent->sendLookAndFeelChange();
             panelComponent->setVisible (true);
-            panelComponent->toFront (true);
+
+            // A focused tab keeps focus so the bar can select further pages. Changes made
+            // from the page or application retain the existing hand-off to the new panel.
+            panelComponent->toFront (shouldFocusNewPanel);
         }
 
         repaint();
@@ -324,5 +406,185 @@ std::unique_ptr<AccessibilityHandler> TabbedComponent::createAccessibilityHandle
 {
     return std::make_unique<AccessibilityHandler> (*this, AccessibilityRole::group);
 }
+
+#if JUCE_UNIT_TESTS
+
+struct TabbedComponentFocusNavigationTests final : UnitTest
+{
+    TabbedComponentFocusNavigationTests()
+        : UnitTest ("TabbedComponent focus navigation", UnitTestCategories::gui)
+    {}
+
+    void runTest() override
+    {
+        ScopedJuceInitialiser_GUI libraryInitialiser;
+        expect (MessageManager::callSync ([this] { runMessageThreadTests(); }));
+    }
+
+private:
+    void runMessageThreadTests()
+    {
+        beginTest ("Directional focus crosses between content and every tab-bar orientation");
+
+        testOrientation (TabbedButtonBar::TabsAtTop,
+                         FocusNavigationDirection::up,
+                         FocusNavigationDirection::down);
+        testOrientation (TabbedButtonBar::TabsAtBottom,
+                         FocusNavigationDirection::down,
+                         FocusNavigationDirection::up);
+        testOrientation (TabbedButtonBar::TabsAtLeft,
+                         FocusNavigationDirection::left,
+                         FocusNavigationDirection::right);
+        testOrientation (TabbedButtonBar::TabsAtRight,
+                         FocusNavigationDirection::right,
+                         FocusNavigationDirection::left);
+
+        beginTest ("Content traversal has first refusal before focus enters the tab bar");
+        {
+            Component root, content;
+            TabbedComponent tabbed (TabbedButtonBar::TabsAtTop);
+            TextButton upper ("Upper"), lower ("Lower");
+
+            content.addAndMakeVisible (upper);
+            content.addAndMakeVisible (lower);
+            upper.setBounds (40, 20, 100, 30);
+            lower.setBounds (40, 100, 100, 30);
+            tabbed.addTab ("Page", Colours::transparentBlack, &content, false);
+            tabbed.setBounds (0, 0, 320, 240);
+            root.addAndMakeVisible (tabbed);
+            root.setBounds (0, 0, 320, 240);
+            root.setFocusNavigationMode (FocusNavigationMode::directional);
+            root.addToDesktop (ComponentPeer::windowIsTemporary);
+            root.setVisible (true);
+
+            lower.grabKeyboardFocus();
+            expect (root.moveKeyboardFocus (FocusNavigationDirection::up));
+            expect (upper.hasKeyboardFocus (false));
+            expect (root.moveKeyboardFocus (FocusNavigationDirection::up));
+            expect (tabbed.getTabbedButtonBar().getTabButton (0)->hasKeyboardFocus (false));
+
+            Component::unfocusAllComponents();
+        }
+
+        beginTest ("Selecting a focused tab keeps focus in the strip");
+        {
+            Component root, firstContent, secondContent;
+            TabbedComponent tabbed (TabbedButtonBar::TabsAtTop);
+            TextButton firstButton ("First content"), secondButton ("Second content");
+
+            firstContent.addAndMakeVisible (firstButton);
+            secondContent.addAndMakeVisible (secondButton);
+            firstButton.setBounds (40, 20, 100, 30);
+            secondButton.setBounds (40, 20, 100, 30);
+            tabbed.addTab ("First", Colours::transparentBlack, &firstContent, false);
+            tabbed.addTab ("Second", Colours::transparentBlack, &secondContent, false);
+            tabbed.getTabbedButtonBar().setFocusSelectionMode (
+                TabbedButtonBar::FocusSelectionMode::immediate);
+            tabbed.setBounds (0, 0, 320, 240);
+            root.addAndMakeVisible (tabbed);
+            root.setBounds (0, 0, 320, 240);
+            root.setFocusNavigationMode (FocusNavigationMode::directional);
+            root.addToDesktop (ComponentPeer::windowIsTemporary);
+            root.setVisible (true);
+
+            firstButton.grabKeyboardFocus();
+            expect (root.moveKeyboardFocus (FocusNavigationDirection::up));
+            expect (root.moveKeyboardFocus (FocusNavigationDirection::right));
+            expectEquals (tabbed.getCurrentTabIndex(), 1);
+            expect (tabbed.getTabbedButtonBar().getTabButton (1)->hasKeyboardFocus (false));
+
+            expect (root.moveKeyboardFocus (FocusNavigationDirection::down));
+            expect (secondButton.hasKeyboardFocus (false));
+
+            Component::unfocusAllComponents();
+        }
+
+        beginTest ("Selecting a tab from page content hands focus to the new panel");
+        {
+            Component root, firstContent, secondContent;
+            TabbedComponent tabbed (TabbedButtonBar::TabsAtTop);
+            TextButton firstButton ("First content"), secondButton ("Second content");
+
+            firstContent.addAndMakeVisible (firstButton);
+            secondContent.addAndMakeVisible (secondButton);
+            firstButton.setBounds (40, 20, 100, 30);
+            secondButton.setBounds (40, 20, 100, 30);
+            tabbed.addTab ("First", Colours::transparentBlack, &firstContent, false);
+            tabbed.addTab ("Second", Colours::transparentBlack, &secondContent, false);
+            tabbed.setBounds (0, 0, 320, 240);
+            root.addAndMakeVisible (tabbed);
+            root.setBounds (0, 0, 320, 240);
+            root.setFocusNavigationMode (FocusNavigationMode::directional);
+            root.addToDesktop (ComponentPeer::windowIsTemporary);
+            root.setVisible (true);
+
+            firstButton.grabKeyboardFocus();
+            tabbed.setCurrentTabIndex (1);
+            expect (secondButton.hasKeyboardFocus (false));
+
+            Component::unfocusAllComponents();
+        }
+
+       #if ! JUCE_TVOS
+        beginTest ("The bridge remains inactive until a non-tvOS tree opts in");
+        {
+            Component root, content;
+            TabbedComponent tabbed (TabbedButtonBar::TabsAtTop);
+            TextButton button ("Content");
+
+            content.addAndMakeVisible (button);
+            button.setBounds (40, 20, 100, 30);
+            tabbed.addTab ("Page", Colours::transparentBlack, &content, false);
+            tabbed.setBounds (0, 0, 320, 240);
+            root.addAndMakeVisible (tabbed);
+            root.setBounds (0, 0, 320, 240);
+            root.setFocusNavigationMode (FocusNavigationMode::disabled);
+            root.addToDesktop (ComponentPeer::windowIsTemporary);
+            root.setVisible (true);
+
+            button.grabKeyboardFocus();
+            expect (! root.moveKeyboardFocus (FocusNavigationDirection::up));
+            expect (button.hasKeyboardFocus (false));
+            expect (! tabbed.getTabbedButtonBar().getTabButton (0)->getWantsKeyboardFocus());
+
+            Component::unfocusAllComponents();
+        }
+       #endif
+    }
+
+    void testOrientation (TabbedButtonBar::Orientation orientation,
+                          FocusNavigationDirection directionToTabs,
+                          FocusNavigationDirection directionToContent)
+    {
+        Component root, content;
+        TabbedComponent tabbed (orientation);
+        TextButton button ("Content");
+
+        content.addAndMakeVisible (button);
+        button.setBounds (40, 40, 100, 30);
+        tabbed.addTab ("Page", Colours::transparentBlack, &content, false);
+        tabbed.setBounds (0, 0, 320, 240);
+        root.addAndMakeVisible (tabbed);
+        root.setBounds (0, 0, 320, 240);
+        root.setFocusNavigationMode (FocusNavigationMode::directional);
+        root.addToDesktop (ComponentPeer::windowIsTemporary);
+        root.setVisible (true);
+
+        auto* tab = tabbed.getTabbedButtonBar().getTabButton (0);
+        button.grabKeyboardFocus();
+        expect (root.moveKeyboardFocus (directionToTabs));
+        expect (tab->hasKeyboardFocus (false));
+        expect (tab->getWantsKeyboardFocus());
+
+        expect (root.moveKeyboardFocus (directionToContent));
+        expect (button.hasKeyboardFocus (false));
+
+        Component::unfocusAllComponents();
+    }
+};
+
+static TabbedComponentFocusNavigationTests tabbedComponentFocusNavigationTests;
+
+#endif
 
 } // namespace juce

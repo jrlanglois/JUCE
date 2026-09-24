@@ -2095,13 +2095,17 @@ std::unique_ptr<FocusOutline> LookAndFeel_V2::createFocusOutlineForComponent (Co
     {
         Rectangle<int> getOutlineBounds (Component& c) override
         {
-            return c.getScreenBounds();
+            return c.getScreenBounds().expanded (3);
         }
 
         void drawOutline (Graphics& g, int width, int height) override
         {
+            constexpr auto thickness = 3.0f;
+
             g.setColour (Colours::yellow.withAlpha (0.6f));
-            g.drawRoundedRectangle ({ (float) width, (float) height }, 3.0f, 3.0f);
+            g.drawRoundedRectangle (Rectangle<float> ((float) width, (float) height).reduced (thickness * 0.5f),
+                                    3.0f,
+                                    thickness);
         }
     };
 

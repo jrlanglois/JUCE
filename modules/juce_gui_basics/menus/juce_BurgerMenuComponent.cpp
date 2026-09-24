@@ -209,6 +209,18 @@ void BurgerMenuComponent::listBoxItemClicked (int rowIndex, const MouseEvent& e)
     }
 }
 
+bool BurgerMenuComponent::isRowFocusNavigationEnabled (int rowIndex)
+{
+    return isPositiveAndBelow (rowIndex, rows.size())
+        && ! rows.getReference (rowIndex).isMenuHeader
+        && rows.getReference (rowIndex).item.isEnabled;
+}
+
+void BurgerMenuComponent::returnKeyPressed (int rowIndex)
+{
+    activateRow (rowIndex);
+}
+
 Component* BurgerMenuComponent::refreshComponentForRow (int rowIndex, bool isRowSelected, Component* existing)
 {
     auto row = rowIndex < rows.size() ? rows.getReference (rowIndex)
@@ -260,29 +272,33 @@ void BurgerMenuComponent::mouseUp (const MouseEvent& event)
     if (rowIndex == lastRowClicked && rowIndex < rows.size()
          && event.source.getIndex() == inputSourceIndexOfLastClick)
     {
-        auto& row = rows.getReference (rowIndex);
-
-        if (! row.isMenuHeader)
-        {
-            listBox.selectRow (-1);
-
-            lastRowClicked = -1;
-            inputSourceIndexOfLastClick = -1;
-
-            topLevelIndexClicked = row.topLevelMenuIndex;
-            auto& item = row.item;
-
-            if (auto* managerOfChosenCommand = item.commandManager)
-            {
-                ApplicationCommandTarget::InvocationInfo info (item.itemID);
-                info.invocationMethod = ApplicationCommandTarget::InvocationInfo::fromMenu;
-
-                managerOfChosenCommand->invoke (info, true);
-            }
-
-            postCommandMessage (item.itemID);
-        }
+        activateRow (rowIndex);
     }
+}
+
+void BurgerMenuComponent::activateRow (int rowIndex)
+{
+    if (! isRowFocusNavigationEnabled (rowIndex))
+        return;
+
+    listBox.selectRow (-1);
+
+    lastRowClicked = -1;
+    inputSourceIndexOfLastClick = -1;
+
+    const auto& row = rows.getReference (rowIndex);
+    topLevelIndexClicked = row.topLevelMenuIndex;
+    const auto& item = row.item;
+
+    if (auto* managerOfChosenCommand = item.commandManager)
+    {
+        ApplicationCommandTarget::InvocationInfo info (item.itemID);
+        info.invocationMethod = ApplicationCommandTarget::InvocationInfo::fromMenu;
+
+        managerOfChosenCommand->invoke (info, true);
+    }
+
+    postCommandMessage (item.itemID);
 }
 
 void BurgerMenuComponent::handleCommandMessage (int commandID)
@@ -307,5 +323,67 @@ std::unique_ptr<AccessibilityHandler> BurgerMenuComponent::createAccessibilityHa
 {
     return std::make_unique<AccessibilityHandler> (*this, AccessibilityRole::menuBar);
 }
+
+#if JUCE_UNIT_TESTS
+
+class BurgerMenuComponentFocusNavigationTests final : public UnitTest
+{
+public:
+    BurgerMenuComponentFocusNavigationTests()
+        : UnitTest ("BurgerMenuComponent focus navigation", UnitTestCategories::gui)
+    {
+    }
+
+    void runTest() override
+    {
+        struct Model final : MenuBarModel
+        {
+            StringArray getMenuBarNames() override
+            {
+                return { "Section" };
+            }
+
+            PopupMenu getMenuForIndex (int, const String&) override
+            {
+                PopupMenu result;
+                result.addItem (42, "Enabled");
+                result.addItem (43, "Disabled", false, false);
+                return result;
+            }
+
+            void menuItemSelected (int itemID, int) override
+            {
+                selectedItem = itemID;
+            }
+
+            int selectedItem = 0;
+        };
+
+        Model model;
+        BurgerMenuComponent component { &model };
+        component.setFocusNavigationMode (FocusNavigationMode::directional);
+        component.setBounds (0, 0, 300, 300);
+
+        auto* list = dynamic_cast<ListBox*> (component.getChildComponent (0));
+        expect (list != nullptr);
+
+        if (list == nullptr)
+            return;
+
+        beginTest ("Section headers and disabled items are skipped");
+        expect (list->keyPressed (KeyPress (KeyPress::downKey)));
+        expectEquals (list->getFocusNavigationRow(), 1);
+        expect (! list->keyPressed (KeyPress (KeyPress::downKey)));
+
+        beginTest ("Select activates the focused menu item");
+        expect (list->keyPressed (KeyPress (KeyPress::selectKey)));
+        static_cast<Component&> (component).handleCommandMessage (42);
+        expectEquals (model.selectedItem, 42);
+    }
+};
+
+static BurgerMenuComponentFocusNavigationTests burgerMenuComponentFocusNavigationTests;
+
+#endif
 
 } // namespace juce

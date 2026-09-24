@@ -226,6 +226,7 @@ void ScrollBar::setOrientation (bool shouldBeVertical)
 {
     if (vertical != shouldBeVertical)
     {
+        focusAdjustmentActive = false;
         vertical = shouldBeVertical;
 
         if (upButton != nullptr)
@@ -418,6 +419,37 @@ void ScrollBar::timerCallback()
 
 bool ScrollBar::keyPressed (const KeyPress& key)
 {
+    if (focusAdjustmentActive && ! isDirectionalFocusNavigationEnabled())
+        focusAdjustmentActive = false;
+
+    if (focusAdjustmentActive)
+    {
+        if (key.isKeyCode (KeyPress::selectKey))
+        {
+            focusAdjustmentActive = false;
+            repaint();
+            return true;
+        }
+
+        if (const auto direction = detail::getFocusNavigationDirectionForKeyPress (key))
+            return adjustForFocusNavigation (*direction) != FocusNavigationResult::unhandled;
+
+        return false;
+    }
+
+    if (isDirectionalFocusNavigationEnabled())
+    {
+        if (key.isKeyCode (KeyPress::selectKey) && getWantsKeyboardFocus())
+        {
+            focusAdjustmentActive = true;
+            repaint();
+            return true;
+        }
+
+        if (detail::getFocusNavigationDirectionForKeyPress (key).has_value())
+            return false;
+    }
+
     if (isVisible())
     {
         if (key == KeyPress::upKey || key == KeyPress::leftKey)    return moveScrollbarInSteps (-1);
@@ -429,6 +461,52 @@ bool ScrollBar::keyPressed (const KeyPress& key)
     }
 
     return false;
+}
+
+FocusNavigationResult ScrollBar::handleFocusNavigation (FocusNavigationDirection direction)
+{
+    return adjustForFocusNavigation (direction);
+}
+
+FocusNavigationResult ScrollBar::adjustForFocusNavigation (FocusNavigationDirection direction)
+{
+    if (! focusAdjustmentActive)
+        return FocusNavigationResult::unhandled;
+
+    const auto numSteps = [this, direction]() -> std::optional<int>
+    {
+        if (vertical)
+        {
+            if (direction == FocusNavigationDirection::up)
+                return -1;
+
+            if (direction == FocusNavigationDirection::down)
+                return 1;
+
+            return {};
+        }
+
+        if (direction == FocusNavigationDirection::left)
+            return -1;
+
+        if (direction == FocusNavigationDirection::right)
+            return 1;
+
+        return {};
+    }();
+
+    if (! numSteps.has_value())
+        return FocusNavigationResult::blocked;
+
+    return moveScrollbarInSteps (*numSteps) ? FocusNavigationResult::handled
+                                            : FocusNavigationResult::blocked;
+}
+
+void ScrollBar::focusLost (FocusChangeType cause)
+{
+    focusAdjustmentActive = false;
+    repaint();
+    Component::focusLost (cause);
 }
 
 void ScrollBar::setVisible (bool shouldBeVisible)
@@ -482,5 +560,54 @@ std::unique_ptr<AccessibilityHandler> ScrollBar::createAccessibilityHandler()
                                                    AccessibilityActions{},
                                                    AccessibilityHandler::Interfaces { std::make_unique<ValueInterface> (*this) });
 }
+
+#if JUCE_UNIT_TESTS
+
+struct ScrollBarFocusNavigationTests final : UnitTest
+{
+    ScrollBarFocusNavigationTests()
+        : UnitTest ("ScrollBar focus navigation", UnitTestCategories::gui)
+    {}
+
+    void runTest() override
+    {
+        beginTest ("Scrollbars remain ineligible until explicitly enabled");
+        ScrollBar scrollBar (false);
+        scrollBar.setVisible (true);
+        expect (! scrollBar.getWantsKeyboardFocus());
+
+        scrollBar.setRangeLimits (0.0, 10.0, dontSendNotification);
+        scrollBar.setCurrentRange (2.0, 2.0, dontSendNotification);
+        scrollBar.setSingleStepSize (1.0);
+        scrollBar.setFocusNavigationMode (FocusNavigationMode::directional);
+        scrollBar.setWantsKeyboardFocus (true);
+
+        beginTest ("Select enters adjustment and boundaries remain trapped");
+        expect (! scrollBar.keyPressed (KeyPress (KeyPress::rightKey)));
+        expect (scrollBar.keyPressed (KeyPress (KeyPress::selectKey)));
+        expect (scrollBar.handleFocusNavigation (FocusNavigationDirection::right)
+                == FocusNavigationResult::handled);
+        expectEquals (scrollBar.getCurrentRangeStart(), 3.0);
+        expect (scrollBar.handleFocusNavigation (FocusNavigationDirection::up)
+                == FocusNavigationResult::blocked);
+
+        scrollBar.setCurrentRangeStart (8.0, dontSendNotification);
+        expect (scrollBar.handleFocusNavigation (FocusNavigationDirection::right)
+                == FocusNavigationResult::blocked);
+        expect (scrollBar.keyPressed (KeyPress (KeyPress::selectKey)));
+        expect (scrollBar.handleFocusNavigation (FocusNavigationDirection::left)
+                == FocusNavigationResult::unhandled);
+
+        beginTest ("Disabled directional navigation preserves legacy arrows");
+        scrollBar.setCurrentRangeStart (2.0, dontSendNotification);
+        scrollBar.setFocusNavigationMode (FocusNavigationMode::disabled);
+        expect (scrollBar.keyPressed (KeyPress (KeyPress::rightKey)));
+        expectEquals (scrollBar.getCurrentRangeStart(), 3.0);
+    }
+};
+
+static ScrollBarFocusNavigationTests scrollBarFocusNavigationTests;
+
+#endif
 
 } // namespace juce

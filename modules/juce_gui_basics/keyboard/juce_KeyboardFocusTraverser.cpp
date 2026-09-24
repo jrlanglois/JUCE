@@ -72,6 +72,34 @@ Component* KeyboardFocusTraverser::getPreviousComponent (Component* current)
                                                     detail::FocusHelpers::NavigationDirection::backwards);
 }
 
+Component* KeyboardFocusTraverser::getComponentInDirection (Component* current,
+                                                            FocusNavigationDirection direction)
+{
+    if (current == nullptr)
+        return nullptr;
+
+    auto* container = current->findKeyboardFocusContainer();
+
+    if (container == nullptr)
+        return nullptr;
+
+    auto candidates = getAllComponents (container);
+    candidates.erase (std::remove (candidates.begin(), candidates.end(), current), candidates.end());
+
+    const auto getScreenBounds = [] (const Component* component)
+    {
+        return component->localAreaToGlobal (component->getLocalBounds().toFloat());
+    };
+
+    const auto candidate = detail::findDirectionalFocusCandidate (getScreenBounds (current),
+                                                                  candidates.begin(),
+                                                                  candidates.end(),
+                                                                  direction,
+                                                                  getScreenBounds);
+
+    return candidate != candidates.end() ? *candidate : nullptr;
+}
+
 Component* KeyboardFocusTraverser::getDefaultComponent (Component* parentComponent)
 {
     for (auto* comp : getAllComponents (parentComponent))
@@ -262,9 +290,169 @@ struct KeyboardFocusTraverserTests final : public UnitTest
             expect (traverser.getAllComponents (grandparent.get()).size() == otherParents.size());
             expect (traverser.getAllComponents (parent.get()).empty());
         }
+
+        runDirectionalTests();
     }
 
 private:
+    static void addFocusableChild (Component& parent, Component& child, Rectangle<int> bounds)
+    {
+        parent.addAndMakeVisible (child);
+        child.setBounds (bounds);
+        child.setWantsKeyboardFocus (true);
+    }
+
+    void runDirectionalTests()
+    {
+        beginTest ("Directional traversal in a 3-by-3 grid does not wrap");
+        {
+            Component parent;
+            std::array<Component, 9> children;
+
+            for (size_t i = 0; i < children.size(); ++i)
+            {
+                const auto column = static_cast<int> (i % 3);
+                const auto row = static_cast<int> (i / 3);
+                addFocusableChild (parent, children[i], { column * 40, row * 40, 20, 20 });
+            }
+
+            expect (traverser.getComponentInDirection (&children[4], FocusNavigationDirection::left) == &children[3]);
+            expect (traverser.getComponentInDirection (&children[4], FocusNavigationDirection::right) == &children[5]);
+            expect (traverser.getComponentInDirection (&children[4], FocusNavigationDirection::up) == &children[1]);
+            expect (traverser.getComponentInDirection (&children[4], FocusNavigationDirection::down) == &children[7]);
+            expect (traverser.getComponentInDirection (&children[3], FocusNavigationDirection::left) == nullptr);
+            expect (traverser.getComponentInDirection (&children[5], FocusNavigationDirection::right) == nullptr);
+            expect (traverser.getComponentInDirection (&children[1], FocusNavigationDirection::up) == nullptr);
+            expect (traverser.getComponentInDirection (&children[7], FocusNavigationDirection::down) == nullptr);
+        }
+
+        beginTest ("A beam candidate wins before a nearer diagonal candidate");
+        {
+            Component parent, source, beamCandidate, diagonalCandidate;
+            addFocusableChild (parent, source,            {   0,  0, 10, 10 });
+            addFocusableChild (parent, beamCandidate,     { 100,  0, 10, 10 });
+            addFocusableChild (parent, diagonalCandidate, {  20, 20, 10, 10 });
+
+            expect (traverser.getComponentInDirection (&source, FocusNavigationDirection::right) == &beamCandidate);
+
+            beamCandidate.setWantsKeyboardFocus (false);
+            expect (traverser.getComponentInDirection (&source, FocusNavigationDirection::right) == &diagonalCandidate);
+        }
+
+        beginTest ("No-beam fallback minimises major-axis distance before minor-axis distance");
+        {
+            Component parent, source, nearerMajorAxis, nearerMinorAxis;
+            addFocusableChild (parent, source,           {  0,  0, 10, 10 });
+            addFocusableChild (parent, nearerMajorAxis,  { 20, 40, 10, 10 });
+            addFocusableChild (parent, nearerMinorAxis,  { 30, 12, 10, 10 });
+
+            expect (traverser.getComponentInDirection (&source, FocusNavigationDirection::right) == &nearerMajorAxis);
+        }
+
+        beginTest ("Directional traversal uses transformed screen bounds");
+        {
+            Component parent, source, transformedCandidate;
+            addFocusableChild (parent, source,               { 100, 0, 10, 10 });
+            addFocusableChild (parent, transformedCandidate, { 200, 0, 10, 10 });
+            transformedCandidate.setTransform (AffineTransform::translation (-150.0f, 0.0f));
+
+            expect (traverser.getComponentInDirection (&source, FocusNavigationDirection::left) == &transformedCandidate);
+            expect (traverser.getComponentInDirection (&source, FocusNavigationDirection::right) == nullptr);
+        }
+
+        beginTest ("Parent clipping does not change directional geometry");
+        {
+            Component parent, source, clippedCandidate;
+            parent.setBounds (0, 0, 20, 20);
+            addFocusableChild (parent, source,           {  0, 0, 10, 10 });
+            addFocusableChild (parent, clippedCandidate, { 40, 0, 10, 10 });
+
+            expect (traverser.getComponentInDirection (&source, FocusNavigationDirection::right) == &clippedCandidate);
+        }
+
+        beginTest ("Hidden, disabled, and dynamically ineligible candidates are skipped");
+        {
+            Component parent, source, hidden, disabled, ineligible;
+            addFocusableChild (parent, source,     {  0, 0, 10, 10 });
+            addFocusableChild (parent, hidden,     { 20, 0, 10, 10 });
+            addFocusableChild (parent, disabled,   { 40, 0, 10, 10 });
+            addFocusableChild (parent, ineligible, { 60, 0, 10, 10 });
+
+            hidden.setVisible (false);
+            disabled.setEnabled (false);
+            ineligible.setWantsKeyboardFocus (false);
+
+            expect (traverser.getComponentInDirection (&source, FocusNavigationDirection::right) == nullptr);
+
+            ineligible.setWantsKeyboardFocus (true);
+            expect (traverser.getComponentInDirection (&source, FocusNavigationDirection::right) == &ineligible);
+        }
+
+        beginTest ("Nested keyboard-focus containers remain traversal boundaries");
+        {
+            Component parent, source, container, firstNestedChild, secondNestedChild;
+            addFocusableChild (parent, source,    {  0, 0, 10, 10 });
+            addFocusableChild (parent, container, { 40, 0, 30, 10 });
+            container.setFocusContainerType (Component::FocusContainerType::keyboardFocusContainer);
+            addFocusableChild (container, firstNestedChild,  {  0, 0, 10, 10 });
+            addFocusableChild (container, secondNestedChild, { 20, 0, 10, 10 });
+
+            expect (traverser.getComponentInDirection (&source, FocusNavigationDirection::right) == &container);
+            expect (traverser.getComponentInDirection (&firstNestedChild,
+                                                       FocusNavigationDirection::right) == &secondNestedChild);
+            expect (traverser.getComponentInDirection (&firstNestedChild,
+                                                       FocusNavigationDirection::left) == nullptr);
+        }
+
+        beginTest ("Candidate order is the stable final tie-break");
+        {
+            Component parent, source, firstCandidate, secondCandidate;
+            addFocusableChild (parent, source,          {  0, 0, 10, 10 });
+            addFocusableChild (parent, firstCandidate,  { 20, 0, 10, 10 });
+            addFocusableChild (parent, secondCandidate, { 20, 0, 10, 10 });
+
+            expect (traverser.getComponentInDirection (&source, FocusNavigationDirection::right) == &firstCandidate);
+        }
+
+        beginTest ("A custom traverser inherits the sequential compatibility mapping");
+        {
+            struct LegacyTraverser final : ComponentTraverser
+            {
+                Component* getDefaultComponent (Component*) override       { return &next; }
+                Component* getNextComponent (Component*) override          { return &next; }
+                Component* getPreviousComponent (Component*) override      { return &previous; }
+                std::vector<Component*> getAllComponents (Component*) override
+                {
+                    return { &previous, &next };
+                }
+
+                Component previous, next;
+            };
+
+            LegacyTraverser legacy;
+            Component current;
+
+            expect (legacy.getComponentInDirection (&current, FocusNavigationDirection::left) == &legacy.previous);
+            expect (legacy.getComponentInDirection (&current, FocusNavigationDirection::up) == &legacy.previous);
+            expect (legacy.getComponentInDirection (&current, FocusNavigationDirection::right) == &legacy.next);
+            expect (legacy.getComponentInDirection (&current, FocusNavigationDirection::down) == &legacy.next);
+        }
+
+        beginTest ("Arrow keys map to cardinal focus directions");
+        {
+            const auto getDirection = [] (int keyCode)
+            {
+                return detail::getFocusNavigationDirectionForKeyPress (KeyPress (keyCode));
+            };
+
+            expect (getDirection (KeyPress::leftKey) == FocusNavigationDirection::left);
+            expect (getDirection (KeyPress::rightKey) == FocusNavigationDirection::right);
+            expect (getDirection (KeyPress::upKey) == FocusNavigationDirection::up);
+            expect (getDirection (KeyPress::downKey) == FocusNavigationDirection::down);
+            expect (! getDirection (KeyPress::returnKey).has_value());
+        }
+    }
+
     struct TestComponent final : public Component
     {
         TestComponent()
