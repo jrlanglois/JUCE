@@ -116,7 +116,7 @@
     path to it either in the Projucer, using juce_set_ara_sdk_path() in your CMake project file.
 
     The directory can be obtained by recursively cloning https://github.com/Celemony/ARA_SDK and checking out
-    the tag releases/2.1.0.
+    the tag releases/2.3.0.
 */
 #ifndef JUCE_PLUGINHOST_ARA
  #define JUCE_PLUGINHOST_ARA 0
