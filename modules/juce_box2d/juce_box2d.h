@@ -64,19 +64,9 @@
 //==============================================================================
 #include <juce_graphics/juce_graphics.h>
 
-JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wconversion",
-                                     "-Wdeprecated",
-                                     "-Wfloat-equal",
-                                     "-Wmaybe-uninitialized",
-                                     "-Wshadow-field",
-                                     "-Wsign-conversion",
-                                     "-Wzero-as-null-pointer-constant",
-                                     "-Wsuggest-override")
+JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wfloat-equal")
 
-#include <climits>
-#include <cfloat>
-
-#include "box2d/Box2D.h"
+#include "juce_box2d_upstream.h"
 
 JUCE_END_IGNORE_WARNINGS_GCC_LIKE
 

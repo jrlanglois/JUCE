@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-09-04T00:00:00Z",
+  "lastUpdated": "2026-09-25T00:00:00Z",
 
   "firstPartyPatterns": [
     "^modules/[^/]+/native/java(core|opt)?/"
@@ -319,13 +319,22 @@
     { "name": "Box2D",
       "module": "juce_box2d",
       "path": "modules/juce_box2d/box2d",
-      "license": "Zlib",
-      "licenseFile": "modules/juce_box2d/box2d/Box2D.h",
+      "license": "MIT",
+      "licenseFile": "modules/juce_box2d/box2d/LICENSE",
       "homepage": "https://box2d.org",
       "supplier": "Person: Erin Catto",
       "purl": "pkg:github/erincatto/box2d",
-      "version": { "file": "modules/juce_box2d/box2d/Common/b2Settings.cpp",
-                   "patterns": ["b2_version\\s*=\\s*\\{(\\d+),\\s*(\\d+),\\s*(\\d+)\\}"] } },
+      "version": { "file": "modules/juce_box2d/box2d/JUCE_UPSTREAM.txt",
+                   "patterns": ["Commit:\\s+(\\S+)"] } },
+
+    { "name": "qsort.h",
+      "module": "juce_box2d",
+      "path": "modules/juce_box2d/box2d/src/qsort.h",
+      "license": "MIT",
+      "licenseFile": "modules/juce_box2d/box2d/src/qsort.h",
+      "homepage": null,
+      "supplier": "Person: Alexey Tourbin",
+      "version": { "unversioned": "the header is distributed without version information" } },
 
     { "name": "CHOC",
       "module": "juce_javascript",
@@ -381,17 +390,6 @@
       "purl": "pkg:github/justinfrankel/reaper-sdk",
       "version": { "file": "examples/Plugins/extern/JUCE_UPSTREAM.txt",
                    "patterns": ["Commit:\\s+(\\S+)"] } },
-
-    { "name": "Box2D testbed",
-      "module": "examples",
-      "path": "examples/Assets/Box2DTests",
-      "license": "Zlib",
-      "licenseFile": "examples/Assets/Box2DTests/ApplyForce.h",
-      "homepage": "https://box2d.org",
-      "supplier": "Person: Erin Catto",
-      "purl": "pkg:github/erincatto/box2d",
-      "version": { "file": "examples/Assets/Box2DTests/JUCE_UPSTREAM.txt",
-                   "patterns": ["Version:\\s+(\\S+)"] } },
 
     { "name": "Projucer icons",
       "module": "extras",

@@ -1752,145 +1752,139 @@
     <ClCompile Include="..\..\..\..\modules\juce_audio_utils\juce_audio_utils.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Collision\Shapes\b2ChainShape.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\shared\determinism.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Collision\Shapes\b2CircleShape.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\aabb.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Collision\Shapes\b2EdgeShape.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\arena_allocator.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Collision\Shapes\b2PolygonShape.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\bitset.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Collision\b2BroadPhase.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\body.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Collision\b2CollideCircle.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\broad_phase.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Collision\b2CollideEdge.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\constraint_graph.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Collision\b2CollidePolygon.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\contact.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Collision\b2Collision.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\contact_solver.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Collision\b2Distance.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\core.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Collision\b2DynamicTree.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\distance.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Collision\b2TimeOfImpact.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\distance_joint.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Common\b2BlockAllocator.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\dynamic_tree.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Common\b2Draw.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\geometry.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Common\b2Math.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\hull.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Common\b2Settings.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\id_pool.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Common\b2StackAllocator.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\island.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Common\b2Timer.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\joint.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2ChainAndCircleContact.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\manifold.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2ChainAndPolygonContact.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\math_functions.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2CircleContact.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\motor_joint.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2Contact.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\mover.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2ContactSolver.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\mover_joint.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2EdgeAndCircleContact.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\parallel_for.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2EdgeAndPolygonContact.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\physics_world.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2PolygonAndCircleContact.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\pogo_joint.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2PolygonContact.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\prismatic_joint.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2DistanceJoint.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\recording.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2FrictionJoint.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\replay.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2GearJoint.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\revolute_joint.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2Joint.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\scheduler.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2MouseJoint.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\sensor.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2PrismaticJoint.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\shape.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2PulleyJoint.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\snapshot.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2RevoluteJoint.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\solver.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2RopeJoint.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\solver_set.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2WeldJoint.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\table.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2WheelJoint.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\timer.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\b2Body.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\types.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\b2ContactManager.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\weld_joint.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\b2Fixture.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\src\wheel_joint.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\b2Island.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\b2World.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\b2WorldCallbacks.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\modules\juce_box2d\box2d\Rope\b2Rope.cpp">
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\utils\juce_Box2D_test.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\..\..\modules\juce_box2d\utils\juce_Box2DRenderer.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\..\..\modules\juce_box2d\juce_box2d.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\modules\juce_box2d\juce_box2d_upstream.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\..\..\modules\juce_core\containers\juce_AbstractFifo.cpp">
@@ -4349,6 +4343,7 @@
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_audio_processors_headless_lv2_libs.cpp"/>
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_audio_utils.cpp"/>
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_box2d.cpp"/>
+    <ClCompile Include="..\..\JuceLibraryCode\include_juce_box2d_upstream.c"/>
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_core.cpp">
       <AdditionalOptions> /bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -5003,53 +4998,47 @@
     <ClInclude Include="..\..\..\..\modules\juce_audio_utils\players\juce_AudioProcessorPlayer.h"/>
     <ClInclude Include="..\..\..\..\modules\juce_audio_utils\players\juce_SoundPlayer.h"/>
     <ClInclude Include="..\..\..\..\modules\juce_audio_utils\juce_audio_utils.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Collision\Shapes\b2ChainShape.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Collision\Shapes\b2CircleShape.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Collision\Shapes\b2EdgeShape.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Collision\Shapes\b2PolygonShape.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Collision\Shapes\b2Shape.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Collision\b2BroadPhase.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Collision\b2Collision.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Collision\b2Distance.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Collision\b2DynamicTree.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Collision\b2TimeOfImpact.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Common\b2BlockAllocator.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Common\b2Draw.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Common\b2GrowableStack.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Common\b2Math.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Common\b2Settings.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Common\b2StackAllocator.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Common\b2Timer.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2ChainAndCircleContact.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2ChainAndPolygonContact.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2CircleContact.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2Contact.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2ContactSolver.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2EdgeAndCircleContact.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2EdgeAndPolygonContact.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2PolygonAndCircleContact.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Contacts\b2PolygonContact.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2DistanceJoint.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2FrictionJoint.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2GearJoint.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2Joint.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2MouseJoint.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2PrismaticJoint.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2PulleyJoint.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2RevoluteJoint.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2RopeJoint.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2WeldJoint.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\Joints\b2WheelJoint.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\b2Body.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\b2ContactManager.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\b2Fixture.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\b2Island.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\b2TimeStep.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\b2World.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Dynamics\b2WorldCallbacks.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Rope\b2Rope.h"/>
-    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\Box2D.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\include\box2d\base.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\include\box2d\box2d.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\include\box2d\collision.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\include\box2d\config.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\include\box2d\constants.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\include\box2d\id.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\include\box2d\math_functions.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\include\box2d\math_types.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\include\box2d\types.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\shared\determinism.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\aabb.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\arena_allocator.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\bitset.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\body.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\broad_phase.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\constraint_graph.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\contact.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\contact_solver.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\container.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\core.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\dynamic_tree.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\id_pool.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\island.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\joint.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\parallel_for.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\physics_world.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\platform.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\qsort.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\recording.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\recording_ops.inl"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\replay.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\scheduler.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\sensor.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\shape.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\simd.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\snapshot.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\solver.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\solver_set.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\box2d\src\table.h"/>
     <ClInclude Include="..\..\..\..\modules\juce_box2d\utils\juce_Box2DRenderer.h"/>
+    <ClInclude Include="..\..\..\..\modules\juce_box2d\juce_box2d_upstream.h"/>
     <ClInclude Include="..\..\..\..\modules\juce_box2d\juce_box2d.h"/>
     <ClInclude Include="..\..\..\..\modules\juce_core\containers\juce_AbstractFifo.h"/>
     <ClInclude Include="..\..\..\..\modules\juce_core\containers\juce_Array.h"/>
@@ -6379,7 +6368,8 @@
     <None Include="..\..\..\..\modules\juce_audio_processors_headless\format_types\VST3_SDK\JUCE_UPSTREAM.txt"/>
     <None Include="..\..\..\..\modules\juce_audio_processors_headless\format_types\VST3_SDK\LICENSE.txt"/>
     <None Include="..\..\..\..\modules\juce_audio_processors_headless\format_types\VST3_SDK\README.md"/>
-    <None Include="..\..\..\..\modules\juce_box2d\box2d\README.txt"/>
+    <None Include="..\..\..\..\modules\juce_box2d\box2d\JUCE_UPSTREAM.txt"/>
+    <None Include="..\..\..\..\modules\juce_box2d\README.md"/>
     <None Include="..\..\..\..\modules\juce_core\native\java\README.txt"/>
     <None Include="..\..\..\..\modules\juce_core\zip\zlib\JUCE_UPSTREAM.txt"/>
     <None Include="..\..\..\..\modules\juce_graphics\drawables\lunasvg\plutovg\source\FTL.TXT"/>

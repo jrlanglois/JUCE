@@ -3,9 +3,9 @@
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "JUCE-9.0.2",
-  "documentNamespace": "https://juce.com/spdx/JUCE-9.0.2-6cb183b029be",
+  "documentNamespace": "https://juce.com/spdx/JUCE-9.0.2-e949ca0f5644",
   "creationInfo": {
-    "created": "2026-09-04T00:00:00Z",
+    "created": "2026-09-25T00:00:00Z",
     "creators": [
       "Tool: generate_sbom.py",
       "Organization: Raw Material Software Limited"
@@ -894,19 +894,38 @@
     {
       "name": "Box2D",
       "SPDXID": "SPDXRef-juce-box2d.box2d",
-      "versionInfo": "2.2.1",
+      "versionInfo": "956ce4e1e8acddd05a21102629e268ff9321ec50",
       "supplier": "Person: Erin Catto",
       "downloadLocation": "https://box2d.org",
       "filesAnalyzed": false,
-      "licenseConcluded": "Zlib",
-      "licenseDeclared": "Zlib",
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
       "copyrightText": "NOASSERTION",
-      "sourceInfo": "Vendored at modules/juce_box2d/box2d in the JUCE source tree",
+      "sourceInfo": "Vendored at modules/juce_box2d/box2d in the JUCE source tree; provenance and local modifications are documented in JUCE_UPSTREAM.txt",
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:github/erincatto/box2d@2.2.1"
+          "referenceLocator": "pkg:github/erincatto/box2d@956ce4e1e8acddd05a21102629e268ff9321ec50"
+        }
+      ]
+    },
+    {
+      "name": "qsort.h",
+      "SPDXID": "SPDXRef-juce-box2d.qsort.h",
+      "versionInfo": "NOASSERTION",
+      "supplier": "Person: Alexey Tourbin",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "sourceInfo": "Vendored at modules/juce_box2d/box2d/src/qsort.h in the JUCE source tree; the header is distributed without version information",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/qsort.h"
         }
       ]
     },
@@ -1002,25 +1021,6 @@
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
           "referenceLocator": "pkg:github/justinfrankel/reaper-sdk@ec0c1dc1655eb6a192fa7a22c2258a38a5ebbe9c"
-        }
-      ]
-    },
-    {
-      "name": "Box2D testbed",
-      "SPDXID": "SPDXRef-examples.box2d-testbed",
-      "versionInfo": "2.2.1",
-      "supplier": "Person: Erin Catto",
-      "downloadLocation": "https://box2d.org",
-      "filesAnalyzed": false,
-      "licenseConcluded": "Zlib",
-      "licenseDeclared": "Zlib",
-      "copyrightText": "NOASSERTION",
-      "sourceInfo": "Vendored at examples/Assets/Box2DTests in the JUCE source tree; provenance and local modifications are documented in JUCE_UPSTREAM.txt",
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:github/erincatto/box2d@2.2.1"
         }
       ]
     },
@@ -1490,6 +1490,11 @@
       "relatedSpdxElement": "SPDXRef-juce-box2d.box2d"
     },
     {
+      "spdxElementId": "SPDXRef-juce-box2d",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-juce-box2d.qsort.h"
+    },
+    {
       "spdxElementId": "SPDXRef-juce-javascript",
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-juce-javascript.choc"
@@ -1516,16 +1521,6 @@
     },
     {
       "spdxElementId": "SPDXRef-examples.reaper-sdk",
-      "relationshipType": "DEV_DEPENDENCY_OF",
-      "relatedSpdxElement": "SPDXRef-JUCE"
-    },
-    {
-      "spdxElementId": "SPDXRef-examples",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-examples.box2d-testbed"
-    },
-    {
-      "spdxElementId": "SPDXRef-examples.box2d-testbed",
       "relationshipType": "DEV_DEPENDENCY_OF",
       "relatedSpdxElement": "SPDXRef-JUCE"
     },

@@ -94,6 +94,7 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/include_juce_audio_processors_headless_lv2_libs_36180e32.o \
   $(JUCE_OBJDIR)/include_juce_audio_utils_9f9fb2d6.o \
   $(JUCE_OBJDIR)/include_juce_box2d_b0305d8b.o \
+  $(JUCE_OBJDIR)/include_juce_box2d_upstream_938c5f19.o \
   $(JUCE_OBJDIR)/include_juce_core_f26d17db.o \
   $(JUCE_OBJDIR)/include_juce_core_CompilationTime_9257742c.o \
   $(JUCE_OBJDIR)/include_juce_core_zlib_ac61cd39.o \
@@ -254,6 +255,11 @@ $(JUCE_OBJDIR)/include_juce_box2d_b0305d8b.o: ../../JuceLibraryCode/include_juce
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling include_juce_box2d.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/include_juce_box2d_upstream_938c5f19.o: ../../JuceLibraryCode/include_juce_box2d_upstream.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling include_juce_box2d_upstream.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/include_juce_core_f26d17db.o: ../../JuceLibraryCode/include_juce_core.cpp
 	-$(V_AT)mkdir -p $(@D)

@@ -4,6 +4,24 @@
 
 ## Change
 
+The `juce_box2d` module now provides the Box2D 3 C API instead of the Box2D 2.2.1 C++ API. The old Box2D classes and the previous `Box2DRenderer::render` overload have been removed. The renderer now takes a `b2WorldId`, `b2Pos` view centre, `b2Vec2` view size, and destination rectangle.
+
+Box2D assertions continue to report through JUCE and now do so through the public `juce::handleBox2DAssertion` function.
+
+**Possible Issues**
+
+Code using Box2D 2.x classes, fixtures, shapes, joints, listeners, or the previous renderer signature will no longer compile. `BOX2D_*` options that differ between a project's C and C++ sources can create declaration or ABI mismatches. Existing Projucer projects will not compile the new Box2D C unit until they are re-saved. Visual Studio 2019 is no longer supported by this module.
+
+**Workaround**
+
+Migrate to the corresponding Box2D 3 handles, definitions, and free functions, and update renderer calls to the new signature. Define Box2D configuration options for the complete target, re-save Projucer projects, and use Visual Studio 2022 17.14 or newer for MSVC builds. The module does not provide Box2D 2.x compatibility aliases.
+
+**Rationale**
+
+Box2D 3 is a ground-up rewrite with a C API. Exposing that API directly avoids maintaining a second physics API inside JUCE, while compiling the upstream implementation as C keeps its language and warning requirements isolated from JUCE C++ code.
+
+## Change
+
 SystemStats::isOperatingSystem64Bit() now reports whether the operating system
 is 64-bit rather than whether the current process is, matching the
 documentation. It can return true from a 32-bit build running on a 64-bit Linux
