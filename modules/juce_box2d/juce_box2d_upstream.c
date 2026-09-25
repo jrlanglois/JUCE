@@ -200,7 +200,13 @@ JUCE_BEGIN_IGNORE_WARNINGS_MSVC (4201)
 #include "juce_box2d/box2d/src/bitset.c"
 #include "juce_box2d/box2d/src/body.c"
 #include "juce_box2d/box2d/src/qsort.h"
+#if defined( _M_ARM64EC )
+JUCE_BEGIN_IGNORE_WARNINGS_MSVC (4189)
+#endif
 #include "juce_box2d/box2d/src/broad_phase.c"
+#if defined( _M_ARM64EC )
+JUCE_END_IGNORE_WARNINGS_MSVC
+#endif
 #include "juce_box2d/box2d/src/constraint_graph.c"
 #include "juce_box2d/box2d/src/contact_solver.c"
 #include "juce_box2d/box2d/src/contact.c"

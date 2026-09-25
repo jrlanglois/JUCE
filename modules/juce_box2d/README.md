@@ -86,7 +86,7 @@ The C unit disables floating-point contraction to match upstream's deterministic
 
 Suppressions begin immediately before the vendored headers and sources and end immediately after them. JUCE-authored code is outside these scopes.
 
-The C unit suppresses only diagnostics observed in the pinned payload: C4201 under MSVC, and sign conversion, switch-enum coverage, language-extension tokens, implicit integer conversion, implicit integer-to-float conversion, floating-point equality, and cast alignment under GCC-compatible warning controls. New warnings after a refresh must be investigated before extending the list.
+The C unit suppresses only diagnostics observed in the pinned payload: C4201 under MSVC; C4189 only while compiling `broad_phase.c` for ARM64EC; and sign conversion, switch-enum coverage, language-extension tokens, implicit integer conversion, implicit integer-to-float conversion, floating-point equality, and cast alignment under GCC-compatible warning controls. New warnings after a refresh must be investigated before extending the list.
 
 ## Tests and Demo
 
@@ -111,13 +111,21 @@ Verified on Windows for the pinned commit:
 - The payload compiles with MSVC 19.44 and 19.51 in their default C modes.
 - CMake Debug and Release builds of UnitTestRunner and DemoRunner complete without warnings under MSVC 19.51 and clang-cl 22.1.3.
 - `UnitTestRunner --category=Box2D` passes in each of those configurations, including the native scheduler test.
+- `BOX2D_DOUBLE_PRECISION`, `BOX2D_DISABLE_SIMD`, `BOX2D_VALIDATE`, and a custom `BOX2D_USER_CONFIG` build without warnings in Debug and pass the Box2D tests under MSVC 19.51. `B2_ENABLE_ASSERT` does the same in Release. Each definition is applied to both the C and C++ units.
+- The generated Visual Studio 2022 solutions build UnitTestRunner and DemoRunner without warnings in Debug with the v143 14.44 toolset, and the generated Visual Studio 2026 solutions do the same with the v145 14.51 toolset. The Box2D tests pass through both generated UnitTestRunner projects.
+- UnitTestRunner compiles without warnings for Windows Arm64 and ARM64EC. These targets were not executed on the x64 host.
+- An MSVC AddressSanitizer Debug build passes the Box2D tests without a sanitizer report. It uses `/fsanitize=address` for both languages, `/DEBUG /INCREMENTAL:NO` at link, and the matching MSVC AddressSanitizer runtime on `PATH`.
 - DemoRunner opens every Box2D scene, accepts the Apply Force keys, survives repeated scene changes and resizes, and exposes the scene rows and current title through Windows UI Automation.
 
-Not yet verified for the pinned commit:
+Additional matrix result:
 
-- The configuration variants described above.
-- Generated Visual Studio exporters, Windows Arm64 and ARM64EC, and AddressSanitizer.
-- Linux GCC and Clang, macOS, iOS, and Android.
+- The generated Android Debug APK builds for `armeabi-v7a`, `x86`, `arm64-v8a`, and `x86_64`. The installed command-line tools write a newer SDK XML schema than Android Gradle Plugin 8.13.2 understands, so Gradle reports CXX5304 while completing the build; a warning-free Android baseline remains unverified.
+
+Unavailable or incomplete verification:
+
+- Full Linux GCC and Clang builds were unavailable because the WSL image lacks the GNU C++ compiler, `pkg-config`, and the JUCE Linux development packages. GCC Arm64 determinism was also unavailable because the host has no Arm64 cross-compiler or emulator.
+- macOS and iOS require macOS and Xcode and were unavailable on this Windows host.
+- Android Box2D tests were not run because this checkout has no Android UnitTestRunner target or connected-device test harness.
 - Spoken output in Narrator or another screen reader; Windows UI Automation exposes the intended names and title.
 
 ## Migration
