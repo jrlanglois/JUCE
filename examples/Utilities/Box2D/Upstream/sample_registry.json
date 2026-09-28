@@ -1,0 +1,1328 @@
+{
+  "provenanceAuthority": "modules/juce_box2d/box2d/JUCE_UPSTREAM.txt",
+  "registrations": [
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Barrel",
+      "createSymbol": "BenchmarkBarrel::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 341
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Barrel 2.4",
+      "createSymbol": "BenchmarkBarrel24::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 421
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Capacity",
+      "createSymbol": "BenchmarkCapacity::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 2069
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Cast",
+      "createSymbol": "BenchmarkCast::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 1525
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Compounds",
+      "createSymbol": "BenchmarkCompounds::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 445
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "CreateDestroy",
+      "createSymbol": "BenchmarkCreateDestroy::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 876
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Joint Grid",
+      "createSymbol": "BenchmarkJointGrid::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 933
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Junkyard",
+      "createSymbol": "BenchmarkJunkyard::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 2102
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Kinematic",
+      "createSymbol": "BenchmarkKinematic::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 1127
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Large Compounds",
+      "createSymbol": "BenchmarkLargeCompounds::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 1067
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Large Pyramid",
+      "createSymbol": "BenchmarkLargePyramid::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 715
+    },
+    {
+      "kind": "sampleWithCapacity",
+      "category": "Benchmark",
+      "name": "Many Pyramids",
+      "createSymbol": "BenchmarkManyPyramids::Create",
+      "capacitySymbol": "BenchmarkManyPyramids::GetCapacity",
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 745
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Many Tumblers",
+      "createSymbol": "BenchmarkManyTumblers::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 691
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Queries",
+      "createSymbol": "BenchmarkQueries::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 2185
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Rain",
+      "createSymbol": "BenchmarkRain::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 1607
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Sensor",
+      "createSymbol": "BenchmarkSensor::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 1975
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Shape Distance",
+      "createSymbol": "BenchmarkShapeDistance::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 1746
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Sleep",
+      "createSymbol": "BenchmarkSleep::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 909
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Smash",
+      "createSymbol": "BenchmarkSmash::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 956
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Spinner",
+      "createSymbol": "BenchmarkSpinner::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 1566
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Tumbler",
+      "createSymbol": "BenchmarkTumbler::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 468
+    },
+    {
+      "kind": "sample",
+      "category": "Benchmark",
+      "name": "Washer",
+      "createSymbol": "BenchmarkWasher::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_benchmark.cpp",
+      "line": 504
+    },
+    {
+      "kind": "sample",
+      "category": "Bodies",
+      "name": "Bad",
+      "createSymbol": "BadBody::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_bodies.cpp",
+      "line": 735
+    },
+    {
+      "kind": "sample",
+      "category": "Bodies",
+      "name": "Body Type",
+      "createSymbol": "BodyType::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_bodies.cpp",
+      "line": 293
+    },
+    {
+      "kind": "sample",
+      "category": "Bodies",
+      "name": "Kinematic",
+      "createSymbol": "Kinematic::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_bodies.cpp",
+      "line": 874
+    },
+    {
+      "kind": "sample",
+      "category": "Bodies",
+      "name": "Mixed Locks",
+      "createSymbol": "MixedLocks::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_bodies.cpp",
+      "line": 984
+    },
+    {
+      "kind": "sample",
+      "category": "Bodies",
+      "name": "Pivot",
+      "createSymbol": "Pivot::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_bodies.cpp",
+      "line": 806
+    },
+    {
+      "kind": "sample",
+      "category": "Bodies",
+      "name": "Set Velocity",
+      "createSymbol": "SetVelocity::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_bodies.cpp",
+      "line": 1038
+    },
+    {
+      "kind": "sample",
+      "category": "Bodies",
+      "name": "Sleep",
+      "createSymbol": "Sleep::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_bodies.cpp",
+      "line": 658
+    },
+    {
+      "kind": "sample",
+      "category": "Bodies",
+      "name": "Wake Touching",
+      "createSymbol": "WakeTouching::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_bodies.cpp",
+      "line": 1100
+    },
+    {
+      "kind": "sample",
+      "category": "Bodies",
+      "name": "Weeble",
+      "createSymbol": "Weeble::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_bodies.cpp",
+      "line": 413
+    },
+    {
+      "kind": "sample",
+      "category": "Character",
+      "name": "Dynamic Mover",
+      "createSymbol": "DynamicMoverSample::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_character.cpp",
+      "line": 775
+    },
+    {
+      "kind": "sample",
+      "category": "Character",
+      "name": "Geometric Mover",
+      "createSymbol": "GeometryMoverSample::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_character.cpp",
+      "line": 375
+    },
+    {
+      "kind": "sample",
+      "category": "Character",
+      "name": "Ghost Collision",
+      "createSymbol": "GhostCollisionSample::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_character.cpp",
+      "line": 934
+    },
+    {
+      "kind": "sample",
+      "category": "Collision",
+      "name": "Cast World",
+      "createSymbol": "CastWorld::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_collision.cpp",
+      "line": 1789
+    },
+    {
+      "kind": "sample",
+      "category": "Collision",
+      "name": "Dynamic Tree",
+      "createSymbol": "DynamicTree::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_collision.cpp",
+      "line": 796
+    },
+    {
+      "kind": "sample",
+      "category": "Collision",
+      "name": "Manifold",
+      "createSymbol": "Manifold::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_collision.cpp",
+      "line": 2814
+    },
+    {
+      "kind": "sample",
+      "category": "Collision",
+      "name": "Overlap World",
+      "createSymbol": "OverlapWorld::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_collision.cpp",
+      "line": 2145
+    },
+    {
+      "kind": "sample",
+      "category": "Collision",
+      "name": "Ray Cast",
+      "createSymbol": "RayCast::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_collision.cpp",
+      "line": 1122
+    },
+    {
+      "kind": "sample",
+      "category": "Collision",
+      "name": "Shape Cast",
+      "createSymbol": "ShapeCast::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_collision.cpp",
+      "line": 3515
+    },
+    {
+      "kind": "sample",
+      "category": "Collision",
+      "name": "Shape Distance",
+      "createSymbol": "ShapeDistance::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_collision.cpp",
+      "line": 439
+    },
+    {
+      "kind": "sample",
+      "category": "Collision",
+      "name": "Smooth Manifold",
+      "createSymbol": "SmoothManifold::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_collision.cpp",
+      "line": 3112
+    },
+    {
+      "kind": "sample",
+      "category": "Collision",
+      "name": "Time of Impact",
+      "createSymbol": "TimeOfImpact::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_collision.cpp",
+      "line": 3607
+    },
+    {
+      "kind": "sample",
+      "category": "Continuous",
+      "name": "Bounce House",
+      "createSymbol": "BounceHouse::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_continuous.cpp",
+      "line": 188
+    },
+    {
+      "kind": "sample",
+      "category": "Continuous",
+      "name": "Bounce Humans",
+      "createSymbol": "BounceHumans::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_continuous.cpp",
+      "line": 271
+    },
+    {
+      "kind": "sample",
+      "category": "Continuous",
+      "name": "Chain Drop",
+      "createSymbol": "ChainDrop::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_continuous.cpp",
+      "line": 362
+    },
+    {
+      "kind": "sample",
+      "category": "Continuous",
+      "name": "Chain Slide",
+      "createSymbol": "ChainSlide::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_continuous.cpp",
+      "line": 447
+    },
+    {
+      "kind": "sample",
+      "category": "Continuous",
+      "name": "Drop",
+      "createSymbol": "Drop::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_continuous.cpp",
+      "line": 1528
+    },
+    {
+      "kind": "sample",
+      "category": "Continuous",
+      "name": "Ghost Bumps",
+      "createSymbol": "GhostBumps::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_continuous.cpp",
+      "line": 915
+    },
+    {
+      "kind": "sample",
+      "category": "Continuous",
+      "name": "Pinball",
+      "createSymbol": "Pinball::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_continuous.cpp",
+      "line": 1702
+    },
+    {
+      "kind": "sample",
+      "category": "Continuous",
+      "name": "Pixel Imperfect",
+      "createSymbol": "PixelImperfect::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_continuous.cpp",
+      "line": 1126
+    },
+    {
+      "kind": "sample",
+      "category": "Continuous",
+      "name": "Restitution Threshold",
+      "createSymbol": "RestitutionThreshold::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_continuous.cpp",
+      "line": 1196
+    },
+    {
+      "kind": "sample",
+      "category": "Continuous",
+      "name": "Safety Factor",
+      "createSymbol": "SafetyFactor::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_continuous.cpp",
+      "line": 1868
+    },
+    {
+      "kind": "sample",
+      "category": "Continuous",
+      "name": "Segment Slide",
+      "createSymbol": "SegmentSlide::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_continuous.cpp",
+      "line": 502
+    },
+    {
+      "kind": "sample",
+      "category": "Continuous",
+      "name": "Skinny Box",
+      "createSymbol": "SkinnyBox::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_continuous.cpp",
+      "line": 625
+    },
+    {
+      "kind": "sample",
+      "category": "Continuous",
+      "name": "Speculative Fallback",
+      "createSymbol": "SpeculativeFallback::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_continuous.cpp",
+      "line": 966
+    },
+    {
+      "kind": "sample",
+      "category": "Continuous",
+      "name": "Speculative Ghost",
+      "createSymbol": "SpeculativeGhost::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_continuous.cpp",
+      "line": 1059
+    },
+    {
+      "kind": "sample",
+      "category": "Continuous",
+      "name": "Speculative Sliver",
+      "createSymbol": "SpeculativeSliver::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_continuous.cpp",
+      "line": 1010
+    },
+    {
+      "kind": "sample",
+      "category": "Continuous",
+      "name": "Wedge",
+      "createSymbol": "Wedge::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_continuous.cpp",
+      "line": 1750
+    },
+    {
+      "kind": "sample",
+      "category": "Determinism",
+      "name": "Falling Hinges",
+      "createSymbol": "FallingHinges::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_determinism.cpp",
+      "line": 104
+    },
+    {
+      "kind": "sample",
+      "category": "Determinism",
+      "name": "Rollback",
+      "createSymbol": "Rollback::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_determinism.cpp",
+      "line": 305
+    },
+    {
+      "kind": "sample",
+      "category": "Events",
+      "name": "Body Move",
+      "createSymbol": "BodyMove::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_events.cpp",
+      "line": 1404
+    },
+    {
+      "kind": "sample",
+      "category": "Events",
+      "name": "Circle Impulse",
+      "createSymbol": "CircleImpulse::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_events.cpp",
+      "line": 2465
+    },
+    {
+      "kind": "sample",
+      "category": "Events",
+      "name": "Contact",
+      "createSymbol": "ContactEvent::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_events.cpp",
+      "line": 1219
+    },
+    {
+      "kind": "sample",
+      "category": "Events",
+      "name": "Foot Sensor",
+      "createSymbol": "FootSensor::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_events.cpp",
+      "line": 797
+    },
+    {
+      "kind": "sample",
+      "category": "Events",
+      "name": "Joint",
+      "createSymbol": "JointEvent::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_events.cpp",
+      "line": 1829
+    },
+    {
+      "kind": "sample",
+      "category": "Events",
+      "name": "Persistent Contact",
+      "createSymbol": "PersistentContact::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_events.cpp",
+      "line": 1931
+    },
+    {
+      "kind": "sample",
+      "category": "Events",
+      "name": "Projectile Event",
+      "createSymbol": "ProjectileEvent::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_events.cpp",
+      "line": 2324
+    },
+    {
+      "kind": "sample",
+      "category": "Events",
+      "name": "Sensor Bookend",
+      "createSymbol": "SensorBookend::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_events.cpp",
+      "line": 660
+    },
+    {
+      "kind": "sample",
+      "category": "Events",
+      "name": "Sensor Funnel",
+      "createSymbol": "SensorFunnel::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_events.cpp",
+      "line": 331
+    },
+    {
+      "kind": "sample",
+      "category": "Events",
+      "name": "Sensor Hits",
+      "createSymbol": "SensorHits::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_events.cpp",
+      "line": 2158
+    },
+    {
+      "kind": "sample",
+      "category": "Events",
+      "name": "Sensor Types",
+      "createSymbol": "SensorTypes::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_events.cpp",
+      "line": 1599
+    },
+    {
+      "kind": "sample",
+      "category": "Geometry",
+      "name": "Convex Hull",
+      "createSymbol": "ConvexHull::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_geometry.cpp",
+      "line": 217
+    },
+    {
+      "kind": "sample",
+      "category": "Issues",
+      "name": "Unstable Prismatic Joints",
+      "createSymbol": "UnstablePrismaticJoints::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_issues.cpp",
+      "line": 104
+    },
+    {
+      "kind": "sample",
+      "category": "Issues",
+      "name": "Unstable Windmill",
+      "createSymbol": "UnstableWindmill::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_issues.cpp",
+      "line": 189
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Ball & Chain",
+      "createSymbol": "BallAndChain::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 1352
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Breakable",
+      "createSymbol": "BreakableJoint::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 1965
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Bridge",
+      "createSymbol": "Bridge::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 1244
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Cantilever",
+      "createSymbol": "Cantilever::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 1508
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Desk Lamp",
+      "createSymbol": "DeskLamp::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 4070
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Distance Joint",
+      "createSymbol": "DistanceJoint::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 238
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Doohickey",
+      "createSymbol": "DoohickeyFarm::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 2729
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Door",
+      "createSymbol": "Door::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 3395
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Driving",
+      "createSymbol": "Driving::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 2566
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Filter Joint",
+      "createSymbol": "FilterJoint::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 575
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Gear Lift",
+      "createSymbol": "GearLift::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 3271
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Motion Locks",
+      "createSymbol": "MotionLocks::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 1734
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Motor Joint",
+      "createSymbol": "MotorJoint::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 411
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Prismatic",
+      "createSymbol": "PrismaticJoint::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 940
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Ragdoll",
+      "createSymbol": "Ragdoll::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 2650
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Revolute",
+      "createSymbol": "RevoluteJoint::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 783
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Scale Ragdoll",
+      "createSymbol": "ScaleRagdoll::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 3458
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Scissor Lift",
+      "createSymbol": "ScissorLift::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 2947
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Separation",
+      "createSymbol": "JointSeparation::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 2191
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Soft Body",
+      "createSymbol": "SoftBody::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 2683
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Theo Jansen",
+      "createSymbol": "TheoJansen::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 3723
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Top Down Friction",
+      "createSymbol": "TopDownFriction::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 522
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "User Constraint",
+      "createSymbol": "UserConstraint::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 2312
+    },
+    {
+      "kind": "sample",
+      "category": "Joints",
+      "name": "Wheel",
+      "createSymbol": "WheelJoint::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_joints.cpp",
+      "line": 1071
+    },
+    {
+      "kind": "replay",
+      "category": "Replay",
+      "name": "Viewer",
+      "createSymbol": "ReplayViewer::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_replay.cpp",
+      "line": 23
+    },
+    {
+      "kind": "sample",
+      "category": "Restitution",
+      "name": "Box Restitution",
+      "createSymbol": "BoxRestitution::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_restitution.cpp",
+      "line": 883
+    },
+    {
+      "kind": "sample",
+      "category": "Restitution",
+      "name": "Circle Restitution",
+      "createSymbol": "CircleRestitution::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_restitution.cpp",
+      "line": 1177
+    },
+    {
+      "kind": "sample",
+      "category": "Restitution",
+      "name": "Circle Stack Restitution",
+      "createSymbol": "CircleStackRestitution::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_restitution.cpp",
+      "line": 553
+    },
+    {
+      "kind": "sample",
+      "category": "Restitution",
+      "name": "Restitution Propagation",
+      "createSymbol": "RestitutionPropagation::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_restitution.cpp",
+      "line": 723
+    },
+    {
+      "kind": "sample",
+      "category": "Restitution",
+      "name": "Rotated Box Restitution",
+      "createSymbol": "RotatedBoxRestitution::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_restitution.cpp",
+      "line": 1034
+    },
+    {
+      "kind": "sample",
+      "category": "Restitution",
+      "name": "Single Box Restitution",
+      "createSymbol": "SingleBoxRestitution::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_restitution.cpp",
+      "line": 262
+    },
+    {
+      "kind": "sample",
+      "category": "Restitution",
+      "name": "Single Circle Restitution",
+      "createSymbol": "SingleCircleRestitution::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_restitution.cpp",
+      "line": 355
+    },
+    {
+      "kind": "sample",
+      "category": "Restitution",
+      "name": "Two Box Restitution",
+      "createSymbol": "TwoBoxRestitution::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_restitution.cpp",
+      "line": 1110
+    },
+    {
+      "kind": "sample",
+      "category": "Restitution",
+      "name": "Varying",
+      "createSymbol": "VaryingRestitution::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_restitution.cpp",
+      "line": 167
+    },
+    {
+      "kind": "sample",
+      "category": "Robustness",
+      "name": "Cart",
+      "createSymbol": "Cart::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_robustness.cpp",
+      "line": 543
+    },
+    {
+      "kind": "sample",
+      "category": "Robustness",
+      "name": "HighMassRatio1",
+      "createSymbol": "HighMassRatio1::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_robustness.cpp",
+      "line": 73
+    },
+    {
+      "kind": "sample",
+      "category": "Robustness",
+      "name": "HighMassRatio2",
+      "createSymbol": "HighMassRatio2::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_robustness.cpp",
+      "line": 131
+    },
+    {
+      "kind": "sample",
+      "category": "Robustness",
+      "name": "HighMassRatio3",
+      "createSymbol": "HighMassRatio3::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_robustness.cpp",
+      "line": 191
+    },
+    {
+      "kind": "sample",
+      "category": "Robustness",
+      "name": "Multiple Prismatic",
+      "createSymbol": "MultiplePrismatic::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_robustness.cpp",
+      "line": 602
+    },
+    {
+      "kind": "sample",
+      "category": "Robustness",
+      "name": "Overlap Recovery",
+      "createSymbol": "OverlapRecovery::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_robustness.cpp",
+      "line": 309
+    },
+    {
+      "kind": "sample",
+      "category": "Robustness",
+      "name": "Tiny Pyramid",
+      "createSymbol": "TinyPyramid::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_robustness.cpp",
+      "line": 375
+    },
+    {
+      "kind": "sample",
+      "category": "Shapes",
+      "name": "Chain Link",
+      "createSymbol": "ChainLink::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_shapes.cpp",
+      "line": 1509
+    },
+    {
+      "kind": "sample",
+      "category": "Shapes",
+      "name": "Chain Segment",
+      "createSymbol": "ChainSegmentShape::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_shapes.cpp",
+      "line": 399
+    },
+    {
+      "kind": "sample",
+      "category": "Shapes",
+      "name": "Chain Shape",
+      "createSymbol": "ChainShape::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_shapes.cpp",
+      "line": 218
+    },
+    {
+      "kind": "sample",
+      "category": "Shapes",
+      "name": "Compound Shapes",
+      "createSymbol": "CompoundShapes::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_shapes.cpp",
+      "line": 614
+    },
+    {
+      "kind": "sample",
+      "category": "Shapes",
+      "name": "Conveyor Belt",
+      "createSymbol": "ConveyorBelt::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_shapes.cpp",
+      "line": 1132
+    },
+    {
+      "kind": "sample",
+      "category": "Shapes",
+      "name": "Custom Filter",
+      "createSymbol": "CustomFilter::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_shapes.cpp",
+      "line": 915
+    },
+    {
+      "kind": "sample",
+      "category": "Shapes",
+      "name": "Ellipse",
+      "createSymbol": "EllipseShape::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_shapes.cpp",
+      "line": 1644
+    },
+    {
+      "kind": "sample",
+      "category": "Shapes",
+      "name": "Explosion",
+      "createSymbol": "Explosion::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_shapes.cpp",
+      "line": 1814
+    },
+    {
+      "kind": "sample",
+      "category": "Shapes",
+      "name": "Filter",
+      "createSymbol": "ShapeFilter::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_shapes.cpp",
+      "line": 820
+    },
+    {
+      "kind": "sample",
+      "category": "Shapes",
+      "name": "Friction",
+      "createSymbol": "Friction::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_shapes.cpp",
+      "line": 982
+    },
+    {
+      "kind": "sample",
+      "category": "Shapes",
+      "name": "Modify Geometry",
+      "createSymbol": "ModifyGeometry::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_shapes.cpp",
+      "line": 1424
+    },
+    {
+      "kind": "sample",
+      "category": "Shapes",
+      "name": "Offset",
+      "createSymbol": "OffsetShapes::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_shapes.cpp",
+      "line": 1702
+    },
+    {
+      "kind": "sample",
+      "category": "Shapes",
+      "name": "Recreate Static",
+      "createSymbol": "RecreateStatic::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_shapes.cpp",
+      "line": 1872
+    },
+    {
+      "kind": "sample",
+      "category": "Shapes",
+      "name": "Rolling Resistance",
+      "createSymbol": "RollingResistance::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_shapes.cpp",
+      "line": 1073
+    },
+    {
+      "kind": "sample",
+      "category": "Shapes",
+      "name": "Rounded",
+      "createSymbol": "RoundedShapes::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_shapes.cpp",
+      "line": 1579
+    },
+    {
+      "kind": "sample",
+      "category": "Shapes",
+      "name": "Tangent Speed",
+      "createSymbol": "TangentSpeed::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_shapes.cpp",
+      "line": 1267
+    },
+    {
+      "kind": "sample",
+      "category": "Shapes",
+      "name": "Wind",
+      "createSymbol": "Wind::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_shapes.cpp",
+      "line": 2037
+    },
+    {
+      "kind": "sample",
+      "category": "Stacking",
+      "name": "Arch",
+      "createSymbol": "Arch::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_stacking.cpp",
+      "line": 805
+    },
+    {
+      "kind": "sample",
+      "category": "Stacking",
+      "name": "Capsule Stack",
+      "createSymbol": "CapsuleStack::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_stacking.cpp",
+      "line": 565
+    },
+    {
+      "kind": "sample",
+      "category": "Stacking",
+      "name": "Card House",
+      "createSymbol": "CardHouse::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_stacking.cpp",
+      "line": 1007
+    },
+    {
+      "kind": "sample",
+      "category": "Stacking",
+      "name": "Circle Stack",
+      "createSymbol": "CircleStack::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_stacking.cpp",
+      "line": 504
+    },
+    {
+      "kind": "sample",
+      "category": "Stacking",
+      "name": "Cliff",
+      "createSymbol": "Cliff::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_stacking.cpp",
+      "line": 707
+    },
+    {
+      "kind": "sample",
+      "category": "Stacking",
+      "name": "Confined",
+      "createSymbol": "Confined::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_stacking.cpp",
+      "line": 930
+    },
+    {
+      "kind": "sample",
+      "category": "Stacking",
+      "name": "Double Domino",
+      "createSymbol": "DoubleDomino::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_stacking.cpp",
+      "line": 858
+    },
+    {
+      "kind": "sample",
+      "category": "Stacking",
+      "name": "Single Box",
+      "createSymbol": "SingleBox::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_stacking.cpp",
+      "line": 61
+    },
+    {
+      "kind": "sample",
+      "category": "Stacking",
+      "name": "Tilted Stack",
+      "createSymbol": "TiltedStack::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_stacking.cpp",
+      "line": 132
+    },
+    {
+      "kind": "sample",
+      "category": "Stacking",
+      "name": "Vertical Stack",
+      "createSymbol": "VerticalStack::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_stacking.cpp",
+      "line": 404
+    },
+    {
+      "kind": "sample",
+      "category": "World",
+      "name": "Far Gate",
+      "createSymbol": "FarGate::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_world.cpp",
+      "line": 746
+    },
+    {
+      "kind": "sample",
+      "category": "World",
+      "name": "Far Pyramid",
+      "createSymbol": "FarPyramid::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_world.cpp",
+      "line": 320
+    },
+    {
+      "kind": "sample",
+      "category": "World",
+      "name": "Far Ragdolls",
+      "createSymbol": "FarRagdolls::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_world.cpp",
+      "line": 395
+    },
+    {
+      "kind": "sample",
+      "category": "World",
+      "name": "Tiles",
+      "createSymbol": "TileWorld::Create",
+      "capacitySymbol": null,
+      "sourceFile": "samples/sample_world.cpp",
+      "line": 248
+    }
+  ]
+}

@@ -40,6 +40,8 @@ namespace juce::UnitTestCategories
     static const String audioProcessorParameters   { "AudioProcessorParameters" };
     static const String audioProcessors            { "AudioProcessors" };
     static const String blocks                     { "Blocks" };
+    static constexpr auto box2d                    = "Box2D";
+    static constexpr auto box2dSamples             = "Box2D Samples";
     static const String compression                { "Compression" };
     static const String containers                 { "Containers" };
     static const String cryptography               { "Cryptography" };

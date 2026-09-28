@@ -19,4 +19,12 @@
 #
 # ==============================================================================
 
+include(${CMAKE_CURRENT_LIST_DIR}/Box2D/Box2DSources.cmake)
+
 _juce_add_pips()
+
+if(TARGET Box2DDemo)
+    juce_add_box2d_sample_sources(Box2DDemo)
+    juce_add_box2d_sample_demo(Box2DDemo)
+    juce_add_box2d_sample_standalone_companions(Box2DDemo)
+endif()

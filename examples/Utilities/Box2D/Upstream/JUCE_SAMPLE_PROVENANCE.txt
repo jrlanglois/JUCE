@@ -1,0 +1,6 @@
+Sample sources under this directory are imported from the Box2D commit recorded in
+modules/juce_box2d/box2d/JUCE_UPSTREAM.txt. Regenerate with:
+
+  python modules/juce_box2d/box2d/vendor.py
+
+Registry entries are listed in sample_registry.json beside this file.

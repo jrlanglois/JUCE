@@ -3,10 +3,62 @@
 <JUCERPROJECT id="Z2Xzcp" name="UnitTestRunner" projectType="consoleapp" bundleIdentifier="com.juce.UnitTestRunner"
               defines="JUCE_UNIT_TESTS=1" companyName="Raw Material Software Limited"
               companyCopyright="Raw Material Software Limited" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="1" jucerFormatVersion="1">
+              addUsingNamespaceToJuceHeader="1" jucerFormatVersion="1"
+              headerPath="../../../../examples/Utilities/Box2D&#10;../../../../examples/Utilities/Box2D/Upstream/samples&#10;../../../../examples/Utilities/Box2D/Upstream/shared">
   <MAINGROUP id="GZdWCU" name="UnitTestRunner">
     <GROUP id="{22894462-E1A9-036F-ED94-B51A50C87552}" name="Source">
       <FILE id="ynaYaM" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
+    </GROUP>
+    <GROUP id="{B2D0E002-0002-4000-8000-000000000002}" name="Box2D">
+      <FILE id="B2Ut01" name="Box2DSampleHost_test.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Box2DSampleHost_test.cpp"/>
+      <FILE id="B2Ut02" name="Box2DSamples.h" compile="0" resource="0" file="../../examples/Utilities/Box2D/Box2DSamples.h"/>
+      <FILE id="B2Ut03" name="Camera.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Camera.cpp"/>
+      <FILE id="B2Ut04" name="Catalog.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Catalog.cpp"/>
+      <FILE id="B2Ut05" name="Canvas.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Canvas.cpp"/>
+      <FILE id="B2Ut06" name="Context.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Context.cpp"/>
+      <FILE id="B2Ut07" name="ControlPanel.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/ControlPanel.cpp"/>
+      <FILE id="B2Ut08" name="DrawList.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/DrawList.cpp"/>
+      <FILE id="B2Ut21" name="HostControlsBridge.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/HostControlsBridge.cpp"/>
+      <FILE id="B2Ut22" name="HostControlsBridge.h" compile="0" resource="0" file="../../examples/Utilities/Box2D/HostControlsBridge.h"/>
+      <FILE id="B2Ut09" name="HostDrawBridge.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/HostDrawBridge.cpp"/>
+      <FILE id="B2Ut10" name="HostDrawBridgeApi.h" compile="0" resource="0" file="../../examples/Utilities/Box2D/HostDrawBridgeApi.h"/>
+      <FILE id="B2Ut11" name="MetricsComponent.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/MetricsComponent.cpp"/>
+      <FILE id="B2Ut44" name="ReplayFileIO.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/ReplayFileIO.cpp"/>
+      <FILE id="B2Ut45" name="ReplayFileIO.h" compile="0" resource="0" file="../../examples/Utilities/Box2D/ReplayFileIO.h"/>
+      <FILE id="B2Ut46" name="ReplaySample.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/ReplaySample.cpp"/>
+      <FILE id="B2Ut47" name="ReplaySample.h" compile="0" resource="0" file="../../examples/Utilities/Box2D/ReplaySample.h"/>
+      <FILE id="B2Ut12" name="Runtime.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Runtime.cpp"/>
+      <FILE id="B2Ut13" name="Box2DSample.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Box2DSample.cpp"/>
+      <FILE id="B2Ut14" name="UpstreamBridge.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/UpstreamBridge.cpp"/>
+      <FILE id="B2Ut15" name="UpstreamBridge.h" compile="0" resource="0" file="../../examples/Utilities/Box2D/UpstreamBridge.h"/>
+      <FILE id="B2Ut49" name="Box2DDemoHost.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Box2DDemoHost.cpp"/>
+      <FILE id="B2Ut50" name="sample_translations.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/sample_translations.cpp"/>
+      <FILE id="B2Ut17" name="draw_stub.c" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/draw_stub.c"/>
+      <FILE id="B2Ut23" name="car.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/car.cpp"/>
+      <FILE id="B2Ut24" name="doohickey.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/doohickey.cpp"/>
+      <FILE id="B2Ut25" name="donut.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/donut.cpp"/>
+      <FILE id="B2Ut35" name="dynamic_mover.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/dynamic_mover.cpp"/>
+      <FILE id="B2Ut36" name="geometric_mover.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/geometric_mover.cpp"/>
+      <FILE id="B2Ut18" name="sample.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/sample.cpp"/>
+      <FILE id="B2Ut37" name="sample_benchmark.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/sample_benchmark.cpp"/>
+      <FILE id="B2Ut26" name="sample_bodies.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/sample_bodies.cpp"/>
+      <FILE id="B2Ut38" name="sample_character.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/sample_character.cpp"/>
+      <FILE id="B2Ut39" name="sample_collision.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/sample_collision.cpp"/>
+      <FILE id="B2Ut27" name="sample_continuous.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/sample_continuous.cpp"/>
+      <FILE id="B2Ut40" name="sample_determinism.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/sample_determinism.cpp"/>
+      <FILE id="B2Ut28" name="sample_events.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/sample_events.cpp"/>
+      <FILE id="B2Ut41" name="sample_geometry.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/sample_geometry.cpp"/>
+      <FILE id="B2Ut42" name="sample_issues.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/sample_issues.cpp"/>
+      <FILE id="B2Ut29" name="sample_joints.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/sample_joints.cpp"/>
+      <FILE id="B2Ut48" name="sample_replay.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/sample_replay.cpp"/>
+      <FILE id="B2Ut30" name="sample_restitution.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/sample_restitution.cpp"/>
+      <FILE id="B2Ut31" name="sample_robustness.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/sample_robustness.cpp"/>
+      <FILE id="B2Ut32" name="sample_shapes.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/sample_shapes.cpp"/>
+      <FILE id="B2Ut19" name="sample_stacking.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/sample_stacking.cpp"/>
+      <FILE id="B2Ut33" name="sample_world.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/samples/sample_world.cpp"/>
+      <FILE id="B2Ut43" name="benchmarks.c" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/shared/benchmarks.c"/>
+      <FILE id="B2Ut34" name="human.c" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/shared/human.c"/>
+      <FILE id="B2Ut20" name="utils.c" compile="1" resource="0" file="../../examples/Utilities/Box2D/Upstream/shared/utils.c"/>
     </GROUP>
   </MAINGROUP>
   <EXPORTFORMATS>
@@ -32,6 +84,7 @@
         <MODULEPATH id="juce_osc" path="../../modules"/>
         <MODULEPATH id="juce_dsp" path="../../modules"/>
         <MODULEPATH id="juce_audio_utils" path="../../modules"/>
+        <MODULEPATH id="juce_box2d" path="../../modules"/>
         <MODULEPATH id="juce_product_unlocking" path="../../modules"/>
         <MODULEPATH id="juce_analytics" path="../../modules"/>
         <MODULEPATH id="juce_midi_ci" path="../../modules"/>
@@ -60,6 +113,7 @@
         <MODULEPATH id="juce_osc" path="../../modules"/>
         <MODULEPATH id="juce_dsp" path="../../modules"/>
         <MODULEPATH id="juce_audio_utils" path="../../modules"/>
+        <MODULEPATH id="juce_box2d" path="../../modules"/>
         <MODULEPATH id="juce_product_unlocking" path="../../modules"/>
         <MODULEPATH id="juce_analytics" path="../../modules"/>
         <MODULEPATH id="juce_midi_ci" path="../../modules"/>
@@ -83,6 +137,7 @@
         <MODULEPATH id="juce_dsp" path="../../modules"/>
         <MODULEPATH id="juce_data_structures" path="../../modules"/>
         <MODULEPATH id="juce_cryptography" path="../../modules"/>
+        <MODULEPATH id="juce_box2d" path="../../modules"/>
         <MODULEPATH id="juce_core" path="../../modules"/>
         <MODULEPATH id="juce_audio_utils" path="../../modules"/>
         <MODULEPATH id="juce_audio_processors" path="../../modules"/>
@@ -111,6 +166,7 @@
         <MODULEPATH id="juce_dsp" path="../../modules"/>
         <MODULEPATH id="juce_data_structures" path="../../modules"/>
         <MODULEPATH id="juce_cryptography" path="../../modules"/>
+        <MODULEPATH id="juce_box2d" path="../../modules"/>
         <MODULEPATH id="juce_core" path="../../modules"/>
         <MODULEPATH id="juce_audio_utils" path="../../modules"/>
         <MODULEPATH id="juce_audio_processors" path="../../modules"/>
@@ -140,6 +196,7 @@
         <MODULEPATH id="juce_dsp" path="../../modules"/>
         <MODULEPATH id="juce_data_structures" path="../../modules"/>
         <MODULEPATH id="juce_cryptography" path="../../modules"/>
+        <MODULEPATH id="juce_box2d" path="../../modules"/>
         <MODULEPATH id="juce_core" path="../../modules"/>
         <MODULEPATH id="juce_audio_utils" path="../../modules"/>
         <MODULEPATH id="juce_audio_processors" path="../../modules"/>
@@ -161,6 +218,7 @@
     <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0"/>
     <MODULE id="juce_audio_processors_headless" showAllCode="1" useLocalCopy="0"/>
     <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_box2d" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_core" showAllCode="1" useLocalCopy="0"/>
     <MODULE id="juce_cryptography" showAllCode="1" useLocalCopy="0"/>
     <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0"/>

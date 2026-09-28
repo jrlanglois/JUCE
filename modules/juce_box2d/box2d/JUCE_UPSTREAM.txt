@@ -1,0 +1,10 @@
+Upstream: https://github.com/erincatto/box2d.git
+Version:  v3.1.1-55-g956ce4e
+Commit: 956ce4e1e8acddd05a21102629e268ff9321ec50
+
+Vendored by vendor.py in this directory; rerun it to update. It copies the Box2D
+library payload (public headers, src, shared determinism helpers, LICENSE, and
+box2d.natvis), removes every vendored #include so the module owns include order,
+converts recording_ops.inl into the B2_REC_MANIFEST continuation macro,
+forwards assertions through handleBox2DAssertion in core.c, and routes Apple
+platform allocation through posix_memalign like Android.

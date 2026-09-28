@@ -91,3 +91,7 @@ target_link_libraries(DemoRunner PRIVATE
 foreach(folder IN ITEMS ../Assets ../Audio ../DSP ../GUI ../Utilities)
     juce_add_bundle_resources_directory(DemoRunner ${folder})
 endforeach()
+
+include(${CMAKE_CURRENT_SOURCE_DIR}/../Utilities/Box2D/Box2DSources.cmake)
+juce_add_box2d_sample_sources(DemoRunner)
+juce_add_box2d_sample_demo(DemoRunner)

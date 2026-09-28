@@ -5,7 +5,8 @@
               companyCopyright="Copyright (c) - Raw Material Software Limited"
               companyWebsite="https://www.juce.com/" companyEmail="info@juce.com"
               id="yj7xMM" useAppConfig="0" addUsingNamespaceToJuceHeader="1"
-              jucerFormatVersion="1" compilerFlagSchemes="bigobj">
+              jucerFormatVersion="1" compilerFlagSchemes="bigobj,box2dUpstream"
+              headerPath="../../../Utilities/Box2D&#10;../../../Utilities/Box2D/Upstream/samples&#10;../../../Utilities/Box2D/Upstream/shared">
   <MAINGROUP id="G8kbr7" name="DemoRunner">
     <GROUP id="{20E3F84A-29E9-D5FF-4559-1A9E4A70CD60}" name="Source">
       <GROUP id="{272A692A-6AFE-68BD-C8E8-63B3D62245B1}" name="Demos">
@@ -38,6 +39,56 @@
         <FILE id="a17hwW" name="icon.json" compile="0" resource="0" file="Source/AppIcon.icon/icon.json"/>
       </GROUP>
       <FILE id="YyqWd2" name="JUCEAppIcon.png" compile="0" resource="0" file="Source/JUCEAppIcon.png"/>
+    </GROUP>
+    <GROUP id="{B2D0E001-0001-4000-8000-000000000001}" name="Box2D">
+      <FILE id="B2Dh01" name="Box2DSamples.h" compile="0" resource="0" file="../Utilities/Box2D/Box2DSamples.h"/>
+      <FILE id="B2Dc01" name="Camera.cpp" compile="1" resource="0" file="../Utilities/Box2D/Camera.cpp"/>
+      <FILE id="B2Dc02" name="Catalog.cpp" compile="1" resource="0" file="../Utilities/Box2D/Catalog.cpp"/>
+      <FILE id="B2Dc03" name="Canvas.cpp" compile="1" resource="0" file="../Utilities/Box2D/Canvas.cpp"/>
+      <FILE id="B2Dc04" name="Context.cpp" compile="1" resource="0" file="../Utilities/Box2D/Context.cpp"/>
+      <FILE id="B2Dc05" name="ControlPanel.cpp" compile="1" resource="0" file="../Utilities/Box2D/ControlPanel.cpp"/>
+      <FILE id="B2Dc06" name="DrawList.cpp" compile="1" resource="0" file="../Utilities/Box2D/DrawList.cpp"/>
+      <FILE id="B2Dc13" name="HostControlsBridge.cpp" compile="1" resource="0" file="../Utilities/Box2D/HostControlsBridge.cpp"/>
+      <FILE id="B2Dh04" name="HostControlsBridge.h" compile="0" resource="0" file="../Utilities/Box2D/HostControlsBridge.h"/>
+      <FILE id="B2Dc07" name="HostDrawBridge.cpp" compile="1" resource="0" file="../Utilities/Box2D/HostDrawBridge.cpp"/>
+      <FILE id="B2Dh02" name="HostDrawBridgeApi.h" compile="0" resource="0" file="../Utilities/Box2D/HostDrawBridgeApi.h"/>
+      <FILE id="B2Dc08" name="MetricsComponent.cpp" compile="1" resource="0" file="../Utilities/Box2D/MetricsComponent.cpp"/>
+      <FILE id="B2Dc14" name="ReplayFileIO.cpp" compile="1" resource="0" file="../Utilities/Box2D/ReplayFileIO.cpp"/>
+      <FILE id="B2Dh05" name="ReplayFileIO.h" compile="0" resource="0" file="../Utilities/Box2D/ReplayFileIO.h"/>
+      <FILE id="B2Dc15" name="ReplaySample.cpp" compile="1" resource="0" file="../Utilities/Box2D/ReplaySample.cpp"/>
+      <FILE id="B2Dh06" name="ReplaySample.h" compile="0" resource="0" file="../Utilities/Box2D/ReplaySample.h"/>
+      <FILE id="B2Dc09" name="Runtime.cpp" compile="1" resource="0" file="../Utilities/Box2D/Runtime.cpp"/>
+      <FILE id="B2Dc10" name="Box2DSample.cpp" compile="1" resource="0" file="../Utilities/Box2D/Box2DSample.cpp"/>
+      <FILE id="B2Dc11" name="UpstreamBridge.cpp" compile="1" resource="0" file="../Utilities/Box2D/UpstreamBridge.cpp"/>
+      <FILE id="B2Dh03" name="UpstreamBridge.h" compile="0" resource="0" file="../Utilities/Box2D/UpstreamBridge.h"/>
+      <FILE id="B2Dc12" name="Box2DDemoHost.cpp" compile="1" resource="0" file="../Utilities/Box2D/Box2DDemoHost.cpp"/>
+      <FILE id="B2Du27" name="sample_translations.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/sample_translations.cpp"/>
+      <FILE id="B2Du01" name="draw_stub.c" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/draw_stub.c" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du05" name="car.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/car.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du06" name="doohickey.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/doohickey.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du07" name="donut.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/donut.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du17" name="dynamic_mover.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/dynamic_mover.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du18" name="geometric_mover.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/geometric_mover.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du02" name="sample.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/sample.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du19" name="sample_benchmark.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/sample_benchmark.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du08" name="sample_bodies.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/sample_bodies.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du20" name="sample_character.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/sample_character.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du21" name="sample_collision.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/sample_collision.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du09" name="sample_continuous.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/sample_continuous.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du22" name="sample_determinism.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/sample_determinism.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du10" name="sample_events.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/sample_events.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du23" name="sample_geometry.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/sample_geometry.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du24" name="sample_issues.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/sample_issues.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du11" name="sample_joints.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/sample_joints.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du26" name="sample_replay.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/sample_replay.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du12" name="sample_restitution.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/sample_restitution.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du13" name="sample_robustness.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/sample_robustness.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du14" name="sample_shapes.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/sample_shapes.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du03" name="sample_stacking.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/sample_stacking.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du15" name="sample_world.cpp" compile="1" resource="0" file="../Utilities/Box2D/Upstream/samples/sample_world.cpp" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du25" name="benchmarks.c" compile="1" resource="0" file="../Utilities/Box2D/Upstream/shared/benchmarks.c" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du16" name="human.c" compile="1" resource="0" file="../Utilities/Box2D/Upstream/shared/human.c" compilerFlagScheme="box2dUpstream"/>
+      <FILE id="B2Du04" name="utils.c" compile="1" resource="0" file="../Utilities/Box2D/Upstream/shared/utils.c" compilerFlagScheme="box2dUpstream"/>
     </GROUP>
   </MAINGROUP>
   <EXPORTFORMATS>
@@ -113,7 +164,8 @@
                    cameraPermissionNeeded="1" androidReadMediaAudioPermission="1"
                    androidReadMediaImagesPermission="1" androidReadMediaVideoPermission="1"
                    androidBluetoothScanNeeded="1" androidBluetoothAdvertiseNeeded="1"
-                   androidBluetoothConnectNeeded="1" androidEnableVirtualMidi="1">
+                   androidBluetoothConnectNeeded="1" androidEnableVirtualMidi="1"
+                   box2dUpstream="&quot;-Wno-enum-float-conversion -Wno-float-equal -Wno-implicit-int-float-conversion -Wno-missing-prototypes -Wno-shadow-uncaptured-local -Wno-sign-conversion -Wno-strict-prototypes -Wno-switch-enum -Wno-unreachable-code&quot;">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" recommendedWarnings="LLVM" androidAdditionalRawValueResources="Source/accessibilitynotificationicon.png"/>
         <CONFIGURATION isDebug="0" name="Release" recommendedWarnings="LLVM" androidAdditionalRawValueResources="Source/accessibilitynotificationicon.png"/>

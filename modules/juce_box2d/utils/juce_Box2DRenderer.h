@@ -35,53 +35,50 @@
 namespace juce
 {
 
-//==============================================================================
-/** A simple implementation of the b2Draw class, used to draw a Box2D world.
+/** Draws a Box2D world's debug geometry into a JUCE graphics context.
 
-    To use it, simply create an instance of this class in your paint() method,
-    and call its render() method.
+    The world rectangle centred on the view centre maps onto the target area with world +Y pointing up, scaling each axis independently.
+    Outlines keep a constant pixel thickness, and points and labels are drawn upright in component space.
 
     @tags{Box2D}
 */
-class Box2DRenderer   : public b2Draw
-
+class Box2DRenderer
 {
 public:
-    Box2DRenderer() noexcept;
+    /** Constructs a renderer with Box2D's default debug-draw configuration. */
+    Box2DRenderer() = default;
 
-    /** Renders the world.
+    /** Destroys the renderer. */
+    virtual ~Box2DRenderer() = default;
 
-        @param g        the context to render into
-        @param world    the world to render
-        @param box2DWorldLeft   the left coordinate of the area of the world to be drawn
-        @param box2DWorldTop    the top coordinate of the area of the world to be drawn
-        @param box2DWorldRight  the right coordinate of the area of the world to be drawn
-        @param box2DWorldBottom the bottom coordinate of the area of the world to be drawn
-        @param targetArea   the area within the target context onto which the source
-                            world rectangle should be mapped
+    //==============================================================================
+    /** Draws a Box2D world into a target area.
+
+        @param graphics     The JUCE graphics context receiving the debug drawing.
+        @param worldId      The valid Box2D world, which must not be stepping.
+        @param viewCentre   The world-space centre of the viewport.
+        @param viewSize     The positive viewport width and height in Box2D world units.
+        @param targetArea   The non-empty destination area in component coordinates.
     */
-    void render (Graphics& g,
-                 b2World& world,
-                 float box2DWorldLeft, float box2DWorldTop,
-                 float box2DWorldRight, float box2DWorldBottom,
-                 const Rectangle<float>& targetArea);
+    void render (Graphics& graphics, b2WorldId worldId, b2Pos viewCentre, b2Vec2 viewSize, const juce::Rectangle<float>& targetArea) const;
 
-    // b2Draw methods:
-    void DrawPolygon (const b2Vec2*, int32, const b2Color&) override;
-    void DrawSolidPolygon (const b2Vec2*, int32, const b2Color&) override;
-    void DrawCircle (const b2Vec2& center, float32 radius, const b2Color&) override;
-    void DrawSolidCircle (const b2Vec2& center, float32 radius, const b2Vec2& axis, const b2Color&) override;
-    void DrawSegment (const b2Vec2& p1, const b2Vec2& p2, const b2Color&) override;
-    void DrawTransform (const b2Transform& xf) override;
+    /** @returns the mutable debug-draw configuration, whose callback, context, and drawing-bounds fields `render()` overrides in a per-call copy. */
+    [[nodiscard]] b2DebugDraw& getDebugDraw() noexcept { return debugDraw; }
 
-    /** Converts a b2Color to a juce Colour. */
-    virtual Colour getColour (const b2Color&) const;
-    /** Returns the thickness to use for drawing outlines. */
-    virtual float getLineThickness() const;
+    /** @returns the debug-draw configuration. */
+    [[nodiscard]] const b2DebugDraw& getDebugDraw() const noexcept { return debugDraw; }
 
-protected:
-    Graphics* graphics;
+    /** @returns the opaque JUCE colour corresponding to a Box2D RGB value. */
+    [[nodiscard]] virtual Colour getColour (b2HexColor colour) const;
 
+    /** @returns the outline thickness in component pixels. */
+    [[nodiscard]] virtual float getLineThickness() const;
+
+private:
+    //==============================================================================
+    b2DebugDraw debugDraw = b2DefaultDebugDraw();
+
+    //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Box2DRenderer)
 };
 

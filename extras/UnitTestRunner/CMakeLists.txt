@@ -36,6 +36,9 @@ juce_add_console_app(UnitTestRunner
 
 juce_generate_juce_header(UnitTestRunner)
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/../../examples/Utilities/Box2D/Box2DSources.cmake)
+juce_add_box2d_sample_host_tests(UnitTestRunner)
+
 target_sources(UnitTestRunner PRIVATE Source/Main.cpp)
 
 target_compile_definitions(UnitTestRunner PRIVATE
@@ -53,6 +56,7 @@ target_compile_definitions(UnitTestRunner PRIVATE
 target_link_libraries(UnitTestRunner PRIVATE
     juce::juce_analytics
     juce::juce_audio_utils
+    juce::juce_box2d
     juce::juce_build_tools
     juce::juce_dsp
     juce::juce_midi_ci

@@ -211,7 +211,7 @@ void PIPGenerator::createFiles (ValueTree& jucerTree)
 
             for (auto& f : relativeFiles)
                 if (copyRelativeFileToLocalSourceDirectory (f))
-                    addFileToTree (assets, f.getFileName(), f.getFileExtension() == ".cpp", "Source/" + f.getFileName());
+                    addFileToTree (assets, f.getFileName(), f.hasFileExtension (fileTypesToCompileByDefault), "Source/" + f.getFileName());
 
             mainGroup.addChild (assets, -1, nullptr);
         }
