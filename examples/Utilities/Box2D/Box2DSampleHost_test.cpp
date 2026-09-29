@@ -165,6 +165,30 @@ Component* findComponentWithTitle (Component& parent, const String& title)
     return nullptr;
 }
 
+class ReadOnlyPropertyPaintLookAndFeel final : public LookAndFeel_V4
+{
+public:
+    void drawPropertyComponentBackground (Graphics& graphics, int width, int height, PropertyComponent& property) override
+    {
+        ++numBackgroundDraws;
+        LookAndFeel_V4::drawPropertyComponentBackground (graphics, width, height, property);
+    }
+
+    void drawPropertyComponentLabel (Graphics& graphics, int width, int height, PropertyComponent& property) override
+    {
+        ++numLabelDraws;
+        LookAndFeel_V4::drawPropertyComponentLabel (graphics, width, height, property);
+    }
+
+    [[nodiscard]] int getNumBackgroundDraws() const noexcept { return numBackgroundDraws; }
+
+    [[nodiscard]] int getNumLabelDraws() const noexcept { return numLabelDraws; }
+
+private:
+    int numBackgroundDraws = 0,
+        numLabelDraws = 0;
+};
+
 bool isVisibleWithin (const Component& component, const Component& root)
 {
     for (auto* current = &component; current != nullptr; current = current->getParentComponent())
@@ -1192,6 +1216,21 @@ public:
 
             if (subheading != nullptr)
                 expect (subheading->getFont().isBold());
+
+            auto* subheadingProperty = findProperty<PropertyComponent> (properties, "Sample options");
+            expect (subheadingProperty != nullptr);
+
+            if (subheadingProperty != nullptr)
+            {
+                ReadOnlyPropertyPaintLookAndFeel paintLookAndFeel;
+                subheadingProperty->setLookAndFeel (&paintLookAndFeel);
+                Image renderedProperty (Image::ARGB, subheadingProperty->getWidth(), subheadingProperty->getHeight(), true);
+                Graphics graphics (renderedProperty);
+                subheadingProperty->paintEntireComponent (graphics, true);
+                expectEquals (paintLookAndFeel.getNumBackgroundDraws(), 1);
+                expectEquals (paintLookAndFeel.getNumLabelDraws(), 0);
+                subheadingProperty->setLookAndFeel (nullptr);
+            }
         }
 
         beginTest ("Adapted formatted text keeps stable identifiers");

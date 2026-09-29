@@ -378,6 +378,8 @@ public:
         }
     }
 
+    void paint (Graphics& graphics) override { getLookAndFeel().drawPropertyComponentBackground (graphics, getWidth(), getHeight(), *this); }
+
     void resized() override { label.setBounds (getLocalBounds().reduced (6, 2)); }
 
 private:
