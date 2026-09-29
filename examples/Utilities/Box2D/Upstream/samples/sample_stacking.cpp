@@ -322,24 +322,15 @@ public:
 		}
 	}
 
-	void Keyboard( int key, int action, int mods ) override
+	void Keyboard( const KeyPress& key ) override
 	{
-		bool consumed = false;
-
-		switch ( key )
+		if ( key.isKeyCode( 'b' ) )
 		{
-			case 'B':
-				FireBullets();
-				consumed = true;
-				break;
-
-			default:
-				break;
+			FireBullets();
 		}
-
-		if ( consumed == false )
+		else
 		{
-			Sample::Keyboard( key, action, mods );
+			Sample::Keyboard( key );
 		}
 	}
 

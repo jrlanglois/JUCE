@@ -1023,31 +1023,29 @@ public:
 		}
 	}
 
-	void Keyboard( int key, int action, int mods ) override
+	void Keyboard( const KeyPress& key ) override
 	{
-		switch ( key )
+		if ( key.isKeyCode( '1' ) )
 		{
-			case '1':
-				m_lift = 0.0f;
-				CreateWorld();
-				CreateScene();
-				break;
-
-			case '2':
-				m_lift = 5.0f;
-				CreateWorld();
-				CreateScene();
-				break;
-
-			case '3':
-				m_lift = -5.0f;
-				CreateWorld();
-				CreateScene();
-				break;
-
-			default:
-				Sample::Keyboard( key, action, mods );
-				break;
+			m_lift = 0.0f;
+			CreateWorld();
+			CreateScene();
+		}
+		else if ( key.isKeyCode( '2' ) )
+		{
+			m_lift = 5.0f;
+			CreateWorld();
+			CreateScene();
+		}
+		else if ( key.isKeyCode( '3' ) )
+		{
+			m_lift = -5.0f;
+			CreateWorld();
+			CreateScene();
+		}
+		else
+		{
+			Sample::Keyboard( key );
 		}
 	}
 

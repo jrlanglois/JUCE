@@ -1714,7 +1714,7 @@ public:
 			}
 		}
 
-		if ( m_context->IsKeyDown( 'l' ) )
+		if ( m_context->IsKeyDown( KeyPress( 'l' ) ) )
 		{
 			b2Body_ApplyLinearImpulseToCenter( m_bodyIds[0], { 100.0f, 0.0f }, true );
 		}
@@ -2519,25 +2519,23 @@ public:
 
 	void Step() override
 	{
-		if ( m_context->IsKeyDown( 'a' ) )
+		if ( m_context->IsKeyDown( KeyPress( 'a' ) ) )
 		{
 			m_throttle = 1.0f;
 			m_car.SetSpeed( m_speed );
 		}
 
-		if ( m_context->IsKeyDown( 's' ) )
+		if ( m_context->IsKeyDown( KeyPress( 's' ) ) )
 		{
 			m_throttle = 0.0f;
 			m_car.SetSpeed( 0.0f );
 		}
 
-		if ( m_context->IsKeyDown( 'd' ) )
+		if ( m_context->IsKeyDown( KeyPress( 'd' ) ) )
 		{
 			m_throttle = -1.0f;
 			m_car.SetSpeed( -m_speed );
 		}
-
-		DrawScreenTextLine( "Keys: left = a, brake = s, right = d" );
 
 		b2Vec2 linearVelocity = b2Body_GetLinearVelocity( m_car.m_chassisId );
 		float kph = linearVelocity.x * 3.6f;
@@ -3240,14 +3238,14 @@ public:
 
 	void Step() override
 	{
-		if ( m_context->IsKeyDown( 'a' ) )
+		if ( m_context->IsKeyDown( KeyPress( 'a' ) ) )
 		{
 			m_motorSpeed = b2MaxFloat( -0.3f, m_motorSpeed - 0.01f );
 			b2RevoluteJoint_SetMotorSpeed( m_driverId, m_motorSpeed );
 			b2Joint_WakeBodies( m_driverId );
 		}
 
-		if ( m_context->IsKeyDown( 'd' ) )
+		if ( m_context->IsKeyDown( KeyPress( 'd' ) ) )
 		{
 			m_motorSpeed = b2MinFloat( 0.3f, m_motorSpeed + 0.01f );
 			b2RevoluteJoint_SetMotorSpeed( m_driverId, m_motorSpeed );
@@ -3676,34 +3674,27 @@ public:
 
 	void Step() override
 	{
-		DrawScreenTextLine( "Keys: left = a, brake = s, right = d, toggle motor = f" );
-
 		Sample::Step();
 	}
 
-	void Keyboard( int key, int, int ) override
+	void Keyboard( const KeyPress& key ) override
 	{
-		switch ( key )
+		if ( key.isKeyCode( 'a' ) )
 		{
-			case 'a':
-				b2RevoluteJoint_SetMotorSpeed( m_motorJointId, -m_motorSpeed );
-				break;
-
-			case 's':
-				b2RevoluteJoint_SetMotorSpeed( m_motorJointId, 0.0f );
-				break;
-
-			case 'd':
-				b2RevoluteJoint_SetMotorSpeed( m_motorJointId, m_motorSpeed );
-				break;
-
-			case 'f':
-				m_enableMotor = !b2RevoluteJoint_IsMotorEnabled( m_motorJointId );
-				b2RevoluteJoint_EnableMotor( m_motorJointId, m_enableMotor );
-				break;
-
-			default:
-				break;
+			b2RevoluteJoint_SetMotorSpeed( m_motorJointId, -m_motorSpeed );
+		}
+		else if ( key.isKeyCode( 's' ) )
+		{
+			b2RevoluteJoint_SetMotorSpeed( m_motorJointId, 0.0f );
+		}
+		else if ( key.isKeyCode( 'd' ) )
+		{
+			b2RevoluteJoint_SetMotorSpeed( m_motorJointId, m_motorSpeed );
+		}
+		else if ( key.isKeyCode( 'f' ) )
+		{
+			m_enableMotor = !b2RevoluteJoint_IsMotorEnabled( m_motorJointId );
+			b2RevoluteJoint_EnableMotor( m_motorJointId, m_enableMotor );
 		}
 	}
 

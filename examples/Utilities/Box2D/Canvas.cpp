@@ -102,15 +102,15 @@ void Canvas::applyPendingInput()
         switch (event.type)
         {
             case PointerEventType::down:
-                sample->handleMouseDown (worldPosition, event.button, event.modifiers);
+                sample->handleMouseDown (worldPosition, event.modifiers);
                 break;
 
             case PointerEventType::up:
-                sample->handleMouseUp (worldPosition, event.button);
+                sample->handleMouseUp (worldPosition, event.modifiers);
                 break;
 
             case PointerEventType::move:
-                sample->handleMouseMove (worldPosition);
+                sample->handleMouseMove (worldPosition, event.modifiers);
                 break;
         }
     }
@@ -201,13 +201,7 @@ void Canvas::mouseDown (const MouseEvent& event)
         return;
     }
 
-    MouseButton button = MouseButton::primary;
-
-    if (event.mods.isRightButtonDown())
-        button = MouseButton::secondary;
-
-    activePointerButton = button;
-    pendingPointerEvents.push_back ({ PointerEventType::down, event.position, button, event.mods });
+    pendingPointerEvents.push_back ({ PointerEventType::down, event.position, event.mods });
 }
 
 void Canvas::mouseDrag (const MouseEvent& event)
@@ -223,7 +217,7 @@ void Canvas::mouseDrag (const MouseEvent& event)
         return;
     }
 
-    pendingPointerEvents.push_back ({ PointerEventType::move, event.position, MouseButton::primary, {} });
+    pendingPointerEvents.push_back ({ PointerEventType::move, event.position, event.mods });
 }
 
 void Canvas::mouseUp (const MouseEvent& event)
@@ -237,7 +231,7 @@ void Canvas::mouseUp (const MouseEvent& event)
         return;
     }
 
-    pendingPointerEvents.push_back ({ PointerEventType::up, event.position, activePointerButton, {} });
+    pendingPointerEvents.push_back ({ PointerEventType::up, event.position, event.mods });
 }
 
 void Canvas::mouseMove (const MouseEvent& event)
@@ -245,7 +239,7 @@ void Canvas::mouseMove (const MouseEvent& event)
     if (runtime == nullptr || panActive)
         return;
 
-    pendingPointerEvents.push_back ({ PointerEventType::move, event.position, MouseButton::primary, {} });
+    pendingPointerEvents.push_back ({ PointerEventType::move, event.position, event.mods });
 }
 
 void Canvas::mouseWheelMove (const MouseEvent& event, const MouseWheelDetails& wheel)

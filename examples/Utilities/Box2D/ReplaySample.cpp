@@ -528,7 +528,7 @@ public:
             return true;
         }
 
-        if (key.getTextCharacter() == ',')
+        if (key.isKeyCode (','))
         {
             queueSeek (getFrame() - (key.getModifiers().isShiftDown() ? 5 : 1));
             return true;
@@ -537,9 +537,9 @@ public:
         return false;
     }
 
-    void handleMouseDown (b2Pos position, MouseButton button, const ModifierKeys&) override
+    void handleMouseDown (b2Pos position, const ModifierKeys& modifiers) override
     {
-        if (player == nullptr || button != MouseButton::primary || ! b2World_IsValid (worldId))
+        if (player == nullptr || ! modifiers.isLeftButtonDown() || ! b2World_IsValid (worldId))
             return;
 
         const b2Vec2 delta = { 0.001f, 0.001f };

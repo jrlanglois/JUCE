@@ -87,24 +87,19 @@ public:
 		m_generation += 1;
 	}
 
-	void Keyboard( int key, int, int ) override
+	void Keyboard( const KeyPress& key ) override
 	{
-		switch ( key )
+		if ( key.isKeyCode( 'a' ) )
 		{
-			case 'a':
-				m_auto = !m_auto;
-				break;
-
-			case 'b':
-				m_bulk = !m_bulk;
-				break;
-
-			case 'g':
-				Generate();
-				break;
-
-			default:
-				break;
+			m_auto = !m_auto;
+		}
+		else if ( key.isKeyCode( 'b' ) )
+		{
+			m_bulk = !m_bulk;
+		}
+		else if ( key.isKeyCode( 'g' ) )
+		{
+			Generate();
 		}
 	}
 
@@ -115,8 +110,6 @@ public:
 
 	void PreparePresentation() override
 	{
-		DrawScreenTextLine( "Options: generate(g), auto(a), bulk(b)" );
-
 		b2Hull hull = {};
 		bool valid = false;
 		float milliseconds = 0.0f;

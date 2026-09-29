@@ -179,6 +179,30 @@ bool isVisibleWithin (const Component& component, const Component& root)
     return false;
 }
 
+MouseEvent makeMouseEvent (Component& component,
+                           juce::Point<float> position,
+                           ModifierKeys modifiers,
+                           juce::Point<float> mouseDownPosition,
+                           bool wasDragged = false)
+{
+    const auto eventTime = Time::getCurrentTime();
+    return { Desktop::getInstance().getMainMouseSource(),
+             position,
+             modifiers,
+             1.0f,
+             0.0f,
+             0.0f,
+             0.0f,
+             0.0f,
+             &component,
+             &component,
+             eventTime,
+             mouseDownPosition,
+             eventTime,
+             1,
+             wasDragged };
+}
+
 std::optional<MemoryBlock> createRecording (const char* category, const char* name, int numSteps)
 {
     Box2DSamples::Runtime runtime;
@@ -1038,11 +1062,97 @@ public:
         beginTest ("Interaction properties and catalogue help");
 
         {
+            Box2DSamples::Catalog::initialise();
             const auto genericHints = Box2DSamples::SampleInteractionCatalog::getGenericLiveHints();
+            const auto interactionEntries = Box2DSamples::SampleInteractionCatalog::getEntries();
             const auto* replayHelp = Box2DSamples::SampleInteractionCatalog::find ("Replay", "Viewer");
             expect (std::any_of (genericHints.begin(), genericHints.end(), [] (const auto& hint) { return hint.identifier == Identifier ("zoomViewport"); }));
             expect (std::any_of (genericHints.begin(), genericHints.end(), [] (const auto& hint) { return hint.identifier == Identifier ("resetViewport"); }));
             expect (replayHelp != nullptr);
+            expect (Box2DSamples::SampleInteractionCatalog::find ("Missing", "Sample") == nullptr);
+
+            StringArray genericIdentifiers;
+
+            for (const auto& hint : genericHints)
+            {
+                expect (hint.identifier.isValid());
+                expect (Identifier::isValidIdentifier (hint.identifier.toString()));
+                expect (! genericIdentifiers.contains (hint.identifier.toString()));
+                genericIdentifiers.add (hint.identifier.toString());
+            }
+
+            const StringArray expectedInteractionEntries
+            {
+                "Character/Dynamic Mover",
+                "Character/Geometric Mover",
+                "Collision/Cast World",
+                "Collision/Dynamic Tree",
+                "Collision/Manifold",
+                "Collision/Overlap World",
+                "Collision/Ray Cast",
+                "Collision/Shape Cast",
+                "Collision/Shape Distance",
+                "Collision/Smooth Manifold",
+                "Continuous/Drop",
+                "Continuous/Pinball",
+                "Events/Contact",
+                "Events/Foot Sensor",
+                "Events/Projectile Event",
+                "Events/Sensor Hits",
+                "Geometry/Convex Hull",
+                "Joints/Driving",
+                "Joints/Gear Lift",
+                "Joints/Motion Locks",
+                "Joints/Theo Jansen",
+                "Replay/Viewer",
+                "Shapes/Rolling Resistance",
+                "Stacking/Vertical Stack",
+                "World/Far Gate",
+                "World/Tiles"
+            };
+            StringArray actualInteractionEntries;
+
+            for (size_t entryIndex = 0; entryIndex < interactionEntries.size(); ++entryIndex)
+            {
+                const auto& interactionEntry = interactionEntries[entryIndex];
+                actualInteractionEntries.add (interactionEntry.category + "/" + interactionEntry.sampleName);
+                expect (interactionEntry.category.isNotEmpty());
+                expect (interactionEntry.sampleName.isNotEmpty());
+                expect (Box2DSamples::SampleInteractionCatalog::find (interactionEntry.category, interactionEntry.sampleName) == &interactionEntry);
+
+                int numCatalogueMatches = 0;
+
+                for (const auto& catalogueEntry : Box2DSamples::Catalog::getEntries())
+                {
+                    if (interactionEntry.category == catalogueEntry.category && interactionEntry.sampleName == catalogueEntry.name)
+                        ++numCatalogueMatches;
+                }
+
+                expectEquals (numCatalogueMatches, 1);
+
+                if (entryIndex > 0)
+                {
+                    const auto& previous = interactionEntries[entryIndex - 1];
+                    const int categoryComparison = previous.category.compare (interactionEntry.category);
+                    expect (categoryComparison < 0
+                            || (categoryComparison == 0 && previous.sampleName.compare (interactionEntry.sampleName) < 0));
+                }
+
+                StringArray hintIdentifiers;
+
+                for (const auto& hint : interactionEntry.hints)
+                {
+                    expect (hint.identifier.isValid());
+                    expect (Identifier::isValidIdentifier (hint.identifier.toString()));
+                    expect (! hintIdentifiers.contains (hint.identifier.toString()));
+                    hintIdentifiers.add (hint.identifier.toString());
+
+                    if (hint.identifier == Identifier ("primaryInteraction"))
+                        expect (genericIdentifiers.contains (hint.identifier.toString()));
+                }
+            }
+
+            expect (actualInteractionEntries == expectedInteractionEntries);
 
             if (replayHelp != nullptr)
             {
@@ -1214,15 +1324,142 @@ public:
         {
             Box2DSamples::Runtime runtime;
             int numKeyQueries = 0;
+            bool receivedModifierFreeKey = true;
             runtime.getContext().shouldUseReducedWorkload = true;
-            runtime.getContext().setKeyStateQuery ([&numKeyQueries] (int keyCode)
+            runtime.getContext().setKeyStateQuery ([&] (const KeyPress& key)
             {
                 ++numKeyQueries;
-                return keyCode == 'd';
+                receivedModifierFreeKey = receivedModifierFreeKey && ! key.getModifiers().isAnyModifierKeyDown();
+                return key.isKeyCode ('d');
             });
             expect (runtime.selectSample (findSampleIndex ("Character", "Dynamic Mover")).wasOk());
             runtime.getCurrentSample()->advanceSimulation();
             expect (numKeyQueries > 0);
+            expect (receivedModifierFreeKey);
+        }
+
+        beginTest ("Direct adapted key and pointer values");
+
+        {
+            Box2DSamples::Runtime runtime;
+            runtime.getContext().shouldUseReducedWorkload = true;
+            expect (runtime.selectSample (findSampleIndex ("Stacking", "Single Box")).wasOk());
+            auto* sample = runtime.getCurrentSample();
+            expect (sample != nullptr);
+
+            if (sample != nullptr)
+            {
+                const auto worldId = sample->getWorldId();
+                const int initialJointCount = b2World_GetCounters (worldId).jointCount;
+                sample->handleMouseDown ({ 0.0f, 1.0f }, ModifierKeys (ModifierKeys::rightButtonModifier));
+                expectEquals (b2World_GetCounters (worldId).jointCount, initialJointCount);
+                sample->handleMouseDown ({ 0.0f, 1.0f }, ModifierKeys (ModifierKeys::leftButtonModifier));
+                expectEquals (b2World_GetCounters (worldId).jointCount, initialJointCount + 1);
+                sample->handleMouseMove ({ 1.0f, 1.0f },
+                                         ModifierKeys (ModifierKeys::leftButtonModifier | ModifierKeys::shiftModifier));
+                sample->handleMouseUp ({ 1.0f, 1.0f },
+                                       ModifierKeys (ModifierKeys::leftButtonModifier | ModifierKeys::shiftModifier));
+                expectEquals (b2World_GetCounters (worldId).jointCount, initialJointCount);
+            }
+
+            expect (runtime.selectSample (findSampleIndex ("Stacking", "Vertical Stack")).wasOk());
+            sample = runtime.getCurrentSample();
+            expect (sample != nullptr);
+
+            if (sample != nullptr)
+            {
+                const auto worldId = sample->getWorldId();
+                const int initialBodyCount = b2World_GetCounters (worldId).bodyCount;
+                expect (sample->handleKeyPress (KeyPress ('b', ModifierKeys(), 0)));
+                expectGreaterThan (b2World_GetCounters (worldId).bodyCount, initialBodyCount);
+            }
+
+            expect (runtime.selectSample (findSampleIndex ("Shapes", "Rolling Resistance")).wasOk());
+            sample = runtime.getCurrentSample();
+            expect (sample != nullptr);
+
+            if (sample != nullptr)
+            {
+                const auto initialWorldId = sample->getWorldId();
+                expect (sample->handleKeyPress (KeyPress ('2', ModifierKeys(), 0)));
+                sample->advanceSimulation();
+                expect (b2World_IsValid (sample->getWorldId()));
+                expect (b2StoreWorldId (sample->getWorldId()) != b2StoreWorldId (initialWorldId));
+            }
+        }
+
+        beginTest ("Canvas preserves pointer state and owns middle-button pan");
+
+        {
+            Box2DSamples::Runtime runtime;
+            Box2DSamples::Canvas canvas;
+            runtime.getContext().shouldUseReducedWorkload = true;
+            expect (runtime.selectSample (findSampleIndex ("Stacking", "Single Box")).wasOk());
+            canvas.setRuntime (&runtime);
+            canvas.setSize (320, 240);
+            canvas.resized();
+            auto* sample = runtime.getCurrentSample();
+            expect (sample != nullptr);
+
+            if (sample != nullptr)
+            {
+                const auto worldId = sample->getWorldId();
+                const int initialJointCount = b2World_GetCounters (worldId).jointCount;
+                const auto targetArea = canvas.getLocalBounds().toFloat().reduced (8.0f);
+                const auto bodyPosition = runtime.getContext().camera.convertWorldToComponent ({ 0.0f, 1.0f }, targetArea);
+                canvas.mouseDown (makeMouseEvent (canvas,
+                                                  bodyPosition,
+                                                  ModifierKeys (ModifierKeys::rightButtonModifier),
+                                                  bodyPosition));
+                canvas.mouseUp (makeMouseEvent (canvas,
+                                                bodyPosition,
+                                                ModifierKeys (ModifierKeys::rightButtonModifier),
+                                                bodyPosition));
+                canvas.applyPendingInput();
+                expectEquals (b2World_GetCounters (worldId).jointCount, initialJointCount);
+
+                canvas.mouseDown (makeMouseEvent (canvas,
+                                                  bodyPosition,
+                                                  ModifierKeys (ModifierKeys::leftButtonModifier),
+                                                  bodyPosition));
+                canvas.applyPendingInput();
+                expectEquals (b2World_GetCounters (worldId).jointCount, initialJointCount + 1);
+                const auto draggedPosition = bodyPosition + juce::Point<float> (12.0f, 0.0f);
+                canvas.mouseDrag (makeMouseEvent (canvas,
+                                                  draggedPosition,
+                                                  ModifierKeys (ModifierKeys::leftButtonModifier | ModifierKeys::shiftModifier),
+                                                  bodyPosition,
+                                                  true));
+                canvas.mouseUp (makeMouseEvent (canvas,
+                                                draggedPosition,
+                                                ModifierKeys (ModifierKeys::leftButtonModifier | ModifierKeys::shiftModifier),
+                                                bodyPosition,
+                                                true));
+                canvas.applyPendingInput();
+                expectEquals (b2World_GetCounters (worldId).jointCount, initialJointCount);
+
+                const auto cameraCentreBeforePan = runtime.getContext().camera.centre;
+                const juce::Point<float> panStart (160.0f, 120.0f);
+                const juce::Point<float> panEnd (180.0f, 140.0f);
+                canvas.mouseDown (makeMouseEvent (canvas,
+                                                  panStart,
+                                                  ModifierKeys (ModifierKeys::middleButtonModifier),
+                                                  panStart));
+                canvas.mouseDrag (makeMouseEvent (canvas,
+                                                  panEnd,
+                                                  ModifierKeys (ModifierKeys::middleButtonModifier),
+                                                  panStart,
+                                                  true));
+                canvas.mouseUp (makeMouseEvent (canvas,
+                                                panEnd,
+                                                ModifierKeys (ModifierKeys::middleButtonModifier),
+                                                panStart,
+                                                true));
+                canvas.applyPendingInput();
+                expect (runtime.getContext().camera.centre.x != cameraCentreBeforePan.x
+                        || runtime.getContext().camera.centre.y != cameraCentreBeforePan.y);
+                expectEquals (b2World_GetCounters (worldId).jointCount, initialJointCount);
+            }
         }
 
         beginTest ("Capacity overrides and bounded benchmarks");
@@ -1460,6 +1697,16 @@ public:
             Box2DSamples::Runtime runtime;
             expect (runtime.selectReplay (*queryRecording, "queries.b2rec").wasOk());
             auto* replay = runtime.getCurrentSample();
+            Box2DSamples::queueReplaySeek (*replay, 10);
+            Box2DSamples::applyReplayPendingChanges (*replay);
+            expect (replay->handleKeyPress (KeyPress (',', ModifierKeys::shiftModifier, '<')));
+            Box2DSamples::applyReplayPendingChanges (*replay);
+            expectEquals (Box2DSamples::getReplayFrame (*replay), 5);
+            expect (replay->handleKeyPress (KeyPress (',', ModifierKeys(), ',')));
+            Box2DSamples::applyReplayPendingChanges (*replay);
+            expectEquals (Box2DSamples::getReplayFrame (*replay), 4);
+            Box2DSamples::queueReplaySeek (*replay, 0);
+            Box2DSamples::applyReplayPendingChanges (*replay);
             const double recordedInterval = replay->getStepIntervalSeconds();
             expect (recordedInterval > 0.0);
             runtime.getContext().settings.isPaused = false;

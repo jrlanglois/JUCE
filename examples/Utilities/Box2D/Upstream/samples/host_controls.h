@@ -67,7 +67,6 @@ void openPopup( const char* identifier );
 bool beginPopupModal( const char* name, bool* open, int flags );
 void closeCurrentPopup();
 bool selectable( const char* label, bool selected, int flags = 0 );
-bool isKeyPressed( int key, bool repeat = true );
 float getFontSize();
 float getFrameHeight();
 void setItemTooltipV( const char* format, va_list arguments );
@@ -176,7 +175,6 @@ inline void OpenPopup( const char* id ) { openPopup( id ); }
 inline bool BeginPopupModal( const char* name, bool* open = nullptr, int flags = 0 ) { return beginPopupModal( name, open, flags ); }
 inline void CloseCurrentPopup() { closeCurrentPopup(); }
 inline bool Selectable( const char* label, bool selected, int flags = 0 ) { return selectable( label, selected, flags ); }
-inline bool IsKeyPressed( int key, bool repeat = true ) { return isKeyPressed( key, repeat ); }
 inline float GetFontSize() { return getFontSize(); }
 inline float GetFrameHeight() { return getFrameHeight(); }
 inline void SetItemTooltip( const char* format, ... )
@@ -241,5 +239,3 @@ inline uint32_t GetColorU32( int index, float alphaMul = 1.0f ) { return getColo
 inline HostVec4 GetStyleColorVec4( int index ) { return getStyleColorVec4( index ); }
 inline float GetTextLineHeightWithSpacing() { return getTextLineHeightWithSpacing(); }
 } // namespace HostControls
-
-#define HOST_MOUSE_BUTTON_PRIMARY 1

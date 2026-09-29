@@ -91,11 +91,11 @@ void Sample::updateControls (ControlModel&) {}
 
 bool Sample::handleKeyPress (const KeyPress&) { return false; }
 
-void Sample::handleMouseDown (b2Pos, MouseButton, const ModifierKeys&) {}
+void Sample::handleMouseDown (b2Pos, const ModifierKeys&) {}
 
-void Sample::handleMouseUp (b2Pos, MouseButton) {}
+void Sample::handleMouseUp (b2Pos, const ModifierKeys&) {}
 
-void Sample::handleMouseMove (b2Pos) {}
+void Sample::handleMouseMove (b2Pos, const ModifierKeys&) {}
 
 void Sample::resetCamera()
 {

@@ -276,14 +276,14 @@ bool QueryCallback( b2ShapeId shapeId, void* context )
 	return true;
 }
 
-void Sample::MouseDown( b2Pos p, int button, int )
+void Sample::MouseDown( b2Pos p, const ModifierKeys& modifiers )
 {
 	if ( B2_IS_NON_NULL( m_mouseJointId ) )
 	{
 		return;
 	}
 
-	if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+	if ( modifiers.isLeftButtonDown() )
 	{
 		// A tiny box around the click point, exact at any distance with the click as the origin
 		b2Vec2 d = { 0.001f, 0.001f };
@@ -328,9 +328,9 @@ void Sample::MouseDown( b2Pos p, int button, int )
 	}
 }
 
-void Sample::MouseUp( b2Pos, int button )
+void Sample::MouseUp( b2Pos, const ModifierKeys& modifiers )
 {
-	if ( B2_IS_NON_NULL( m_mouseJointId ) && button == HOST_MOUSE_BUTTON_PRIMARY )
+	if ( B2_IS_NON_NULL( m_mouseJointId ) && modifiers.isLeftButtonDown() )
 	{
 		b2DestroyJoint( m_mouseJointId );
 		m_mouseJointId = b2_nullJointId;
@@ -340,7 +340,7 @@ void Sample::MouseUp( b2Pos, int button )
 	}
 }
 
-void Sample::MouseMove( b2Pos p )
+void Sample::MouseMove( b2Pos p, const ModifierKeys& )
 {
 	if ( b2Joint_IsValid( m_mouseJointId ) == false )
 	{

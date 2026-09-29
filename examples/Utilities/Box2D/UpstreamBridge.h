@@ -80,11 +80,11 @@ public:
     /** @internal */
     bool handleKeyPress (const KeyPress& key) override;
     /** @internal */
-    void handleMouseDown (b2Pos position, MouseButton button, const ModifierKeys& modifiers) override;
+    void handleMouseDown (b2Pos position, const ModifierKeys& modifiers) override;
     /** @internal */
-    void handleMouseUp (b2Pos position, MouseButton button) override;
+    void handleMouseUp (b2Pos position, const ModifierKeys& modifiers) override;
     /** @internal */
-    void handleMouseMove (b2Pos position) override;
+    void handleMouseMove (b2Pos position, const ModifierKeys& modifiers) override;
     /** @internal */
     void resetCamera() override;
     /** @internal */
@@ -98,10 +98,6 @@ private:
     HostControlsBridge controlsBridge;
     DrawList simulationPresentation;
     std::unique_ptr<::Sample> upstreamSample;
-
-    //==============================================================================
-    static int mapMouseButton (MouseButton button) noexcept;
-    static int mapModifiers (const ModifierKeys& modifiers) noexcept;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (UpstreamSampleAdapter)

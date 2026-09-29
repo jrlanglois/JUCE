@@ -37,13 +37,17 @@ struct SampleContext
 	bool showUI = true;
 	bool reducedWorkload = false;
 
-	bool ( *isKeyDown )( void* userData, int keyCode ) = nullptr;
-	void* keyStateUserData = nullptr;
+	/** Queries whether a physical key is currently held, irrespective of modifiers.
 
-	bool IsKeyDown( int keyCode ) const
+	NOLINT(methodNameCamelCase, functionVerbPrefix, boolGetterPrefix) - Preserves the pinned Box2D sample API spelling.
+	*/
+	[[nodiscard]] bool IsKeyDown( const KeyPress& key ) const
 	{
-		return isKeyDown != nullptr && isKeyDown( keyStateUserData, keyCode );
+		return keyStateQuery != nullptr && keyStateQuery( key );
 	}
+
+	/** Held-key query supplied by the JUCE host. */
+	std::function<bool( const KeyPress& )> keyStateQuery;
 
 	// Metrics drawer visibility. M toggles.
 	bool showMetrics = false;
@@ -143,16 +147,34 @@ public:
 	{
 	}
 
-	virtual void Keyboard( int, int, int )
+	/** Handles one focused key press.
+
+	NOLINT(methodNameCamelCase, functionVerbPrefix) - Preserves the pinned Box2D sample API spelling.
+	*/
+	virtual void Keyboard( const KeyPress& )
 	{
 	}
 
 	// Home. Defaults to the camera the sample set up on creation.
 	virtual void FocusHome();
 
-	virtual void MouseDown( b2Pos p, int button, int mod );
-	virtual void MouseUp( b2Pos p, int button );
-	virtual void MouseMove( b2Pos p );
+	/** Handles one pointer press in world coordinates.
+
+	NOLINT(methodNameCamelCase, functionVerbPrefix) - Preserves the pinned Box2D sample API spelling.
+	*/
+	virtual void MouseDown( b2Pos position, const ModifierKeys& modifiers );
+
+	/** Handles one pointer release in world coordinates.
+
+	NOLINT(methodNameCamelCase, functionVerbPrefix) - Preserves the pinned Box2D sample API spelling.
+	*/
+	virtual void MouseUp( b2Pos position, const ModifierKeys& modifiers );
+
+	/** Handles pointer movement in world coordinates.
+
+	NOLINT(methodNameCamelCase, functionVerbPrefix) - Preserves the pinned Box2D sample API spelling.
+	*/
+	virtual void MouseMove( b2Pos position, const ModifierKeys& modifiers );
 
 	bool IsProfileVisible() const;
 	float GetProfilePanelWidth() const;

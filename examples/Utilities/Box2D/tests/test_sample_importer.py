@@ -99,6 +99,63 @@ class SampleImporterTests(unittest.TestCase):
     def test_source_files_have_spdx_headers(self) -> None:
         self.assertEqual(validate_spdx_headers(UPSTREAM_ROOT), [])
 
+    def test_adapted_input_boundary_uses_juce_values(self) -> None:
+        samples = UPSTREAM_ROOT / "samples"
+        host_include = (samples / "Box2DHostInclude.h").read_text(encoding="utf-8")
+        sample_header = (samples / "sample.h").read_text(encoding="utf-8")
+        sample_sources = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted(samples.glob("*.cpp"))
+        )
+        self.assertIn("#include <juce_gui_basics/juce_gui_basics.h>", host_include)
+        self.assertIn("using juce::KeyPress;", host_include)
+        self.assertIn("using juce::ModifierKeys;", host_include)
+        self.assertIn("std::function<bool( const KeyPress& )> keyStateQuery;", sample_header)
+        self.assertIn("virtual void Keyboard( const KeyPress& )", sample_header)
+        self.assertIn("virtual void MouseDown( b2Pos position, const ModifierKeys& modifiers );", sample_header)
+        self.assertNotIn("HOST_MOUSE_BUTTON_PRIMARY", sample_sources)
+        self.assertNotIn("void Keyboard( int", sample_sources)
+        self.assertNotIn("keyStateUserData", sample_header)
+        self.assertNotIn("bool ( *isKeyDown )", sample_header)
+        self.assertIn("IsKeyDown( KeyPress( 'd' ) )", sample_sources)
+
+    def test_adapted_modifier_branches_match_sample_behaviour(self) -> None:
+        samples = UPSTREAM_ROOT / "samples"
+        collision_source = (samples / "sample_collision.cpp").read_text(encoding="utf-8")
+        event_source = (samples / "sample_events.cpp").read_text(encoding="utf-8")
+        stacking_source = (samples / "sample_stacking.cpp").read_text(encoding="utf-8")
+        self.assertIn("modifiers.isAnyModifierKeyDown() == false", collision_source)
+        self.assertIn("modifiers.isShiftDown()", collision_source)
+        self.assertIn("modifiers.isCtrlDown()", collision_source)
+        self.assertNotIn("mods == 0", collision_source)
+        self.assertIn("modifiers.isCtrlDown()", event_source)
+        self.assertIn("key.isKeyCode( 'b' )", stacking_source)
+
+    def test_instruction_only_text_moved_out_of_imported_samples(self) -> None:
+        samples = UPSTREAM_ROOT / "samples"
+        sample_sources = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted(samples.glob("*.cpp"))
+        )
+
+        for instruction in (
+            "left/right/jump = A/D/Space",
+            "move using WASD",
+            "Keys: left = a, brake = s, right = d",
+            "Flipper: press A",
+            "Options: generate(g), auto(a), bulk(b)",
+            "Use Ctrl + Left Mouse to drag and shoot a projectile",
+            "mouse button 1: drag",
+            "mouse btn 1: ray cast",
+            "left mouse button: drag query shape",
+        ):
+            self.assertNotIn(instruction, sample_sources)
+
+        self.assertIn("distance = %.2f, iterations = %d", sample_sources)
+        self.assertIn("speed in kph: %.2g", sample_sources)
+        self.assertIn("position %.2f %.2f", sample_sources)
+        self.assertIn("Shape 7 is intentionally ignored by the ray", sample_sources)
+
     def test_registration_parity_rejects_a_missing_sample(self) -> None:
         entries = collect_registrations(UPSTREAM_ROOT)
         with self.assertRaisesRegex(RuntimeError, "does not match"):

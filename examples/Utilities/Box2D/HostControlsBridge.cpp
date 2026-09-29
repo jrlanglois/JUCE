@@ -414,7 +414,6 @@ void openPopup (const char*) {}
 bool beginPopupModal (const char* name, bool* open, int) { return beginTabItem (name, open, 0); }
 void closeCurrentPopup() {}
 bool selectable (const char* label, bool selected, int) { return radioButton (label, selected); }
-bool isKeyPressed (int, bool) { return false; }
 float getFontSize() { return 16.0f; }
 float getFrameHeight() { return 20.0f; }
 void setItemTooltipV (const char*, va_list) {}

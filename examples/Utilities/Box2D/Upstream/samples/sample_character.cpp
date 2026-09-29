@@ -266,8 +266,6 @@ public:
 
 	void Step() override
 	{
-		DrawScreenTextLine( "left/right/jump = A/D/Space" );
-
 		bool pause = false;
 		if ( m_context->pause )
 		{
@@ -296,17 +294,17 @@ public:
 		{
 			float throttle = 0.0f;
 
-			if ( m_context->IsKeyDown( 'a' ) )
+			if ( m_context->IsKeyDown( KeyPress( 'a' ) ) )
 			{
 				throttle -= 1.0f;
 			}
 
-			if ( m_context->IsKeyDown( 'd' ) )
+			if ( m_context->IsKeyDown( KeyPress( 'd' ) ) )
 			{
 				throttle += 1.0f;
 			}
 
-			if ( m_context->IsKeyDown( ' ' ) )
+			if ( m_context->IsKeyDown( KeyPress( ' ' ) ) )
 			{
 				if ( m_jumpReleased && m_mover.Jump() )
 				{
@@ -679,8 +677,6 @@ public:
 
 	void Step() override
 	{
-		DrawScreenTextLine( "left/right/jump = A/D/Space" );
-
 		bool pause = false;
 		if ( m_context->pause )
 		{
@@ -707,17 +703,17 @@ public:
 		{
 			float throttle = 0.0f;
 
-			if ( m_context->IsKeyDown( 'a' ) )
+			if ( m_context->IsKeyDown( KeyPress( 'a' ) ) )
 			{
 				throttle -= 1.0f;
 			}
 
-			if ( m_context->IsKeyDown( 'd' ) )
+			if ( m_context->IsKeyDown( KeyPress( 'd' ) ) )
 			{
 				throttle += 1.0f;
 			}
 
-			if ( m_context->IsKeyDown( ' ' ) )
+			if ( m_context->IsKeyDown( KeyPress( ' ' ) ) )
 			{
 				if ( m_jumpReleased && m_mover.Jump() )
 				{

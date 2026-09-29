@@ -31,13 +31,6 @@ namespace Box2DSamples
 class UpstreamSampleAdapter;
 class ReplaySample;
 
-enum class MouseButton
-{
-    primary,
-    secondary,
-    middle
-};
-
 /** Describes one ordinary sample's authored home framing. */
 struct HomeView final
 {
@@ -455,11 +448,11 @@ public:
     explicit Context (DrawList& newDrawList);
 
     //==============================================================================
-    /** @returns whether the supplied JUCE key code is currently held. */
-    [[nodiscard]] bool isKeyDown (int keyCode) const;
+    /** @returns whether the represented key code is currently held, irrespective of modifiers. */
+    [[nodiscard]] bool isKeyDown (const KeyPress& key) const;
 
     /** Installs the held-key query used by interactive and headless hosts. */
-    void setKeyStateQuery (std::function<bool (int)> newKeyStateQuery);
+    void setKeyStateQuery (std::function<bool (const KeyPress&)> newKeyStateQuery);
 
     //==============================================================================
     /** Camera, simulation settings, and world capacity used for the active sample. */
@@ -488,7 +481,7 @@ public:
 
 private:
     //==============================================================================
-    std::function<bool (int)> keyStateQuery;
+    std::function<bool (const KeyPress&)> keyStateQuery;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Context)
@@ -520,14 +513,14 @@ public:
     /** Handles one focused key press. */
     virtual bool handleKeyPress (const KeyPress& key);
 
-    /** Handles a pointer press in world coordinates. */
-    virtual void handleMouseDown (b2Pos position, MouseButton button, const ModifierKeys& modifiers);
+    /** Handles one pointer press in world coordinates. */
+    virtual void handleMouseDown (b2Pos position, const ModifierKeys& modifiers);
 
-    /** Handles a pointer release in world coordinates. */
-    virtual void handleMouseUp (b2Pos position, MouseButton button);
+    /** Handles one pointer release in world coordinates. */
+    virtual void handleMouseUp (b2Pos position, const ModifierKeys& modifiers);
 
     /** Handles pointer movement in world coordinates. */
-    virtual void handleMouseMove (b2Pos position);
+    virtual void handleMouseMove (b2Pos position, const ModifierKeys& modifiers);
 
     /** Restores the sample's home camera. */
     virtual void resetCamera();
@@ -739,14 +732,12 @@ private:
     {
         PointerEventType type = PointerEventType::move;
         juce::Point<float> position;
-        MouseButton button = MouseButton::primary;
         ModifierKeys modifiers;
     };
 
     //==============================================================================
     Runtime* runtime = nullptr;
     Box2DRenderer renderer;
-    MouseButton activePointerButton = MouseButton::primary;
     bool panActive = false,
          homeRequested = false,
          shouldRefitHomeViewOnResize = true;

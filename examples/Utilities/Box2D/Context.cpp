@@ -32,15 +32,15 @@ Context::Context (DrawList& newDrawList)
     debugDraw = drawList.getDebugDraw();
 }
 
-bool Context::isKeyDown (int keyCode) const
+bool Context::isKeyDown (const KeyPress& key) const
 {
     if (keyStateQuery != nullptr)
-        return keyStateQuery (keyCode);
+        return keyStateQuery (key);
 
-    return KeyPress::isKeyCurrentlyDown (keyCode);
+    return KeyPress::isKeyCurrentlyDown (key.getKeyCode());
 }
 
-void Context::setKeyStateQuery (std::function<bool (int)> newKeyStateQuery)
+void Context::setKeyStateQuery (std::function<bool (const KeyPress&)> newKeyStateQuery)
 {
     keyStateQuery = std::move (newKeyStateQuery);
 }

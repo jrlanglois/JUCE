@@ -1155,6 +1155,7 @@ def apply_unified_patch(dest_root: Path, patch_path: Path) -> None:
             "git",
             "apply",
             "--no-index",
+            "--unidiff-zero",
             "--unsafe-paths",
             "--whitespace=nowarn",
             str(patch_path),

@@ -1429,38 +1429,36 @@ public:
 		m_frameCount = 1;
 	}
 
-	void Keyboard( int key, int action, int mods ) override
+	void Keyboard( const KeyPress& key ) override
 	{
-		switch ( key )
+		if ( key.isKeyCode( '1' ) )
 		{
-			case '1':
-				Scene1();
-				break;
-
-			case '2':
-				Scene2();
-				break;
-
-			case '3':
-				Scene3();
-				break;
-
-			case '4':
-				Scene4();
-				break;
-
-			case 'c':
-				Clear();
-				m_continuous = !m_continuous;
-				break;
-
-			case 's':
-				m_frameSkip = m_frameSkip > 0 ? 0 : 60;
-				break;
-
-			default:
-				Sample::Keyboard( key, action, mods );
-				break;
+			Scene1();
+		}
+		else if ( key.isKeyCode( '2' ) )
+		{
+			Scene2();
+		}
+		else if ( key.isKeyCode( '3' ) )
+		{
+			Scene3();
+		}
+		else if ( key.isKeyCode( '4' ) )
+		{
+			Scene4();
+		}
+		else if ( key.isKeyCode( 'c' ) )
+		{
+			Clear();
+			m_continuous = !m_continuous;
+		}
+		else if ( key.isKeyCode( 's' ) )
+		{
+			m_frameSkip = m_frameSkip > 0 ? 0 : 60;
+		}
+		else
+		{
+			Sample::Keyboard( key );
 		}
 	}
 
@@ -1667,17 +1665,11 @@ public:
 		}
 	}
 
-	bool DrawControls() override
-	{
-		HostControls::Text( "Flipper: press A" );
-		return true;
-	}
-
 	void Step() override
 	{
 		Sample::Step();
 
-		if ( m_context->IsKeyDown( 'a' ) )
+		if ( m_context->IsKeyDown( KeyPress( 'a' ) ) )
 		{
 			b2RevoluteJoint_SetMotorSpeed( m_leftJointId, 20.0f );
 			b2RevoluteJoint_SetMotorSpeed( m_rightJointId, -20.0f );

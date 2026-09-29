@@ -22,30 +22,17 @@
 */
 
 #include "UpstreamBridge.h"
-#include "host_controls.h"
 
 extern "C" void box2dHostResetScreenTextY (float value);
 
 namespace Box2DSamples
 {
 
-namespace
-{
-
-bool isHostKeyDown (void* userData, int keyCode)
-{
-    auto* hostContext = static_cast<Context*> (userData);
-    return hostContext != nullptr && hostContext->isKeyDown (keyCode);
-}
-
-} // namespace
-
 UpstreamBridge::UpstreamBridge (Context& hostContextIn)
     : hostContext (hostContextIn)
 {
     sampleContext.Load();
-    sampleContext.isKeyDown = isHostKeyDown;
-    sampleContext.keyStateUserData = &hostContext;
+    sampleContext.keyStateQuery = [this] (const KeyPress& key) { return hostContext.isKeyDown (key); };
     drawHandle = CreateDraw();
     sampleContext.draw = drawHandle;
     sampleContext.debugDraw = hostContext.debugDraw;
@@ -190,26 +177,26 @@ bool UpstreamSampleAdapter::handleKeyPress (const KeyPress& key)
     if (upstreamSample == nullptr)
         return false;
 
-    upstreamSample->Keyboard (static_cast<int> (key.getTextCharacter()), 0, 0);
+    upstreamSample->Keyboard (key);
     return true;
 }
 
-void UpstreamSampleAdapter::handleMouseDown (b2Pos position, MouseButton button, const ModifierKeys& modifiers)
+void UpstreamSampleAdapter::handleMouseDown (b2Pos position, const ModifierKeys& modifiers)
 {
     if (upstreamSample != nullptr)
-        upstreamSample->MouseDown (position, mapMouseButton (button), mapModifiers (modifiers));
+        upstreamSample->MouseDown (position, modifiers);
 }
 
-void UpstreamSampleAdapter::handleMouseUp (b2Pos position, MouseButton button)
+void UpstreamSampleAdapter::handleMouseUp (b2Pos position, const ModifierKeys& modifiers)
 {
     if (upstreamSample != nullptr)
-        upstreamSample->MouseUp (position, mapMouseButton (button));
+        upstreamSample->MouseUp (position, modifiers);
 }
 
-void UpstreamSampleAdapter::handleMouseMove (b2Pos position)
+void UpstreamSampleAdapter::handleMouseMove (b2Pos position, const ModifierKeys& modifiers)
 {
     if (upstreamSample != nullptr)
-        upstreamSample->MouseMove (position);
+        upstreamSample->MouseMove (position, modifiers);
 }
 
 void UpstreamSampleAdapter::resetCamera()
@@ -223,32 +210,6 @@ bool UpstreamSampleAdapter::hasSolverControls() const noexcept
     return upstreamSample != nullptr && upstreamSample->HasSolverControls();
 }
 
-bool UpstreamSampleAdapter::hasProfile() const noexcept
-{
-    return upstreamSample != nullptr && upstreamSample->HasProfile();
-}
-
-int UpstreamSampleAdapter::mapMouseButton (MouseButton button) noexcept
-{
-    switch (button)
-    {
-        case MouseButton::primary:   return HOST_MOUSE_BUTTON_PRIMARY;
-        case MouseButton::secondary: return 2;
-        case MouseButton::middle:    return 3;
-    }
-
-    return HOST_MOUSE_BUTTON_PRIMARY;
-}
-
-int UpstreamSampleAdapter::mapModifiers (const ModifierKeys& modifiers) noexcept
-{
-    int result = 0;
-
-    if (modifiers.isShiftDown()) result |= 1;
-    if (modifiers.isCtrlDown())  result |= 2;
-    if (modifiers.isAltDown())   result |= 4;
-
-    return result;
-}
+bool UpstreamSampleAdapter::hasProfile() const noexcept { return upstreamSample != nullptr && upstreamSample->HasProfile(); }
 
 } // namespace Box2DSamples

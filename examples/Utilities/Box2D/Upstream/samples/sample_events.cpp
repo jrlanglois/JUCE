@@ -731,12 +731,12 @@ public:
 
 	void Step() override
 	{
-		if ( m_context->IsKeyDown( 'a' ) )
+		if ( m_context->IsKeyDown( KeyPress( 'a' ) ) )
 		{
 			b2Body_ApplyForceToCenter( m_playerId, { -50.0f, 0.0f }, true );
 		}
 
-		if ( m_context->IsKeyDown( 'd' ) )
+		if ( m_context->IsKeyDown( KeyPress( 'd' ) ) )
 		{
 			b2Body_ApplyForceToCenter( m_playerId, { 50.0f, 0.0f }, true );
 		}
@@ -923,26 +923,24 @@ public:
 
 	void Step() override
 	{
-		DrawScreenTextLine( "move using WASD" );
-
 		b2Pos position = b2Body_GetPosition( m_playerId );
 
-		if ( m_context->IsKeyDown( 'a' ) )
+		if ( m_context->IsKeyDown( KeyPress( 'a' ) ) )
 		{
 			b2Body_ApplyForce( m_playerId, { -m_force, 0.0f }, position, true );
 		}
 
-		if ( m_context->IsKeyDown( 'd' ) )
+		if ( m_context->IsKeyDown( KeyPress( 'd' ) ) )
 		{
 			b2Body_ApplyForce( m_playerId, { m_force, 0.0f }, position, true );
 		}
 
-		if ( m_context->IsKeyDown( 'w' ) )
+		if ( m_context->IsKeyDown( KeyPress( 'w' ) ) )
 		{
 			b2Body_ApplyForce( m_playerId, { 0.0f, m_force }, position, true );
 		}
 
-		if ( m_context->IsKeyDown( 's' ) )
+		if ( m_context->IsKeyDown( KeyPress( 's' ) ) )
 		{
 			b2Body_ApplyForce( m_playerId, { 0.0f, -m_force }, position, true );
 		}
@@ -2062,7 +2060,7 @@ public:
 	{
 		HostControls::Checkbox( "Bullet", &m_isBullet );
 
-		if ( HostControls::Button( "Launch" ) || m_context->IsKeyDown( 'b' ) )
+		if ( HostControls::Button( "Launch" ) || m_context->IsKeyDown( KeyPress( 'b' ) ) )
 		{
 			Launch();
 		}
@@ -2234,11 +2232,11 @@ public:
 		m_projectileShapeId = b2CreateCircleShape( m_projectileId, &shapeDef, &circle );
 	}
 
-	void MouseDown( b2Pos p, int button, int mods ) override
+	void MouseDown( b2Pos p, const ModifierKeys& modifiers ) override
 	{
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
-			if ( mods == 0 )
+			if ( modifiers.isCtrlDown() )
 			{
 				m_dragging = true;
 				m_point1 = p;
@@ -2246,9 +2244,9 @@ public:
 		}
 	}
 
-	void MouseUp( b2Pos, int button ) override
+	void MouseUp( b2Pos, const ModifierKeys& modifiers ) override
 	{
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
 			if ( m_dragging )
 			{
@@ -2258,7 +2256,7 @@ public:
 		}
 	}
 
-	void MouseMove( b2Pos p ) override
+	void MouseMove( b2Pos p, const ModifierKeys& ) override
 	{
 		if ( m_dragging )
 		{
@@ -2268,8 +2266,6 @@ public:
 
 	void Step() override
 	{
-		DrawScreenTextLine( "Use Ctrl + Left Mouse to drag and shoot a projectile" );
-
 		Sample::Step();
 
 		if ( m_dragging )

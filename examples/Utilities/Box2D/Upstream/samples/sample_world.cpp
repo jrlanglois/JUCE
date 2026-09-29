@@ -208,17 +208,17 @@ public:
 			DrawCircle( m_draw, m_explosionPosition, radius, b2_colorAzure );
 		}
 
-		if ( m_context->IsKeyDown( 'a' ) )
+		if ( m_context->IsKeyDown( KeyPress( 'a' ) ) )
 		{
 			m_car.SetSpeed( 20.0f );
 		}
 
-		if ( m_context->IsKeyDown( 's' ) )
+		if ( m_context->IsKeyDown( KeyPress( 's' ) ) )
 		{
 			m_car.SetSpeed( 0.0f );
 		}
 
-		if ( m_context->IsKeyDown( 'd' ) )
+		if ( m_context->IsKeyDown( KeyPress( 'd' ) ) )
 		{
 			m_car.SetSpeed( -5.0f );
 		}
@@ -699,14 +699,14 @@ public:
 
 	void Step() override
 	{
-		if ( m_context->IsKeyDown( 'a' ) )
+		if ( m_context->IsKeyDown( KeyPress( 'a' ) ) )
 		{
 			m_motorSpeed = b2MaxFloat( -0.3f, m_motorSpeed - 0.01f );
 			b2RevoluteJoint_SetMotorSpeed( m_driverId, m_motorSpeed );
 			b2Joint_WakeBodies( m_driverId );
 		}
 
-		if ( m_context->IsKeyDown( 'd' ) )
+		if ( m_context->IsKeyDown( KeyPress( 'd' ) ) )
 		{
 			m_motorSpeed = b2MinFloat( 0.3f, m_motorSpeed + 0.01f );
 			b2RevoluteJoint_SetMotorSpeed( m_driverId, m_motorSpeed );

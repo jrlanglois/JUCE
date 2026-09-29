@@ -7,6 +7,10 @@
 
 #include <cassert>
 #include <juce_box2d/juce_box2d.h>
+#include <juce_gui_basics/juce_gui_basics.h>
+
+using juce::KeyPress;
+using juce::ModifierKeys;
 
 #else
 

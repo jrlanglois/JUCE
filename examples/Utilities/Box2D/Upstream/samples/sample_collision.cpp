@@ -220,17 +220,17 @@ public:
 		return true;
 	}
 
-	void MouseDown( b2Pos position, int button, int mods ) override
+	void MouseDown( b2Pos position, const ModifierKeys& modifiers ) override
 	{
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
-			if ( mods == 0 && m_rotating == false )
+			if ( modifiers.isAnyModifierKeyDown() == false && m_rotating == false )
 			{
 				m_dragging = true;
 				m_startPoint = position;
 				m_basePosition = m_transform.p;
 			}
-			else if ( mods == 0 && m_dragging == false )
+			else if ( modifiers.isShiftDown() && m_dragging == false )
 			{
 				m_rotating = true;
 				m_startPoint = position;
@@ -239,16 +239,16 @@ public:
 		}
 	}
 
-	void MouseUp( b2Pos, int button ) override
+	void MouseUp( b2Pos, const ModifierKeys& modifiers ) override
 	{
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
 			m_dragging = false;
 			m_rotating = false;
 		}
 	}
 
-	void MouseMove( b2Pos position ) override
+	void MouseMove( b2Pos position, const ModifierKeys& ) override
 	{
 		b2Vec2 d = position - m_startPoint;
 
@@ -378,8 +378,6 @@ public:
 			}
 		}
 
-		DrawScreenTextLine( "mouse button 1: drag" );
-		DrawScreenTextLine( "mouse button 1 + shift: rotate" );
 		DrawScreenTextLine( "distance = %.2f, iterations = %d", output.distance, output.iterations );
 
 		if ( m_cache.count == 1 )
@@ -603,11 +601,6 @@ public:
 
 		HostControls::PopItemWidth();
 
-		HostControls::Separator();
-
-		HostControls::Text( "mouse button 1: ray cast" );
-		HostControls::Text( "mouse button 1 + shift: query" );
-
 		if ( changed )
 		{
 			BuildTree();
@@ -616,17 +609,17 @@ public:
 		return true;
 	}
 
-	void MouseDown( b2Pos position, int button, int mods ) override
+	void MouseDown( b2Pos position, const ModifierKeys& modifiers ) override
 	{
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
-			if ( mods == 0 && m_queryDrag == false )
+			if ( modifiers.isAnyModifierKeyDown() == false && m_queryDrag == false )
 			{
 				m_rayDrag = true;
 				m_startPoint = position;
 				m_endPoint = position;
 			}
-			else if ( mods == 0 && m_rayDrag == false )
+			else if ( modifiers.isShiftDown() && m_rayDrag == false )
 			{
 				m_queryDrag = true;
 				m_startPoint = position;
@@ -635,16 +628,16 @@ public:
 		}
 	}
 
-	void MouseUp( b2Pos, int button ) override
+	void MouseUp( b2Pos, const ModifierKeys& modifiers ) override
 	{
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
 			m_queryDrag = false;
 			m_rayDrag = false;
 		}
 	}
 
-	void MouseMove( b2Pos position ) override
+	void MouseMove( b2Pos position, const ModifierKeys& ) override
 	{
 		m_endPoint = position;
 	}
@@ -860,32 +853,26 @@ public:
 			m_angle = 0.0f;
 		}
 
-		HostControls::Separator();
-
-		HostControls::Text( "mouse btn 1: ray cast" );
-		HostControls::Text( "mouse btn 1 + shft: translate" );
-		HostControls::Text( "mouse btn 1 + ctrl: rotate" );
-
 		return true;
 	}
 
-	void MouseDown( b2Pos position, int button, int mods ) override
+	void MouseDown( b2Pos position, const ModifierKeys& modifiers ) override
 	{
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
 			m_startPosition = position;
 
-			if ( mods == 0 )
+			if ( modifiers.isAnyModifierKeyDown() == false )
 			{
 				m_rayStart = position;
 				m_rayDrag = true;
 			}
-			else if ( mods == 0 )
+			else if ( modifiers.isShiftDown() )
 			{
 				m_translating = true;
 				m_basePosition = m_transform.p;
 			}
-			else if ( mods == 0 )
+			else if ( modifiers.isCtrlDown() )
 			{
 				m_rotating = true;
 				m_baseAngle = m_angle;
@@ -893,9 +880,9 @@ public:
 		}
 	}
 
-	void MouseUp( b2Pos, int button ) override
+	void MouseUp( b2Pos, const ModifierKeys& modifiers ) override
 	{
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
 			m_rayDrag = false;
 			m_rotating = false;
@@ -903,7 +890,7 @@ public:
 		}
 	}
 
-	void MouseMove( b2Pos position ) override
+	void MouseMove( b2Pos position, const ModifierKeys& ) override
 	{
 		b2Vec2 d = position - m_startPosition;
 
@@ -1478,17 +1465,17 @@ public:
 		}
 	}
 
-	void MouseDown( b2Pos position, int button, int mods ) override
+	void MouseDown( b2Pos position, const ModifierKeys& modifiers ) override
 	{
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
-			if ( mods == 0 && m_rotating == false )
+			if ( modifiers.isAnyModifierKeyDown() == false && m_rotating == false )
 			{
 				m_rayStart = position;
 				m_rayEnd = position;
 				m_dragging = true;
 			}
-			else if ( mods == 0 && m_dragging == false )
+			else if ( modifiers.isShiftDown() && m_dragging == false )
 			{
 				m_rotating = true;
 				m_angleAnchor = position;
@@ -1497,16 +1484,16 @@ public:
 		}
 	}
 
-	void MouseUp( b2Pos, int button ) override
+	void MouseUp( b2Pos, const ModifierKeys& modifiers ) override
 	{
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
 			m_dragging = false;
 			m_rotating = false;
 		}
 	}
 
-	void MouseMove( b2Pos p ) override
+	void MouseMove( b2Pos p, const ModifierKeys& ) override
 	{
 		if ( m_dragging )
 		{
@@ -1595,7 +1582,6 @@ public:
 	{
 		Sample::Step();
 
-		DrawScreenTextLine( "Click left mouse button and drag to modify ray cast" );
 		DrawScreenTextLine( "Shape 7 is intentionally ignored by the ray" );
 
 		b2HexColor color1 = b2_colorGreen;
@@ -1952,16 +1938,16 @@ public:
 		}
 	}
 
-	void MouseDown( b2Pos position, int button, int mods ) override
+	void MouseDown( b2Pos position, const ModifierKeys& modifiers ) override
 	{
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
-			if ( mods == 0 && m_rotating == false )
+			if ( modifiers.isAnyModifierKeyDown() == false && m_rotating == false )
 			{
 				m_dragging = true;
 				m_position = position;
 			}
-			else if ( mods == 0 && m_dragging == false )
+			else if ( modifiers.isShiftDown() && m_dragging == false )
 			{
 				m_rotating = true;
 				m_startPosition = position;
@@ -1970,16 +1956,16 @@ public:
 		}
 	}
 
-	void MouseUp( b2Pos, int button ) override
+	void MouseUp( b2Pos, const ModifierKeys& modifiers ) override
 	{
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
 			m_dragging = false;
 			m_rotating = false;
 		}
 	}
 
-	void MouseMove( b2Pos position ) override
+	void MouseMove( b2Pos position, const ModifierKeys& ) override
 	{
 		if ( m_dragging )
 		{
@@ -2053,9 +2039,6 @@ public:
 	void Step() override
 	{
 		Sample::Step();
-
-		DrawScreenTextLine( "left mouse button: drag query shape" );
-		DrawScreenTextLine( "left mouse button + shift: rotate query shape" );
 
 		m_doomCount = 0;
 
@@ -2219,20 +2202,20 @@ public:
 		return true;
 	}
 
-	void MouseDown( b2Pos position, int button, int mods ) override
+	void MouseDown( b2Pos position, const ModifierKeys& modifiers ) override
 	{
 		bool handled = false;
 
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
-			if ( mods == 0 && m_rotating == false )
+			if ( modifiers.isAnyModifierKeyDown() == false && m_rotating == false )
 			{
 				m_dragging = true;
 				m_startPoint = position;
 				m_basePosition = m_transform.p;
 				handled = true;
 			}
-			else if ( mods == 0 && m_dragging == false )
+			else if ( modifiers.isShiftDown() && m_dragging == false )
 			{
 				m_rotating = true;
 				m_startPoint = position;
@@ -2243,20 +2226,20 @@ public:
 
 		if ( handled == false )
 		{
-			Sample::MouseDown( position, button, mods );
+			Sample::MouseDown( position, modifiers );
 		}
 	}
 
-	void MouseUp( b2Pos, int button ) override
+	void MouseUp( b2Pos, const ModifierKeys& modifiers ) override
 	{
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
 			m_dragging = false;
 			m_rotating = false;
 		}
 	}
 
-	void MouseMove( b2Pos position ) override
+	void MouseMove( b2Pos position, const ModifierKeys& modifiers ) override
 	{
 		b2Vec2 d = position - m_startPoint;
 
@@ -2272,7 +2255,7 @@ public:
 		}
 		else
 		{
-			Sample::MouseMove( position );
+			Sample::MouseMove( position, modifiers );
 		}
 	}
 
@@ -2778,8 +2761,6 @@ public:
 		}
 #endif
 
-		DrawScreenTextLine( "mouse button 1: drag" );
-		DrawScreenTextLine( "mouse button 1 + shift: rotate" );
 	}
 
 	static Sample* Create( SampleContext* context )
@@ -2943,25 +2924,20 @@ public:
 			m_angle = 0.0f;
 		}
 
-		HostControls::Separator();
-
-		HostControls::Text( "mouse button 1: drag" );
-		HostControls::Text( "mouse button 1 + shift: rotate" );
-
 		return true;
 	}
 
-	void MouseDown( b2Pos position, int button, int mods ) override
+	void MouseDown( b2Pos position, const ModifierKeys& modifiers ) override
 	{
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
-			if ( mods == 0 && m_rotating == false )
+			if ( modifiers.isAnyModifierKeyDown() == false && m_rotating == false )
 			{
 				m_dragging = true;
 				m_startPoint = position;
 				m_basePosition = m_transform.p;
 			}
-			else if ( mods == 0 && m_dragging == false )
+			else if ( modifiers.isShiftDown() && m_dragging == false )
 			{
 				m_rotating = true;
 				m_startPoint = position;
@@ -2970,16 +2946,16 @@ public:
 		}
 	}
 
-	void MouseUp( b2Pos, int button ) override
+	void MouseUp( b2Pos, const ModifierKeys& modifiers ) override
 	{
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
 			m_dragging = false;
 			m_rotating = false;
 		}
 	}
 
-	void MouseMove( b2Pos position ) override
+	void MouseMove( b2Pos position, const ModifierKeys& ) override
 	{
 		b2Vec2 d = position - m_startPoint;
 
@@ -3294,11 +3270,11 @@ public:
 		}
 	}
 
-	void MouseDown( b2Pos position, int button, int mods ) override
+	void MouseDown( b2Pos position, const ModifierKeys& modifiers ) override
 	{
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
-			if ( mods == 0 )
+			if ( modifiers.isAnyModifierKeyDown() == false )
 			{
 				m_dragging = true;
 				m_sweeping = false;
@@ -3306,7 +3282,7 @@ public:
 				m_startPoint = position;
 				m_basePosition = m_transform.p;
 			}
-			else if ( mods == 0 )
+			else if ( modifiers.isShiftDown() )
 			{
 				m_dragging = false;
 				m_sweeping = false;
@@ -3314,7 +3290,7 @@ public:
 				m_startPoint = position;
 				m_baseAngle = m_angle;
 			}
-			else if ( mods == 0 )
+			else if ( modifiers.isCtrlDown() )
 			{
 				m_dragging = false;
 				m_sweeping = true;
@@ -3325,9 +3301,9 @@ public:
 		}
 	}
 
-	void MouseUp( b2Pos, int button ) override
+	void MouseUp( b2Pos, const ModifierKeys& modifiers ) override
 	{
-		if ( button == HOST_MOUSE_BUTTON_PRIMARY )
+		if ( modifiers.isLeftButtonDown() )
 		{
 			m_dragging = false;
 			m_sweeping = false;
@@ -3335,7 +3311,7 @@ public:
 		}
 	}
 
-	void MouseMove( b2Pos position ) override
+	void MouseMove( b2Pos position, const ModifierKeys& ) override
 	{
 		b2Vec2 d = position - m_startPoint;
 
@@ -3473,9 +3449,6 @@ public:
 			}
 		}
 
-		DrawScreenTextLine( "mouse button 1: drag" );
-		DrawScreenTextLine( "mouse button 1 + shift: rotate" );
-		DrawScreenTextLine( "mouse button 1 + control: sweep" );
 		DrawScreenTextLine( "distance = %.2f, iterations = %d", distanceOutput.distance, output.iterations );
 	}
 
