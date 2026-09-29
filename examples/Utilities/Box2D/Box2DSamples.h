@@ -672,6 +672,10 @@ private:
     //==============================================================================
     void updateForPresentation (double presentationTimeSeconds);
 
+   #if JUCE_UNIT_TESTS
+    friend struct Box2DDemoTestAccess;
+   #endif
+
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Box2DDemo)
 };

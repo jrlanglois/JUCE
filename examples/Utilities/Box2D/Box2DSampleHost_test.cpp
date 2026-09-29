@@ -26,6 +26,11 @@
 #include "ReplaySample.h"
 #include "sample.h"
 
+struct Box2DDemoTestAccess final
+{
+    static void updateForPresentation (Box2DDemo& demo, double presentationTimeSeconds) { demo.updateForPresentation (presentationTimeSeconds); }
+};
+
 namespace
 {
 
@@ -76,6 +81,23 @@ bool containsLabelText (Component& parent, const String& text)
     }
 
     return false;
+}
+
+Label* findLabelContainingText (Component& parent, const String& text)
+{
+    for (auto* child : parent.getChildren())
+    {
+        if (auto* label = dynamic_cast<Label*> (child))
+        {
+            if (label->getText().containsIgnoreCase (text))
+                return label;
+        }
+
+        if (auto* label = findLabelContainingText (*child, text))
+            return label;
+    }
+
+    return nullptr;
 }
 
 template<typename ComponentType>
@@ -728,6 +750,112 @@ public:
                     expect (canvas->getWidth() > 0);
                     expect (canvas->getX() > properties->getRight());
                 }
+            }
+        }
+
+        beginTest ("View calibration controls and localisation");
+
+        {
+            expect (LocalisedStrings::getCurrentMappings() == nullptr);
+
+            if (LocalisedStrings::getCurrentMappings() == nullptr)
+            {
+                Box2DDemo demo;
+                demo.setBounds (-10000, -10000, 960, 640);
+                auto* properties = dynamic_cast<PropertyPanel*> (findComponentWithTitle (demo, "Box2D controls"));
+                auto* sampleProperty = properties != nullptr ? findProperty<ChoicePropertyComponent> (*properties, "Sample") : nullptr;
+                expect (properties != nullptr);
+                expect (sampleProperty != nullptr);
+
+                if (sampleProperty != nullptr)
+                {
+                    const String sampleLabel = "Bodies " + String::fromUTF8 ("\xe2\x80\x94") + " Bad";
+                    const int sampleRow = sampleProperty->getChoices().indexOf (sampleLabel);
+                    expect (sampleRow >= 0);
+
+                    if (sampleRow >= 0)
+                        sampleProperty->setIndex (sampleRow);
+                }
+
+                demo.addToDesktop (ComponentPeer::windowIsTemporary);
+                demo.setVisible (true);
+                Box2DDemoTestAccess::updateForPresentation (demo, 0.0);
+                properties = dynamic_cast<PropertyPanel*> (findComponentWithTitle (demo, "Box2D controls"));
+                expect (properties != nullptr);
+
+                if (properties != nullptr)
+                {
+                    expect (properties->getSectionNames().contains ("View calibration"));
+                    auto* aspectLabel = findLabelContainingText (*properties, "Canvas aspect:");
+                    auto* lowerBoundLabel = findLabelContainingText (*properties, "Lower bound:");
+                    auto* upperBoundLabel = findLabelContainingText (*properties, "Upper bound:");
+                    auto* copyButton = findButton (*properties, "Copy current bounds");
+                    expect (aspectLabel != nullptr);
+                    expect (lowerBoundLabel != nullptr);
+                    expect (upperBoundLabel != nullptr);
+                    expect (copyButton != nullptr);
+
+                    if (aspectLabel != nullptr)
+                    {
+                        auto* handler = aspectLabel->getAccessibilityHandler();
+                        expect (handler != nullptr);
+
+                        if (handler != nullptr)
+                        {
+                            expect (handler->getRole() == AccessibilityRole::label);
+                            expectEquals (handler->getTitle(), aspectLabel->getText());
+                            auto* valueInterface = handler->getValueInterface();
+                            expect (valueInterface != nullptr);
+
+                            if (valueInterface != nullptr)
+                                expectEquals (valueInterface->getCurrentValueAsString(), aspectLabel->getText());
+                        }
+                    }
+
+                    if (copyButton != nullptr)
+                    {
+                        auto* handler = copyButton->getAccessibilityHandler();
+                        expect (handler != nullptr);
+
+                        if (handler != nullptr)
+                        {
+                            expect (handler->getRole() == AccessibilityRole::button);
+                            expectEquals (handler->getTitle(), String ("Copy current bounds"));
+                            expect (handler->getActions().contains (AccessibilityActionType::press));
+                        }
+
+                        expect (copyButton->onClick != nullptr);
+                    }
+                }
+
+                LocalisedStrings::setCurrentMappings (new LocalisedStrings ("language: Calibration\n"
+                                                                            "countries: ca\n"
+                                                                            "\"View calibration\" = \"Camera framing\"\n"
+                                                                            "\"Canvas aspect: {aspectRatio}.\" = \"{aspectRatio} is the canvas aspect.\"\n"
+                                                                            "\"Lower bound: {x}, {y}.\" = \"Lower edge {y}, {x}.\"\n"
+                                                                            "\"Upper bound: {x}, {y}.\" = \"Upper edge {y}, {x}.\"\n"
+                                                                            "\"Copy current bounds\" = \"Copy camera bounds\"\n",
+                                                                            false));
+                demo.lookAndFeelChanged();
+                properties = dynamic_cast<PropertyPanel*> (findComponentWithTitle (demo, "Box2D controls"));
+                expect (properties != nullptr);
+
+                if (properties != nullptr)
+                {
+                    expect (properties->getSectionNames().contains ("Camera framing"));
+                    expect (findLabelContainingText (*properties, "is the canvas aspect.") != nullptr);
+                    expect (findLabelContainingText (*properties, "Lower edge") != nullptr);
+                    expect (findLabelContainingText (*properties, "Upper edge") != nullptr);
+                    expect (findButton (*properties, "Copy camera bounds") != nullptr);
+                    expect (! containsLabelText (*properties, "{aspectRatio}"));
+                    expect (! containsLabelText (*properties, "{x}"));
+                    expect (! containsLabelText (*properties, "{y}"));
+                }
+
+                LocalisedStrings::setCurrentMappings (nullptr);
+                demo.lookAndFeelChanged();
+                demo.setVisible (false);
+                demo.removeFromDesktop();
             }
         }
 

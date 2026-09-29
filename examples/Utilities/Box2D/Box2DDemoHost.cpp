@@ -28,6 +28,20 @@
 namespace
 {
 
+[[nodiscard]] String formatCalibrationValue (float value)
+{
+    const float normalisedValue = std::abs (value) < 0.00005f ? 0.0f : value;
+    return String (normalisedValue, 4);
+}
+
+[[nodiscard]] String formatBoundsInitializer (b2AABB bounds)
+{
+    return String ("{ { ") + formatCalibrationValue (bounds.lowerBound.x) + "f, "
+         + formatCalibrationValue (bounds.lowerBound.y) + "f }, { "
+         + formatCalibrationValue (bounds.upperBound.x) + "f, "
+         + formatCalibrationValue (bounds.upperBound.y) + "f } }";
+}
+
 class CallbackTextProperty final : public TextPropertyComponent
 {
 public:
@@ -497,6 +511,11 @@ private:
         canvas.updateAccessibility (getCatalogueLabel (activeCatalogueIndex), instructions);
     }
 
+    [[nodiscard]] String formatCalibrationInitializer()
+    {
+        return formatBoundsInitializer (runtime.getContext().camera.getVisibleBounds());
+    }
+
     void setFileStatus (String newStatus, bool shouldAnnounce = true)
     {
         fileStatus = std::move (newStatus);
@@ -849,6 +868,29 @@ private:
             globalControlPanel.showToggle ("drawContactForces", TRANS ("Contact forces"), debugDraw.drawContactForces);
             globalControlPanel.showToggle ("drawFrictionForces", TRANS ("Friction forces"), debugDraw.drawFrictionForces);
             globalControlPanel.showToggle ("drawAnchorA", TRANS ("Use contact anchor A"), debugDraw.drawAnchorA);
+        }
+
+        const auto& context = runtime.getContext();
+
+        if (hasSample && ! isReplayViewer && context.homeView != nullptr)
+        {
+            const auto bounds = context.camera.getVisibleBounds();
+            globalControlPanel.showText ("viewCalibrationHeading", TRANS ("View calibration"), Box2DSamples::ControlPanel::TextTone::heading);
+            globalControlPanel.showText ("viewCalibrationAspect",
+                                         TRANS ("Canvas aspect: {aspectRatio}.")
+                                             .replace ("{aspectRatio}", formatCalibrationValue (context.camera.getAspectRatio())));
+            globalControlPanel.showText ("viewCalibrationLowerBound",
+                                         TRANS ("Lower bound: {x}, {y}.")
+                                             .replace ("{x}", formatCalibrationValue (bounds.lowerBound.x))
+                                             .replace ("{y}", formatCalibrationValue (bounds.lowerBound.y)));
+            globalControlPanel.showText ("viewCalibrationUpperBound",
+                                         TRANS ("Upper bound: {x}, {y}.")
+                                             .replace ("{x}", formatCalibrationValue (bounds.upperBound.x))
+                                             .replace ("{y}", formatCalibrationValue (bounds.upperBound.y)));
+            globalControlPanel.showButton ("copyCurrentBounds", TRANS ("Copy current bounds"), [this]
+            {
+                SystemClipboard::copyTextToClipboard (formatCalibrationInitializer());
+            });
         }
 
         if (fileStatus.isNotEmpty())
