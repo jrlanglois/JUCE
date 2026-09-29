@@ -42,114 +42,11 @@ namespace
          + formatCalibrationValue (bounds.upperBound.y) + "f } }";
 }
 
-class CallbackTextProperty final : public TextPropertyComponent
-{
-public:
-    CallbackTextProperty (const String& propertyName, std::function<String()> getterIn, std::function<void (const String&)> setterIn) :
-        TextPropertyComponent (propertyName, 0, false),
-        getter (std::move (getterIn)),
-        setter (std::move (setterIn))
-    {
-    }
-
-    void setText (const String& newText) override { setter (newText); }
-
-    String getText() const override { return getter(); }
-
-private:
-    std::function<String()> getter;
-    std::function<void (const String&)> setter;
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CallbackTextProperty)
-};
-
-class CallbackChoiceProperty final : public ChoicePropertyComponent
-{
-public:
-    CallbackChoiceProperty (const String& propertyName,
-                            StringArray choicesIn,
-                            std::function<int()> getterIn,
-                            std::function<void (int)> setterIn) :
-        ChoicePropertyComponent (propertyName),
-        getter (std::move (getterIn)),
-        setter (std::move (setterIn))
-    {
-        choices = std::move (choicesIn);
-    }
-
-    void setIndex (int newIndex) override { setter (newIndex); }
-
-    int getIndex() const override { return getter(); }
-
-    void refresh() override
-    {
-        if (choiceControl != nullptr && hasChoiceSnapshot)
-        {
-            const int modelIndex = getIndex();
-            const int controlIndex = choiceControl->getSelectedItemIndex();
-            const bool modelChanged = modelIndex != previousModelIndex;
-            const bool controlChanged = controlIndex != previousControlIndex;
-
-            if (controlChanged && ! modelChanged)
-                setIndex (controlIndex);
-        }
-
-        ChoicePropertyComponent::refresh();
-
-        if (choiceControl == nullptr)
-        {
-            for (auto* child : getChildren())
-            {
-                if (auto* childChoiceControl = dynamic_cast<ComboBox*> (child))
-                {
-                    choiceControl = childChoiceControl;
-                    break;
-                }
-            }
-        }
-
-        captureChoiceSnapshot();
-    }
-
-    void setChoices (StringArray newChoices)
-    {
-        choices = std::move (newChoices);
-
-        if (choiceControl != nullptr)
-        {
-            choiceControl->clear (dontSendNotification);
-            choiceControl->addItemList (choices, 1);
-            choiceControl->setSelectedItemIndex (getIndex(), dontSendNotification);
-            captureChoiceSnapshot();
-        }
-    }
-
-private:
-    std::function<int()> getter;
-    std::function<void (int)> setter;
-    ComboBox* choiceControl = nullptr;
-    int previousModelIndex = -1,
-        previousControlIndex = -1;
-    bool hasChoiceSnapshot = false;
-
-    void captureChoiceSnapshot()
-    {
-        if (choiceControl == nullptr)
-            return;
-
-        previousModelIndex = getIndex();
-        previousControlIndex = choiceControl->getSelectedItemIndex();
-        hasChoiceSnapshot = true;
-    }
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CallbackChoiceProperty)
-};
-
 class EmbeddedComponentProperty final : public PropertyComponent
 {
 public:
     EmbeddedComponentProperty (Component& componentIn, int preferredComponentHeight) :
-        PropertyComponent ({}, preferredComponentHeight),
+        PropertyComponent (TRANS ("Metrics"), preferredComponentHeight),
         component (componentIn)
     {
         addAndMakeVisible (component);
@@ -184,18 +81,13 @@ public:
         canvas.setRuntime (&runtime);
         propertyPanel.setExplicitFocusOrder (1);
         canvas.setExplicitFocusOrder (2);
-        canvasInputHelp.setComponentID ("box2dCanvasInputHelp");
-        canvasInputHelp.setAccessible (false);
-        canvasInputHelp.setInterceptsMouseClicks (false, false);
-        canvasInputHelp.setJustificationType (Justification::centredLeft);
-        canvasInputHelp.setMinimumHorizontalScale (0.65f);
         metricsContent.addAndMakeVisible (metrics);
         refreshTranslations();
 
         if (! filteredSampleIndices.empty())
             pendingCatalogueIndex = filteredSampleIndices.front();
 
-        refreshGlobalControls();
+        refreshControlModel();
         rebuildPropertiesIfNeeded();
         hasFinishedConstruction = true;
     }
@@ -205,7 +97,6 @@ public:
     void attachToOwner()
     {
         owner.addAndMakeVisible (propertyPanel);
-        owner.addAndMakeVisible (canvasInputHelp);
         owner.addAndMakeVisible (canvas);
     }
 
@@ -220,14 +111,12 @@ public:
         if (activeLanguageSignature != getCurrentLanguageSignature())
             refreshTranslations();
 
+        controlModel.applyQueuedEdits();
         applyPendingCatalogueSelection();
         applyPendingReplayRead();
-        sampleControlPanel.applyQueuedEdits();
-        globalControlPanel.applyQueuedEdits();
         canvas.applyPendingInput();
         runtime.updateForPresentation (presentationTimeSeconds);
-        runtime.updateControls (sampleControlPanel);
-        refreshGlobalControls();
+        refreshControlModel();
         metrics.refresh();
 
         if (inspector != nullptr)
@@ -245,7 +134,6 @@ public:
         const int panelWidth = std::min (std::clamp (bounds.getWidth() / 3, 220, 360), maxPanelWidth);
         propertyPanel.setBounds (bounds.removeFromLeft (panelWidth));
         bounds.removeFromLeft (4);
-        canvasInputHelp.setBounds (bounds.removeFromTop (24));
         canvas.setBounds (bounds);
         layoutMetricsContent();
     }
@@ -256,14 +144,12 @@ public:
         const String selectedCategory = getSelectedCategory();
         propertyPanel.setTitle (TRANS ("Box2D controls"));
         propertyPanel.setDescription (TRANS ("Selects a Box2D sample and configures its simulation and presentation."));
-        canvasInputHelp.setText (TRANS ("Mouse wheel zooms. Middle-drag pans. Primary-drag interacts. Home resets the view."), dontSendNotification);
         rebuildCategoryChoices (selectedCategory);
         refreshCatalogueFilter();
-        updateCanvasAccessibility();
-        runtime.updateControls (sampleControlPanel);
-        refreshGlobalControls();
+        refreshControlModel();
         metrics.refresh();
         propertiesNeedRebuild = true;
+        shouldRestorePropertyState = false;
 
         for (auto* component : { static_cast<Component*> (&propertyPanel),
                                  static_cast<Component*> (&canvas),
@@ -276,13 +162,10 @@ public:
     Box2DDemo& owner;
     Box2DSamples::Runtime runtime;
     Box2DSamples::Canvas canvas;
-    Box2DSamples::ControlPanel globalControlPanel,
-                               sampleControlPanel;
+    Box2DSamples::ControlModel controlModel;
     Box2DSamples::MetricsComponent metrics;
     Component metricsContent;
     PropertyPanel propertyPanel;
-    CallbackChoiceProperty* catalogueSampleProperty = nullptr;
-    Label canvasInputHelp;
     std::unique_ptr<Component> inspector;
     std::unique_ptr<FileChooser> openReplayChooser,
                                  saveRecordingChooser;
@@ -294,17 +177,19 @@ public:
     MemoryBlock lastRecording;
     String activeLanguageSignature,
            catalogueSearch,
-           fileStatus;
-    uint64 renderedGlobalControlRevision = 0,
-           renderedSampleControlRevision = 0;
-    int activeCatalogueIndex = -1,
-        selectedCategoryIndex = 0;
+           fileStatus,
+           selectedCategoryIdentifier = "catalogue.allCategories",
+           selectedSampleIdentifier;
+    uint64 renderedControlStructureRevision = 0;
+    int activeCatalogueIndex = -1;
     bool recordingActive = false,
          fileIOBusy = false,
          hasFinishedConstruction = false,
          propertiesNeedRebuild = true,
-         renderedProfilerVisible = false,
-         profilerVisible = false;
+         renderedMetricsVisible = false,
+         profilerVisible = false,
+         shouldResetPropertyScrollPosition = false,
+         shouldRestorePropertyState = true;
     VBlankAttachment vblankAttachment;
 
 private:
@@ -316,14 +201,29 @@ private:
         return {};
     }
 
-    int getCatalogueIndexForRow (int row) const
+    String getCatalogueIdentifier (int catalogueIndex) const
     {
-        return isPositiveAndBelow (row, (int) filteredSampleIndices.size()) ? filteredSampleIndices[(size_t) row] : -1;
+        if (! isPositiveAndBelow (catalogueIndex, (int) Box2DSamples::Catalog::getEntries().size()))
+            return {};
+
+        const auto& entry = Box2DSamples::Catalog::getEntries()[(size_t) catalogueIndex];
+        return String::fromUTF8 (entry.category) + "\n" + String::fromUTF8 (entry.name);
+    }
+
+    int getCatalogueIndex (const String& identifier) const
+    {
+        for (const int catalogueIndex : filteredSampleIndices)
+        {
+            if (getCatalogueIdentifier (catalogueIndex) == identifier)
+                return catalogueIndex;
+        }
+
+        return -1;
     }
 
     String getSelectedCategory() const
     {
-        return isPositiveAndBelow (selectedCategoryIndex - 1, categoryKeys.size()) ? categoryKeys[selectedCategoryIndex - 1] : String();
+        return selectedCategoryIdentifier == "catalogue.allCategories" ? String() : selectedCategoryIdentifier;
     }
 
     void rebuildCategoryChoices (const String& selectedCategory)
@@ -338,8 +238,7 @@ private:
                 categoryKeys.add (category);
         }
 
-        const int selectedIndex = categoryKeys.indexOf (selectedCategory);
-        selectedCategoryIndex = selectedIndex >= 0 ? selectedIndex + 1 : 0;
+        selectedCategoryIdentifier = categoryKeys.contains (selectedCategory) ? selectedCategory : String ("catalogue.allCategories");
         propertiesNeedRebuild = true;
     }
 
@@ -368,38 +267,30 @@ private:
         if (iterator == filteredSampleIndices.end())
         {
             catalogueSearch.clear();
-            selectedCategoryIndex = 0;
+            selectedCategoryIdentifier = "catalogue.allCategories";
             refreshCatalogueFilter();
-
-            if (catalogueSampleProperty != nullptr)
-                catalogueSampleProperty->setChoices (getSampleChoices());
         }
     }
 
     [[nodiscard]] bool isMetricsPanelVisible() const noexcept { return profilerVisible || inspector != nullptr; }
 
-    int getSelectedFilteredSampleIndex() const
+    std::vector<Box2DSamples::ControlChoice> getCategoryChoices() const
     {
-        const auto iterator = std::find (filteredSampleIndices.begin(), filteredSampleIndices.end(), activeCatalogueIndex);
-        return iterator != filteredSampleIndices.end() ? (int) std::distance (filteredSampleIndices.begin(), iterator) : -1;
-    }
-
-    StringArray getCategoryChoices() const
-    {
-        StringArray choices { TRANS ("All categories") };
+        std::vector<Box2DSamples::ControlChoice> choices;
+        choices.push_back ({ "catalogue.allCategories", TRANS ("All categories") });
 
         for (const auto& category : categoryKeys)
-            choices.add (TRANS (category));
+            choices.push_back ({ category, TRANS (category) });
 
         return choices;
     }
 
-    StringArray getSampleChoices() const
+    std::vector<Box2DSamples::ControlChoice> getSampleChoices() const
     {
-        StringArray choices;
+        std::vector<Box2DSamples::ControlChoice> choices;
 
         for (const int catalogueIndex : filteredSampleIndices)
-            choices.add (getCatalogueLabel (catalogueIndex));
+            choices.push_back ({ getCatalogueIdentifier (catalogueIndex), getCatalogueLabel (catalogueIndex) });
 
         return choices;
     }
@@ -426,89 +317,32 @@ private:
     void rebuildPropertiesIfNeeded()
     {
         if (! propertiesNeedRebuild
-            && renderedGlobalControlRevision == globalControlPanel.getRevision()
-            && renderedSampleControlRevision == sampleControlPanel.getRevision()
-            && renderedProfilerVisible == isMetricsPanelVisible())
+            && renderedControlStructureRevision == controlModel.getStructureRevision()
+            && renderedMetricsVisible == isMetricsPanelVisible())
             return;
 
-        auto opennessState = propertyPanel.getOpennessState();
+        auto opennessState = shouldRestorePropertyState ? propertyPanel.getOpennessState() : nullptr;
         const int scrollPosition = propertyPanel.getViewport().getViewPositionY();
-        catalogueSampleProperty = nullptr;
         propertyPanel.clear();
-
-        Array<PropertyComponent*> catalogueProperties;
-        auto* searchProperty = new CallbackTextProperty (TRANS ("Search"),
-                                                         [this] { return catalogueSearch; },
-                                                         [this] (const String& newSearch)
-                                                         {
-                                                             catalogueSearch = newSearch;
-                                                             refreshCatalogueFilter();
-
-                                                             if (catalogueSampleProperty != nullptr)
-                                                                 catalogueSampleProperty->setChoices (getSampleChoices());
-                                                         });
-        searchProperty->setDescription (TRANS ("Filters the Box2D sample catalogue by category or sample name."));
-        catalogueProperties.add (searchProperty);
-        auto* categoryProperty = new CallbackChoiceProperty (TRANS ("Category"),
-                                                             getCategoryChoices(),
-                                                             [this] { return selectedCategoryIndex; },
-                                                             [this] (int newIndex)
-                                                             {
-                                                                 selectedCategoryIndex = std::clamp (newIndex, 0, categoryKeys.size());
-                                                                 refreshCatalogueFilter();
-
-                                                                 if (catalogueSampleProperty != nullptr)
-                                                                     catalogueSampleProperty->setChoices (getSampleChoices());
-                                                             });
-        categoryProperty->setDescription (TRANS ("Filters the Box2D sample catalogue to one category."));
-        catalogueProperties.add (categoryProperty);
-        catalogueSampleProperty = new CallbackChoiceProperty (TRANS ("Sample"),
-                                                              getSampleChoices(),
-                                                              [this] { return getSelectedFilteredSampleIndex(); },
-                                                              [this] (int newIndex)
-                                                              {
-                                                                  const int catalogueIndex = getCatalogueIndexForRow (newIndex);
-
-                                                                  if (catalogueIndex >= 0)
-                                                                      pendingCatalogueIndex = catalogueIndex;
-                                                              });
-        catalogueSampleProperty->setDescription (TRANS ("Selects the Box2D sample to run."));
-        catalogueProperties.add (catalogueSampleProperty);
-        propertyPanel.addSection (TRANS ("Catalogue"), catalogueProperties);
-        globalControlPanel.appendPropertiesTo (propertyPanel, TRANS ("Simulation"));
-        sampleControlPanel.appendPropertiesTo (propertyPanel, TRANS ("Sample"));
+        Box2DSamples::appendControlProperties (controlModel, propertyPanel);
 
         if (isMetricsPanelVisible())
         {
             Array<PropertyComponent*> metricsProperties;
             metricsProperties.add (new EmbeddedComponentProperty (metricsContent, inspector != nullptr ? 560 : 360));
-            propertyPanel.addSection (TRANS ("Metrics"), metricsProperties);
+            propertyPanel.addSection (TRANS ("Metrics"), metricsProperties, true);
         }
 
         if (opennessState != nullptr)
             propertyPanel.restoreOpennessState (*opennessState);
 
-        propertyPanel.getViewport().setViewPosition (0, scrollPosition);
-        renderedGlobalControlRevision = globalControlPanel.getRevision();
-        renderedSampleControlRevision = sampleControlPanel.getRevision();
-        renderedProfilerVisible = isMetricsPanelVisible();
+        propertyPanel.getViewport().setViewPosition (0, shouldResetPropertyScrollPosition ? 0 : scrollPosition);
+        renderedControlStructureRevision = controlModel.getStructureRevision();
+        renderedMetricsVisible = isMetricsPanelVisible();
         propertiesNeedRebuild = false;
+        shouldResetPropertyScrollPosition = false;
+        shouldRestorePropertyState = true;
         layoutMetricsContent();
-    }
-
-    void updateCanvasAccessibility()
-    {
-        if (! isPositiveAndBelow (activeCatalogueIndex, (int) Box2DSamples::Catalog::getEntries().size()))
-        {
-            canvas.updateAccessibility (TRANS ("Box2D sample canvas"), TRANS ("Select a sample from the catalogue."));
-            return;
-        }
-
-        const auto& entry = Box2DSamples::Catalog::getEntries()[(size_t) activeCatalogueIndex];
-        const String instructions = entry.isReplayViewer
-                                        ? TRANS ("Mouse wheel zooms. Middle-drag pans. Home resets the view. Inspect the recorded world or use the replay transport and timeline.")
-                                        : TRANS ("Mouse wheel zooms. Middle-drag pans. Primary-drag interacts. Home resets the view.");
-        canvas.updateAccessibility (getCatalogueLabel (activeCatalogueIndex), instructions);
     }
 
     [[nodiscard]] String formatCalibrationInitializer()
@@ -562,7 +396,7 @@ private:
 
         stopRecordingBeforeSampleChange();
         destroyAuxiliaryViews();
-        sampleControlPanel.clear();
+        controlModel.clear();
         const Result selectResult = runtime.selectSample (sampleIndex);
         jassert (selectResult.wasOk());
 
@@ -574,11 +408,12 @@ private:
         }
 
         activeCatalogueIndex = sampleIndex;
+        selectedSampleIdentifier = getCatalogueIdentifier (sampleIndex);
         canvas.resetView();
-        updateCanvasAccessibility();
         setFileStatus (TRANS ("Selected sample: {sampleName}.").replace ("{sampleName}", getCatalogueLabel (sampleIndex)));
         rebuildAuxiliaryViews();
-        refreshGlobalControls();
+        propertiesNeedRebuild = true;
+        shouldResetPropertyScrollPosition = true;
     }
 
     void applyPendingCatalogueSelection()
@@ -595,7 +430,7 @@ private:
     {
         stopRecordingBeforeSampleChange();
         destroyAuxiliaryViews();
-        sampleControlPanel.clear();
+        controlModel.clear();
         const Result selectResult = runtime.selectReplay (recordingData, displayName);
 
         if (selectResult.failed())
@@ -609,19 +444,20 @@ private:
         {
             activeCatalogueIndex = *replayIndex;
             revealCatalogueIndex (*replayIndex);
-            updateCanvasAccessibility();
+            selectedSampleIdentifier = getCatalogueIdentifier (*replayIndex);
         }
 
         canvas.resetView();
         setFileStatus (TRANS ("Loaded recording: {recordingName}.").replace ("{recordingName}", displayName));
         rebuildAuxiliaryViews();
-        refreshGlobalControls();
+        propertiesNeedRebuild = true;
+        shouldResetPropertyScrollPosition = true;
     }
 
     void restartActiveSample()
     {
         destroyAuxiliaryViews();
-        sampleControlPanel.clear();
+        controlModel.clear();
         const Result restartResult = runtime.restartSample();
         jassert (restartResult.wasOk());
 
@@ -631,6 +467,8 @@ private:
             setFileStatus (TRANS ("Restarted sample: {sampleName}.").replace ("{sampleName}", getCatalogueLabel (activeCatalogueIndex)));
 
         rebuildAuxiliaryViews();
+        propertiesNeedRebuild = true;
+        shouldResetPropertyScrollPosition = true;
     }
 
     void beginRecording()
@@ -765,138 +603,221 @@ private:
         selectReplayData (result.data, result.displayName);
     }
 
-    void refreshGlobalControls()
+    void refreshControlModel()
     {
         auto& settings = runtime.getContext().settings;
         const auto* sample = runtime.getCurrentSample();
         const bool hasSample = sample != nullptr,
                    isReplayViewer = hasSample && Box2DSamples::isReplaySample (*sample);
-        globalControlPanel.beginFrame();
-        globalControlPanel.showToggle ("pause", TRANS ("Pause"), settings.isPaused, {}, hasSample);
-        globalControlPanel.showButton ("step", TRANS ("Step"), [this]
+        controlModel.beginFrame();
+        controlModel.setGroup (Box2DSamples::ControlItem::Group::catalogue);
+        controlModel.showTextInput ("catalogue.search", TRANS ("Search"), catalogueSearch, [this]
+        {
+            refreshCatalogueFilter();
+        });
+        controlModel.setHelpText ("catalogue.search", TRANS ("Filters the Box2D sample catalogue by category or sample name."));
+
+        const auto categoryChoices = getCategoryChoices();
+        controlModel.showChoice ("catalogue.category", TRANS ("Category"), selectedCategoryIdentifier, categoryChoices, [this]
+        {
+            refreshCatalogueFilter();
+        });
+        controlModel.setHelpText ("catalogue.category", TRANS ("Filters the Box2D sample catalogue to one category."));
+
+        if (isPositiveAndBelow (activeCatalogueIndex, (int) Box2DSamples::Catalog::getEntries().size()))
+            selectedSampleIdentifier = getCatalogueIdentifier (activeCatalogueIndex);
+
+        const auto sampleChoices = getSampleChoices();
+        controlModel.showChoice ("catalogue.sample", TRANS ("Sample"), selectedSampleIdentifier, sampleChoices, [this]
+        {
+            const int catalogueIndex = getCatalogueIndex (selectedSampleIdentifier);
+
+            if (catalogueIndex >= 0)
+                pendingCatalogueIndex = catalogueIndex;
+        });
+        controlModel.setHelpText ("catalogue.sample", TRANS ("Selects the Box2D sample to run."));
+
+        controlModel.setGroup (Box2DSamples::ControlItem::Group::primaryActions);
+        controlModel.showToggle ("host.pause", TRANS ("Pause"), settings.isPaused, {}, hasSample);
+        controlModel.showButton ("host.step", TRANS ("Step"), [this]
         {
             ++runtime.getContext().settings.numSingleSteps;
         }, hasSample);
-        globalControlPanel.showButton ("restart", TRANS ("Restart"), [this]
+        controlModel.showButton ("host.restart", TRANS ("Restart"), [this]
         {
             restartActiveSample();
         }, hasSample);
-        globalControlPanel.showButton ("resetView", TRANS ("Reset view"), [this]
+        controlModel.showButton ("host.resetView", TRANS ("Reset view"), [this]
         {
             canvas.resetView();
         }, hasSample);
-        globalControlPanel.showToggle ("profiler", TRANS ("Profiler"), profilerVisible, [this]
+        controlModel.showToggle ("host.profiler", TRANS ("Profiler"), profilerVisible, [this]
         {
             updateMetricsPresentation();
         });
-        globalControlPanel.showButton ("record",
-                                       recordingActive ? TRANS ("Stop and save recording") : TRANS ("Start recording"),
-                                       [this]
-                                       {
-                                           if (recordingActive)
-                                               finishRecording();
-                                           else
-                                               beginRecording();
-                                       },
-                                       hasSample && ! isReplayViewer && ! fileIOBusy);
-        globalControlPanel.showButton ("openReplay",
-                                       TRANS ("Open recording..."),
-                                       [this] { chooseReplayFile(); },
-                                       ! fileIOBusy);
-        globalControlPanel.showButton ("playLastRecording",
-                                       TRANS ("Play last recording"),
-                                       [this] { selectReplayData (lastRecording, TRANS ("Last recording")); },
-                                       ! lastRecording.isEmpty() && ! fileIOBusy);
-        globalControlPanel.showButton ("saveLastRecording",
-                                       TRANS ("Save last recording..."),
-                                       [this] { chooseRecordingDestination(); },
-                                       ! lastRecording.isEmpty() && ! fileIOBusy);
+
+        controlModel.setGroup (Box2DSamples::ControlItem::Group::interactionHelp);
+        std::vector<Box2DSamples::InteractionHint> interactionHints;
+
+        if (isPositiveAndBelow (activeCatalogueIndex, (int) Box2DSamples::Catalog::getEntries().size()))
+        {
+            const auto& entry = Box2DSamples::Catalog::getEntries()[(size_t) activeCatalogueIndex];
+            const auto* sampleHelp = Box2DSamples::SampleInteractionCatalog::find (entry.category, entry.name);
+
+            if (entry.isReplayViewer)
+            {
+                if (sampleHelp != nullptr)
+                    interactionHints.assign (sampleHelp->hints.begin(), sampleHelp->hints.end());
+            }
+            else
+            {
+                const auto genericHints = Box2DSamples::SampleInteractionCatalog::getGenericLiveHints();
+                interactionHints.assign (genericHints.begin(), genericHints.end());
+
+                if (sampleHelp != nullptr)
+                {
+                    for (const auto& sampleHint : sampleHelp->hints)
+                    {
+                        const auto iterator = std::find_if (interactionHints.begin(), interactionHints.end(), [&sampleHint] (const auto& hint)
+                        {
+                            return hint.identifier == sampleHint.identifier;
+                        });
+
+                        if (iterator != interactionHints.end())
+                            *iterator = sampleHint;
+                        else
+                            interactionHints.push_back (sampleHint);
+                    }
+                }
+            }
+        }
+
+        StringArray accessibleInteractions;
+
+        for (const auto& hint : interactionHints)
+        {
+            const String inputDescription = TRANS (hint.inputDescription);
+            const String actionDescription = TRANS (hint.actionDescription);
+            controlModel.showInteraction ("interaction." + hint.identifier.toString(), inputDescription, actionDescription);
+            accessibleInteractions.add (TRANS ("{input}: {action}")
+                                            .replace ("{input}", inputDescription)
+                                            .replace ("{action}", actionDescription));
+        }
+
+        if (hasSample)
+            canvas.updateAccessibility (getCatalogueLabel (activeCatalogueIndex), accessibleInteractions.joinIntoString (" "));
+        else
+            canvas.updateAccessibility (TRANS ("Box2D sample canvas"), TRANS ("Select a sample from the catalogue."));
+
+        controlModel.setGroup (Box2DSamples::ControlItem::Group::sampleControls);
+        runtime.appendCurrentSampleControls (controlModel);
+
+        controlModel.setGroup (Box2DSamples::ControlItem::Group::simulation);
 
        #if JUCE_WINDOWS || JUCE_MAC || JUCE_IOS || JUCE_LINUX || JUCE_ANDROID
-        globalControlPanel.showIntegerSlider ("workerCount",
-                                              TRANS ("Workers"),
-                                              settings.numWorkers,
-                                              1,
-                                              B2_MAX_WORKERS,
-                                              [this] { applyWorkerCount(); },
-                                              hasSample);
+        controlModel.showIntegerSlider ("simulation.workers",
+                                        TRANS ("Workers"),
+                                        settings.numWorkers,
+                                        1,
+                                        B2_MAX_WORKERS,
+                                        [this] { applyWorkerCount(); },
+                                        hasSample);
        #endif
+
+        controlModel.setGroup (Box2DSamples::ControlItem::Group::solver);
 
         if (hasSample && sample->hasSolverControls())
         {
-            globalControlPanel.showText ("solverHeading", TRANS ("Solver"), Box2DSamples::ControlPanel::TextTone::heading);
-            globalControlPanel.showFloatSlider ("simulationHertz", TRANS ("Simulation frequency (Hz)"), settings.hertz, 5.0f, 240.0f, 0);
-            globalControlPanel.showIntegerSlider ("numSubSteps", TRANS ("Sub-steps"), settings.numSubSteps, 1, 32);
-            globalControlPanel.showIntegerSlider ("numRestitutionIterations",
-                                                  TRANS ("Restitution iterations"),
-                                                  settings.numRestitutionIterations,
-                                                  0,
-                                                  8);
-            globalControlPanel.showFloatSlider ("contactRecycleDistance",
-                                                TRANS ("Contact recycle distance (m)"),
-                                                settings.recycleDistance,
-                                                0.0f,
-                                                0.1f,
-                                                3,
-                                                [this] { applyContactRecycleDistance(); });
-            globalControlPanel.showToggle ("sleep", TRANS ("Sleeping"), settings.isSleepingEnabled);
-            globalControlPanel.showToggle ("warmStarting", TRANS ("Warm starting"), settings.isWarmStartingEnabled);
-            globalControlPanel.showToggle ("continuousCollision",
-                                           TRANS ("Continuous collision"),
-                                           settings.isContinuousCollisionEnabled);
-            globalControlPanel.showToggle ("restitutionPropagation",
-                                           TRANS ("Restitution propagation"),
-                                           settings.isRestitutionPropagationEnabled);
+            controlModel.showFloatSlider ("solver.simulationHertz", TRANS ("Simulation frequency (Hz)"), settings.hertz, 5.0f, 240.0f, 0);
+            controlModel.showIntegerSlider ("solver.numSubSteps", TRANS ("Sub-steps"), settings.numSubSteps, 1, 32);
+            controlModel.showIntegerSlider ("solver.numRestitutionIterations",
+                                            TRANS ("Restitution iterations"),
+                                            settings.numRestitutionIterations,
+                                            0,
+                                            8);
+            controlModel.showFloatSlider ("solver.contactRecycleDistance",
+                                          TRANS ("Contact recycle distance (m)"),
+                                          settings.recycleDistance,
+                                          0.0f,
+                                          0.1f,
+                                          3,
+                                          [this] { applyContactRecycleDistance(); });
+            controlModel.showToggle ("solver.sleep", TRANS ("Sleeping"), settings.isSleepingEnabled);
+            controlModel.showToggle ("solver.warmStarting", TRANS ("Warm starting"), settings.isWarmStartingEnabled);
+            controlModel.showToggle ("solver.continuousCollision", TRANS ("Continuous collision"), settings.isContinuousCollisionEnabled);
+            controlModel.showToggle ("solver.restitutionPropagation", TRANS ("Restitution propagation"), settings.isRestitutionPropagationEnabled);
         }
+
+        controlModel.setGroup (Box2DSamples::ControlItem::Group::drawing);
 
         if (hasSample)
         {
             auto& debugDraw = runtime.getContext().debugDraw;
-            globalControlPanel.showText ("drawingHeading", TRANS ("Drawing"), Box2DSamples::ControlPanel::TextTone::heading);
-            globalControlPanel.showToggle ("drawShapes", TRANS ("Shapes"), debugDraw.drawShapes);
-            globalControlPanel.showToggle ("drawChainNormals", TRANS ("Chain normals"), debugDraw.drawChainNormals);
-            globalControlPanel.showToggle ("drawJoints", TRANS ("Joints"), debugDraw.drawJoints);
-            globalControlPanel.showToggle ("drawJointExtras", TRANS ("Joint extras"), debugDraw.drawJointExtras);
-            globalControlPanel.showToggle ("drawBounds", TRANS ("Bounds"), debugDraw.drawBounds);
-            globalControlPanel.showToggle ("drawMass", TRANS ("Mass"), debugDraw.drawMass);
-            globalControlPanel.showToggle ("drawBodyNames", TRANS ("Body names"), debugDraw.drawBodyNames);
-            globalControlPanel.showToggle ("drawGraphColours", TRANS ("Graph colours"), debugDraw.drawGraphColors);
-            globalControlPanel.showToggle ("drawIslands", TRANS ("Islands"), debugDraw.drawIslands);
-            globalControlPanel.showToggle ("drawContacts", TRANS ("Contact points"), debugDraw.drawContacts);
-            globalControlPanel.showToggle ("drawContactNormals", TRANS ("Contact normals"), debugDraw.drawContactNormals);
-            globalControlPanel.showToggle ("drawContactFeatures", TRANS ("Contact features"), debugDraw.drawContactFeatures);
-            globalControlPanel.showToggle ("drawContactForces", TRANS ("Contact forces"), debugDraw.drawContactForces);
-            globalControlPanel.showToggle ("drawFrictionForces", TRANS ("Friction forces"), debugDraw.drawFrictionForces);
-            globalControlPanel.showToggle ("drawAnchorA", TRANS ("Use contact anchor A"), debugDraw.drawAnchorA);
+            controlModel.showToggle ("drawing.shapes", TRANS ("Shapes"), debugDraw.drawShapes);
+            controlModel.showToggle ("drawing.chainNormals", TRANS ("Chain normals"), debugDraw.drawChainNormals);
+            controlModel.showToggle ("drawing.joints", TRANS ("Joints"), debugDraw.drawJoints);
+            controlModel.showToggle ("drawing.jointExtras", TRANS ("Joint extras"), debugDraw.drawJointExtras);
+            controlModel.showToggle ("drawing.bounds", TRANS ("Bounds"), debugDraw.drawBounds);
+            controlModel.showToggle ("drawing.mass", TRANS ("Mass"), debugDraw.drawMass);
+            controlModel.showToggle ("drawing.bodyNames", TRANS ("Body names"), debugDraw.drawBodyNames);
+            controlModel.showToggle ("drawing.graphColours", TRANS ("Graph colours"), debugDraw.drawGraphColors);
+            controlModel.showToggle ("drawing.islands", TRANS ("Islands"), debugDraw.drawIslands);
+            controlModel.showToggle ("drawing.contacts", TRANS ("Contact points"), debugDraw.drawContacts);
+            controlModel.showToggle ("drawing.contactNormals", TRANS ("Contact normals"), debugDraw.drawContactNormals);
+            controlModel.showToggle ("drawing.contactFeatures", TRANS ("Contact features"), debugDraw.drawContactFeatures);
+            controlModel.showToggle ("drawing.contactForces", TRANS ("Contact forces"), debugDraw.drawContactForces);
+            controlModel.showToggle ("drawing.frictionForces", TRANS ("Friction forces"), debugDraw.drawFrictionForces);
+            controlModel.showToggle ("drawing.anchorA", TRANS ("Use contact anchor A"), debugDraw.drawAnchorA);
         }
 
+        controlModel.setGroup (Box2DSamples::ControlItem::Group::recording);
+        controlModel.showButton ("recording.record",
+                                 recordingActive ? TRANS ("Stop and save recording") : TRANS ("Start recording"),
+                                 [this]
+                                 {
+                                     if (recordingActive)
+                                         finishRecording();
+                                     else
+                                         beginRecording();
+                                 },
+                                 hasSample && ! isReplayViewer && ! fileIOBusy);
+        controlModel.showButton ("recording.openReplay", TRANS ("Open recording..."), [this] { chooseReplayFile(); }, ! fileIOBusy);
+        controlModel.showButton ("recording.playLast", TRANS ("Play last recording"), [this]
+        {
+            selectReplayData (lastRecording, TRANS ("Last recording"));
+        }, ! lastRecording.isEmpty() && ! fileIOBusy);
+        controlModel.showButton ("recording.saveLast", TRANS ("Save last recording..."), [this]
+        {
+            chooseRecordingDestination();
+        }, ! lastRecording.isEmpty() && ! fileIOBusy);
+
+        if (fileStatus.isNotEmpty())
+            controlModel.showText ("recording.fileStatus", fileStatus, Box2DSamples::ControlItem::TextTone::secondary);
+
+        controlModel.setGroup (Box2DSamples::ControlItem::Group::viewCalibration);
         const auto& context = runtime.getContext();
 
         if (hasSample && ! isReplayViewer && context.homeView != nullptr)
         {
             const auto bounds = context.camera.getVisibleBounds();
-            globalControlPanel.showText ("viewCalibrationHeading", TRANS ("View calibration"), Box2DSamples::ControlPanel::TextTone::heading);
-            globalControlPanel.showText ("viewCalibrationAspect",
-                                         TRANS ("Canvas aspect: {aspectRatio}.")
-                                             .replace ("{aspectRatio}", formatCalibrationValue (context.camera.getAspectRatio())));
-            globalControlPanel.showText ("viewCalibrationLowerBound",
-                                         TRANS ("Lower bound: {x}, {y}.")
-                                             .replace ("{x}", formatCalibrationValue (bounds.lowerBound.x))
-                                             .replace ("{y}", formatCalibrationValue (bounds.lowerBound.y)));
-            globalControlPanel.showText ("viewCalibrationUpperBound",
-                                         TRANS ("Upper bound: {x}, {y}.")
-                                             .replace ("{x}", formatCalibrationValue (bounds.upperBound.x))
-                                             .replace ("{y}", formatCalibrationValue (bounds.upperBound.y)));
-            globalControlPanel.showButton ("copyCurrentBounds", TRANS ("Copy current bounds"), [this]
+            controlModel.showText ("viewCalibration.aspect",
+                                   TRANS ("Canvas aspect: {aspectRatio}.")
+                                       .replace ("{aspectRatio}", formatCalibrationValue (context.camera.getAspectRatio())));
+            controlModel.showText ("viewCalibration.lowerBound",
+                                   TRANS ("Lower bound: {x}, {y}.")
+                                       .replace ("{x}", formatCalibrationValue (bounds.lowerBound.x))
+                                       .replace ("{y}", formatCalibrationValue (bounds.lowerBound.y)));
+            controlModel.showText ("viewCalibration.upperBound",
+                                   TRANS ("Upper bound: {x}, {y}.")
+                                       .replace ("{x}", formatCalibrationValue (bounds.upperBound.x))
+                                       .replace ("{y}", formatCalibrationValue (bounds.upperBound.y)));
+            controlModel.showButton ("viewCalibration.copyCurrentBounds", TRANS ("Copy current bounds"), [this]
             {
                 SystemClipboard::copyTextToClipboard (formatCalibrationInitializer());
             });
         }
 
-        if (fileStatus.isNotEmpty())
-            globalControlPanel.showText ("fileStatus", fileStatus, Box2DSamples::ControlPanel::TextTone::secondary);
-
-        globalControlPanel.endFrame();
+        controlModel.endFrame();
     }
 
     void applyWorkerCount()

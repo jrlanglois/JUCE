@@ -175,7 +175,7 @@ void UpstreamSampleAdapter::prepareFrame()
     bridge.syncHostFromUpstream();
 }
 
-void UpstreamSampleAdapter::updateControls (ControlPanel& controls)
+void UpstreamSampleAdapter::updateControls (ControlModel& controls)
 {
     if (upstreamSample == nullptr)
         return;

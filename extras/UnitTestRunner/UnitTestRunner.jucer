@@ -16,9 +16,11 @@
       <FILE id="B2Ut04" name="Catalog.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Catalog.cpp"/>
       <FILE id="B2Ut05" name="Canvas.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Canvas.cpp"/>
       <FILE id="B2Ut06" name="Context.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Context.cpp"/>
-      <FILE id="B2Ut07" name="ControlPanel.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/ControlPanel.cpp"/>
+      <FILE id="B2Ut07" name="ControlModel.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/ControlModel.cpp"/>
+      <FILE id="B2Ut52" name="ControlPropertyPresenter.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/ControlPropertyPresenter.cpp"/>
       <FILE id="B2Ut08" name="DrawList.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/DrawList.cpp"/>
       <FILE id="B2Ut51" name="HomeViews.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/HomeViews.cpp"/>
+      <FILE id="B2Ut53" name="SampleInteractions.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/SampleInteractions.cpp"/>
       <FILE id="B2Ut21" name="HostControlsBridge.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/HostControlsBridge.cpp"/>
       <FILE id="B2Ut22" name="HostControlsBridge.h" compile="0" resource="0" file="../../examples/Utilities/Box2D/HostControlsBridge.h"/>
       <FILE id="B2Ut09" name="HostDrawBridge.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/HostDrawBridge.cpp"/>

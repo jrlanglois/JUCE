@@ -76,7 +76,7 @@ public:
     /** @internal */
     void prepareFrame() override;
     /** @internal */
-    void updateControls (ControlPanel& controls) override;
+    void updateControls (ControlModel& controls) override;
     /** @internal */
     bool handleKeyPress (const KeyPress& key) override;
     /** @internal */

@@ -475,17 +475,17 @@ public:
         addScreenTextLine (status);
     }
 
-    void updateControls (ControlPanel& controls) override
+    void updateControls (ControlModel& controls) override
     {
         if (player == nullptr)
         {
-            controls.showText ("replayStatus", TRANS ("No recording is loaded."), ControlPanel::TextTone::secondary);
+            controls.showText ("replayStatus", TRANS ("No recording is loaded."), ControlItem::TextTone::secondary);
             return;
         }
 
         controls.showText ("replayName",
                            TRANS ("Recording: {recordingName}").replace ("{recordingName}", context.replayName),
-                           ControlPanel::TextTone::heading);
+                           ControlItem::TextTone::subheading);
         controls.showButton ("replayFirst", TRANS ("First frame"), [this] { queueSeek (0); });
         controls.showButton ("replayPrevious", TRANS ("Previous frame"), [this] { queueSeek (getFrame() - 1); });
         controls.showButton ("replayPlayPause",
@@ -493,6 +493,14 @@ public:
                              [this] { queuePlaying (context.settings.isPaused); });
         controls.showButton ("replayNext", TRANS ("Next frame"), [this] { queueSeek (getFrame() + 1); });
         controls.showButton ("replayLast", TRANS ("Last frame"), [this] { queueSeek (info.frameCount); });
+        timelineFrame = getFrame();
+        controls.showIntegerSlider ("replayTimeline",
+                                    TRANS ("Replay timeline"),
+                                    timelineFrame,
+                                    0,
+                                    std::max (1, info.frameCount),
+                                    [this] { queueSeek (timelineFrame); });
+        controls.setHelpText ("replayTimeline", TRANS ("Selects the current replay frame."));
         controls.showFloatSlider ("replaySpeed", TRANS ("Playback speed"), playbackSpeed, 0.25f, 4.0f, 2);
         controls.showToggle ("replayLoop", TRANS ("Loop playback"), shouldLoop);
         controls.showIntegerSlider ("replayKeyframeBudget",
@@ -598,6 +606,7 @@ private:
     float playbackSpeed = 1.0f;
     int keyframeBudgetMB = 64,
         keyframeMinInterval = 16,
+        timelineFrame = 0,
         selectedBodyOrdinal = -1,
         selectedSlot = -1,
         selectedQueryIndex = -1;
@@ -818,78 +827,24 @@ public:
         sample (newSample),
         progressBar (progress)
     {
-        setTitle (TRANS ("Replay transport and timeline"));
+        setTitle (TRANS ("Replay status and keyframes"));
         statusLabel.setTitle (TRANS ("Replay status"));
         keyframeLabel.setTitle (TRANS ("Replay keyframe status"));
         progressBar.setTitle (TRANS ("Replay progress"));
-        firstButton.setButtonText ("|<");
-        previousButton.setButtonText ("<");
-        playPauseButton.setButtonText (TRANS ("Play"));
-        nextButton.setButtonText (">");
-        lastButton.setButtonText (">|");
-        firstButton.setTitle (TRANS ("First frame"));
-        previousButton.setTitle (TRANS ("Previous frame"));
-        playPauseButton.setTitle (TRANS ("Play or pause replay"));
-        nextButton.setTitle (TRANS ("Next frame"));
-        lastButton.setTitle (TRANS ("Last frame"));
-        timeline.setTitle (TRANS ("Replay timeline"));
-        timeline.setDescription (TRANS ("Selects the current replay frame."));
-        timeline.setSliderStyle (Slider::LinearHorizontal);
-        timeline.setTextBoxStyle (Slider::TextBoxRight, false, 72, 20);
-        speed.setTitle (TRANS ("Replay speed"));
-        speed.setSliderStyle (Slider::LinearHorizontal);
-        speed.setTextBoxStyle (Slider::TextBoxRight, false, 72, 20);
-        speed.setRange (0.25, 4.0, 0.25);
-        loopButton.setButtonText (TRANS ("Loop"));
 
         for (auto* component : { static_cast<Component*> (&statusLabel),
                                  static_cast<Component*> (&progressBar),
-                                 static_cast<Component*> (&firstButton),
-                                 static_cast<Component*> (&previousButton),
-                                 static_cast<Component*> (&playPauseButton),
-                                 static_cast<Component*> (&nextButton),
-                                 static_cast<Component*> (&lastButton),
-                                 static_cast<Component*> (&timeline),
-                                 static_cast<Component*> (&speed),
-                                 static_cast<Component*> (&loopButton),
                                  static_cast<Component*> (&keyframeLabel) })
             addAndMakeVisible (component);
-
-        firstButton.onClick = [this] { sample.queueSeek (0); };
-        previousButton.onClick = [this] { sample.queueSeek (sample.getFrame() - 1); };
-        playPauseButton.onClick = [this] { sample.queuePlaying (! sample.isPlaying()); };
-        nextButton.onClick = [this] { sample.queueSeek (sample.getFrame() + 1); };
-        lastButton.onClick = [this] { sample.queueSeek (sample.getNumFrames()); };
-        timeline.onValueChange = [this]
-        {
-            if (! refreshing)
-                sample.queueSeek ((int) std::round (timeline.getValue()));
-        };
-        speed.onValueChange = [this]
-        {
-            if (! refreshing)
-                sample.queueSpeed ((float) speed.getValue());
-        };
-        loopButton.onClick = [this]
-        {
-            if (! refreshing)
-                sample.queueLoopState (loopButton.getToggleState());
-        };
 
         refresh();
     }
 
     void refresh() override
     {
-        const ScopedValueSetter<bool> setter (refreshing, true);
         const int numFrames = sample.getNumFrames(),
                   frame = sample.getFrame();
         progress = numFrames > 0 ? (double) frame / (double) numFrames : 0.0;
-        timeline.setRange (0.0, (double) std::max (1, numFrames), 1.0);
-        timeline.setValue ((double) frame, dontSendNotification);
-        speed.setValue ((double) sample.getPlaybackSpeed(), dontSendNotification);
-        loopButton.setToggleState (sample.isLooping(), dontSendNotification);
-        playPauseButton.setButtonText (sample.isPlaying() ? TRANS ("Pause") : TRANS ("Play"));
 
         String status = TRANS ("Frame {currentFrame} of {numFrames}.")
                             .replace ("{currentFrame}", String (frame))
@@ -902,13 +857,6 @@ public:
             status += " " + TRANS ("Replay has diverged.");
 
         statusLabel.setText (status, dontSendNotification);
-        timeline.setDescription (sample.hasDiverged()
-                                     ? TRANS ("Frame {currentFrame} of {numFrames}. Replay has diverged.")
-                                           .replace ("{currentFrame}", String (frame))
-                                           .replace ("{numFrames}", String (numFrames))
-                                     : TRANS ("Frame {currentFrame} of {numFrames}.")
-                                           .replace ("{currentFrame}", String (frame))
-                                           .replace ("{numFrames}", String (numFrames)));
 
         if (sample.hasDiverged() && ! divergenceWasAnnounced)
         {
@@ -931,35 +879,16 @@ public:
         auto bounds = getLocalBounds().reduced (4);
         statusLabel.setBounds (bounds.removeFromTop (22));
         progressBar.setBounds (bounds.removeFromTop (18));
-        auto transportBounds = bounds.removeFromTop (28);
-        const int buttonWidth = transportBounds.getWidth() / 5;
-        firstButton.setBounds (transportBounds.removeFromLeft (buttonWidth));
-        previousButton.setBounds (transportBounds.removeFromLeft (buttonWidth));
-        playPauseButton.setBounds (transportBounds.removeFromLeft (buttonWidth));
-        nextButton.setBounds (transportBounds.removeFromLeft (buttonWidth));
-        lastButton.setBounds (transportBounds);
-        timeline.setBounds (bounds.removeFromTop (28));
-        speed.setBounds (bounds.removeFromTop (28));
-        loopButton.setBounds (bounds.removeFromTop (24));
         keyframeLabel.setBounds (bounds.removeFromTop (22));
     }
 
 private:
     ReplaySample& sample;
     double progress = 0.0;
-    bool refreshing = false,
-         divergenceWasAnnounced = false;
+    bool divergenceWasAnnounced = false;
     Label statusLabel,
           keyframeLabel;
     ProgressBar progressBar;
-    TextButton firstButton,
-               previousButton,
-               playPauseButton,
-               nextButton,
-               lastButton;
-    Slider timeline,
-           speed;
-    ToggleButton loopButton;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReplayMetricsComponent)
 };

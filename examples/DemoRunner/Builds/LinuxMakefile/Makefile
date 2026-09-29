@@ -82,9 +82,11 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/Catalog_d8b78648.o \
   $(JUCE_OBJDIR)/Canvas_36ca1cd3.o \
   $(JUCE_OBJDIR)/Context_e9ea0de.o \
-  $(JUCE_OBJDIR)/ControlPanel_d6d3c222.o \
+  $(JUCE_OBJDIR)/ControlModel_b75898c7.o \
+  $(JUCE_OBJDIR)/ControlPropertyPresenter_4f8b6771.o \
   $(JUCE_OBJDIR)/DrawList_a43a38fd.o \
   $(JUCE_OBJDIR)/HomeViews_427a2d7e.o \
+  $(JUCE_OBJDIR)/SampleInteractions_b555fc66.o \
   $(JUCE_OBJDIR)/HostControlsBridge_819920a2.o \
   $(JUCE_OBJDIR)/HostDrawBridge_5544a4b0.o \
   $(JUCE_OBJDIR)/MetricsComponent_4087ae75.o \
@@ -239,9 +241,14 @@ $(JUCE_OBJDIR)/Context_e9ea0de.o: ../../../Utilities/Box2D/Context.cpp
 	@echo "Compiling Context.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/ControlPanel_d6d3c222.o: ../../../Utilities/Box2D/ControlPanel.cpp
+$(JUCE_OBJDIR)/ControlModel_b75898c7.o: ../../../Utilities/Box2D/ControlModel.cpp
 	-$(V_AT)mkdir -p $(@D)
-	@echo "Compiling ControlPanel.cpp"
+	@echo "Compiling ControlModel.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/ControlPropertyPresenter_4f8b6771.o: ../../../Utilities/Box2D/ControlPropertyPresenter.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling ControlPropertyPresenter.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/DrawList_a43a38fd.o: ../../../Utilities/Box2D/DrawList.cpp
@@ -252,6 +259,11 @@ $(JUCE_OBJDIR)/DrawList_a43a38fd.o: ../../../Utilities/Box2D/DrawList.cpp
 $(JUCE_OBJDIR)/HomeViews_427a2d7e.o: ../../../Utilities/Box2D/HomeViews.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling HomeViews.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/SampleInteractions_b555fc66.o: ../../../Utilities/Box2D/SampleInteractions.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling SampleInteractions.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/HostControlsBridge_819920a2.o: ../../../Utilities/Box2D/HostControlsBridge.cpp

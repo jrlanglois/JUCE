@@ -86,15 +86,15 @@ struct HostControlState final
 class HostControlSession final
 {
 public:
-    void beginFrame (ControlPanel& newControlPanel)
+    void beginFrame (ControlModel& newControlModel)
     {
-        controlPanel = &newControlPanel;
+        controlModel = &newControlModel;
         occurrences.clear();
     }
 
     void endFrame()
     {
-        controlPanel = nullptr;
+        controlModel = nullptr;
     }
 
     bool showButton (const char* label)
@@ -102,8 +102,8 @@ public:
         auto [identifier, state] = getState ("button", label);
         const bool wasActivated = std::exchange (state.changed, false);
 
-        if (controlPanel != nullptr)
-            controlPanel->showButton (identifier, getDisplayText (label), [statePointer = &state] { statePointer->changed = true; });
+        if (controlModel != nullptr)
+            controlModel->showButton (identifier, getDisplayText (label), [statePointer = &state] { statePointer->changed = true; });
 
         return wasActivated;
     }
@@ -121,8 +121,8 @@ public:
         else
             state.boolValue = *value;
 
-        if (controlPanel != nullptr)
-            controlPanel->showToggle (identifier, getDisplayText (label), state.boolValue, [statePointer = &state] { statePointer->changed = true; });
+        if (controlModel != nullptr)
+            controlModel->showToggle (identifier, getDisplayText (label), state.boolValue, [statePointer = &state] { statePointer->changed = true; });
 
         return wasEdited;
     }
@@ -132,8 +132,8 @@ public:
         auto [identifier, state] = getState ("radio", label);
         const bool wasActivated = std::exchange (state.changed, false);
 
-        if (controlPanel != nullptr)
-            controlPanel->showRadioButton (identifier, getDisplayText (label), selected, [statePointer = &state] { statePointer->changed = true; });
+        if (controlModel != nullptr)
+            controlModel->showRadioButton (identifier, getDisplayText (label), selected, [statePointer = &state] { statePointer->changed = true; });
 
         return wasActivated;
     }
@@ -151,8 +151,8 @@ public:
         else
             state.floatValue = *value;
 
-        if (controlPanel != nullptr)
-            controlPanel->showFloatSlider (identifier, getDisplayText (label), state.floatValue, minValue, maxValue, getNumDecimalPlaces (format), [statePointer = &state] { statePointer->changed = true; });
+        if (controlModel != nullptr)
+            controlModel->showFloatSlider (identifier, getDisplayText (label), state.floatValue, minValue, maxValue, getNumDecimalPlaces (format), [statePointer = &state] { statePointer->changed = true; });
 
         return wasEdited;
     }
@@ -175,8 +175,8 @@ public:
             state.pairValue = { values[0], values[1] };
         }
 
-        if (controlPanel != nullptr)
-            controlPanel->showFloatPairSliders (identifier, getDisplayText (label), state.pairValue, minValue, maxValue, getNumDecimalPlaces (format), [statePointer = &state] { statePointer->changed = true; });
+        if (controlModel != nullptr)
+            controlModel->showFloatPairSliders (identifier, getDisplayText (label), state.pairValue, minValue, maxValue, getNumDecimalPlaces (format), [statePointer = &state] { statePointer->changed = true; });
 
         return wasEdited;
     }
@@ -194,8 +194,8 @@ public:
         else
             state.intValue = *value;
 
-        if (controlPanel != nullptr)
-            controlPanel->showIntegerSlider (identifier, getDisplayText (label), state.intValue, minValue, maxValue, [statePointer = &state] { statePointer->changed = true; });
+        if (controlModel != nullptr)
+            controlModel->showIntegerSlider (identifier, getDisplayText (label), state.intValue, minValue, maxValue, [statePointer = &state] { statePointer->changed = true; });
 
         return wasEdited;
     }
@@ -218,19 +218,19 @@ public:
         for (int itemIndex = 0; itemIndex < itemCount; ++itemIndex)
             itemNames.add (translate (String::fromUTF8 (items[itemIndex])));
 
-        if (controlPanel != nullptr)
-            controlPanel->showChoice (identifier, getDisplayText (label), state.intValue, itemNames, [statePointer = &state] { statePointer->changed = true; });
+        if (controlModel != nullptr)
+            controlModel->showChoice (identifier, getDisplayText (label), state.intValue, itemNames, [statePointer = &state] { statePointer->changed = true; });
 
         return wasEdited;
     }
 
-    void showText (const String& text, ControlPanel::TextTone tone = ControlPanel::TextTone::standard)
+    void showText (const char* sourceFormat, const String& text, ControlItem::TextTone tone = ControlItem::TextTone::standard)
     {
-        auto [identifier, state] = getState ("text", text.toRawUTF8());
+        auto [identifier, state] = getState ("text", sourceFormat);
         ignoreUnused (state);
 
-        if (controlPanel != nullptr)
-            controlPanel->showText (identifier, text, tone);
+        if (controlModel != nullptr)
+            controlModel->showText (identifier, text, tone);
     }
 
     void showSeparator()
@@ -238,8 +238,8 @@ public:
         auto [identifier, state] = getState ("separator", "");
         ignoreUnused (state);
 
-        if (controlPanel != nullptr)
-            controlPanel->showSeparator (identifier);
+        if (controlModel != nullptr)
+            controlModel->showSeparator (identifier);
     }
 
     void showProgress (float fraction, const char* overlay)
@@ -247,8 +247,8 @@ public:
         auto [identifier, state] = getState ("progress", overlay);
         ignoreUnused (state);
 
-        if (controlPanel != nullptr)
-            controlPanel->showProgress (identifier, translate (String::fromUTF8 (overlay != nullptr ? overlay : "")), fraction);
+        if (controlModel != nullptr)
+            controlModel->showProgress (identifier, translate (String::fromUTF8 (overlay != nullptr ? overlay : "")), fraction);
     }
 
 private:
@@ -261,7 +261,7 @@ private:
         return { identifier, states[identifier] };
     }
 
-    ControlPanel* controlPanel = nullptr;
+    ControlModel* controlModel = nullptr;
     std::map<String, int> occurrences;
     std::map<String, HostControlState> states;
 };
@@ -279,10 +279,10 @@ HostControlsBridge::~HostControlsBridge()
         activeHostControlSession = nullptr;
 }
 
-void HostControlsBridge::beginFrame (ControlPanel& controlPanel)
+void HostControlsBridge::beginFrame (ControlModel& controlModel)
 {
     jassert (activeHostControlSession == nullptr);
-    session->beginFrame (controlPanel);
+    session->beginFrame (controlModel);
     activeHostControlSession = session.get();
 }
 
@@ -301,7 +301,7 @@ namespace HostControls
 bool beginPanel (const char* name)
 {
     if (Box2DSamples::activeHostControlSession != nullptr)
-        Box2DSamples::activeHostControlSession->showText (Box2DSamples::getDisplayText (name), Box2DSamples::ControlPanel::TextTone::heading);
+        Box2DSamples::activeHostControlSession->showText (name, Box2DSamples::getDisplayText (name), Box2DSamples::ControlItem::TextTone::subheading);
 
     return true;
 }
@@ -341,25 +341,25 @@ bool sliderInt (const char* label, int* value, int minValue, int maxValue, const
 void textV (const char* format, va_list arguments)
 {
     if (Box2DSamples::activeHostControlSession != nullptr)
-        Box2DSamples::activeHostControlSession->showText (Box2DSamples::formatText (format, arguments));
+        Box2DSamples::activeHostControlSession->showText (format, Box2DSamples::formatText (format, arguments));
 }
 
 void textDisabledV (const char* format, va_list arguments)
 {
     if (Box2DSamples::activeHostControlSession != nullptr)
-        Box2DSamples::activeHostControlSession->showText (Box2DSamples::formatText (format, arguments), Box2DSamples::ControlPanel::TextTone::secondary);
+        Box2DSamples::activeHostControlSession->showText (format, Box2DSamples::formatText (format, arguments), Box2DSamples::ControlItem::TextTone::secondary);
 }
 
 void textUnformatted (const char* text)
 {
     if (Box2DSamples::activeHostControlSession != nullptr)
-        Box2DSamples::activeHostControlSession->showText (translate (String::fromUTF8 (text != nullptr ? text : "")));
+        Box2DSamples::activeHostControlSession->showText (text, translate (String::fromUTF8 (text != nullptr ? text : "")));
 }
 
 void textColoredV (HostVec4, const char* format, va_list arguments)
 {
     if (Box2DSamples::activeHostControlSession != nullptr)
-        Box2DSamples::activeHostControlSession->showText (Box2DSamples::formatText (format, arguments), Box2DSamples::ControlPanel::TextTone::warning);
+        Box2DSamples::activeHostControlSession->showText (format, Box2DSamples::formatText (format, arguments), Box2DSamples::ControlItem::TextTone::warning);
 }
 
 void separator()
@@ -379,7 +379,7 @@ void sameLine (float, float) {}
 bool collapsingHeader (const char* label, int)
 {
     if (Box2DSamples::activeHostControlSession != nullptr)
-        Box2DSamples::activeHostControlSession->showText (Box2DSamples::getDisplayText (label), Box2DSamples::ControlPanel::TextTone::heading);
+        Box2DSamples::activeHostControlSession->showText (label, Box2DSamples::getDisplayText (label), Box2DSamples::ControlItem::TextTone::subheading);
 
     return true;
 }

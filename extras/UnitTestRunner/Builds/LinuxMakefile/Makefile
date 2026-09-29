@@ -78,9 +78,11 @@ OBJECTS_CONSOLEAPP := \
   $(JUCE_OBJDIR)/Catalog_14c45af1.o \
   $(JUCE_OBJDIR)/Canvas_feeb8f0a.o \
   $(JUCE_OBJDIR)/Context_4aab7587.o \
-  $(JUCE_OBJDIR)/ControlPanel_260e6f19.o \
+  $(JUCE_OBJDIR)/ControlModel_69345be.o \
+  $(JUCE_OBJDIR)/ControlPropertyPresenter_c08f59e8.o \
   $(JUCE_OBJDIR)/DrawList_e9c7f974.o \
   $(JUCE_OBJDIR)/HomeViews_aea47be7.o \
+  $(JUCE_OBJDIR)/SampleInteractions_eb02d41d.o \
   $(JUCE_OBJDIR)/HostControlsBridge_b745f859.o \
   $(JUCE_OBJDIR)/HostDrawBridge_c087efe7.o \
   $(JUCE_OBJDIR)/MetricsComponent_e82507ec.o \
@@ -213,9 +215,14 @@ $(JUCE_OBJDIR)/Context_4aab7587.o: ../../../../examples/Utilities/Box2D/Context.
 	@echo "Compiling Context.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_CONSOLEAPP) $(JUCE_CFLAGS_CONSOLEAPP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/ControlPanel_260e6f19.o: ../../../../examples/Utilities/Box2D/ControlPanel.cpp
+$(JUCE_OBJDIR)/ControlModel_69345be.o: ../../../../examples/Utilities/Box2D/ControlModel.cpp
 	-$(V_AT)mkdir -p $(@D)
-	@echo "Compiling ControlPanel.cpp"
+	@echo "Compiling ControlModel.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_CONSOLEAPP) $(JUCE_CFLAGS_CONSOLEAPP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/ControlPropertyPresenter_c08f59e8.o: ../../../../examples/Utilities/Box2D/ControlPropertyPresenter.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling ControlPropertyPresenter.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_CONSOLEAPP) $(JUCE_CFLAGS_CONSOLEAPP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/DrawList_e9c7f974.o: ../../../../examples/Utilities/Box2D/DrawList.cpp
@@ -226,6 +233,11 @@ $(JUCE_OBJDIR)/DrawList_e9c7f974.o: ../../../../examples/Utilities/Box2D/DrawLis
 $(JUCE_OBJDIR)/HomeViews_aea47be7.o: ../../../../examples/Utilities/Box2D/HomeViews.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling HomeViews.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_CONSOLEAPP) $(JUCE_CFLAGS_CONSOLEAPP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/SampleInteractions_eb02d41d.o: ../../../../examples/Utilities/Box2D/SampleInteractions.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling SampleInteractions.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_CONSOLEAPP) $(JUCE_CFLAGS_CONSOLEAPP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/HostControlsBridge_b745f859.o: ../../../../examples/Utilities/Box2D/HostControlsBridge.cpp

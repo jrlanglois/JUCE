@@ -87,7 +87,7 @@ void Sample::advanceSimulation()
 
 void Sample::prepareFrame() {}
 
-void Sample::updateControls (ControlPanel&) {}
+void Sample::updateControls (ControlModel&) {}
 
 bool Sample::handleKeyPress (const KeyPress&) { return false; }
 

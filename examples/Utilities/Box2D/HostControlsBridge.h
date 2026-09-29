@@ -28,10 +28,9 @@
 namespace Box2DSamples
 {
 
-class ControlPanel;
 class HostControlSession;
 
-/** Routes one upstream immediate-control pass through a retained control panel. */
+/** Routes one upstream immediate-control pass through a retained control model. */
 class HostControlsBridge final
 {
 public:
@@ -41,8 +40,8 @@ public:
     /** Ends any active pass and destroys retained control values. */
     ~HostControlsBridge();
 
-    /** Makes `controlPanel` the destination for the current upstream control pass. */
-    void beginFrame (ControlPanel& controlPanel);
+    /** Makes `controlModel` the destination for the current upstream control pass. */
+    void beginFrame (ControlModel& controlModel);
 
     /** Ends the current upstream control pass. */
     void endFrame();

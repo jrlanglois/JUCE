@@ -175,14 +175,10 @@ void Runtime::resetPresentationClock() noexcept
     pimpl->elapsedAccumulatorSeconds = 0.0;
 }
 
-void Runtime::updateControls (ControlPanel& controls)
+void Runtime::appendCurrentSampleControls (ControlModel& controls)
 {
-    controls.beginFrame();
-
     if (pimpl->currentSample != nullptr)
         pimpl->currentSample->updateControls (controls);
-
-    controls.endFrame();
 }
 
 void Runtime::startRecording()

@@ -22,8 +22,10 @@
 */
 
 #include "Box2DSamples.h"
+#include "HostControlsBridge.h"
 #include "ReplayFileIO.h"
 #include "ReplaySample.h"
+#include "host_controls.h"
 #include "sample.h"
 
 struct Box2DDemoTestAccess final
@@ -175,13 +177,6 @@ bool isVisibleWithin (const Component& component, const Component& root)
     }
 
     return false;
-}
-
-void dispatchPendingMessages()
-{
-   #if JUCE_MODAL_LOOPS_PERMITTED
-    MessageManager::getInstance()->runDispatchLoopUntil (10);
-   #endif
 }
 
 std::optional<MemoryBlock> createRecording (const char* category, const char* name, int numSteps)
@@ -641,15 +636,18 @@ public:
 
         {
             Box2DDemo demo;
-            demo.setSize (1200, 800);
+            demo.setBounds (-10000, -10000, 1200, 800);
+            demo.addToDesktop (ComponentPeer::windowIsTemporary);
+            demo.setVisible (true);
+            Box2DDemoTestAccess::updateForPresentation (demo, 0.0);
 
             auto* properties = dynamic_cast<PropertyPanel*> (findComponentWithTitle (demo, "Box2D controls"));
             auto* canvas = findComponent<Box2DSamples::Canvas> (demo);
             auto* canvasInputHelp = demo.findChildWithID ("box2dCanvasInputHelp");
             expect (properties != nullptr);
             expect (canvas != nullptr);
-            expect (canvasInputHelp != nullptr && isVisibleWithin (*canvasInputHelp, demo));
-            expect (containsLabelText (demo, "Mouse wheel zooms"));
+            expect (canvasInputHelp == nullptr);
+            expect (findComponentWithTitle (demo, "Mouse wheel") != nullptr);
             expect (findButton (demo, "Reset view") != nullptr);
             expect (findComponent<ListBox> (demo) == nullptr);
             expect (findComponent<TabbedComponent> (demo) == nullptr);
@@ -658,7 +656,9 @@ public:
             {
                 const auto sectionNames = properties->getSectionNames();
                 expect (sectionNames.contains ("Catalogue"));
+                expect (sectionNames.contains ("Controls"));
                 expect (sectionNames.contains ("Simulation"));
+                expect (! sectionNames.contains ("Metrics"));
                 expectEquals (properties->getY(), 0);
                 expectEquals (properties->getHeight(), demo.getHeight());
                 expectEquals (properties->getExplicitFocusOrder(), 1);
@@ -677,7 +677,7 @@ public:
                 {
                     StringArray expectedLabels;
                     searchProperty->setText ("joint");
-                    dispatchPendingMessages();
+                    Box2DDemoTestAccess::updateForPresentation (demo, 0.0);
 
                     for (const auto& entry : Box2DSamples::Catalog::getEntries())
                     {
@@ -700,11 +700,19 @@ public:
                 if (searchProperty != nullptr)
                 {
                     searchProperty->setText ({});
-                    dispatchPendingMessages();
+                    Box2DDemoTestAccess::updateForPresentation (demo, 0.0);
                 }
 
                 categoryProperty = findProperty<ChoicePropertyComponent> (*properties, "Category");
                 expect (categoryProperty != nullptr);
+
+                demo.setSize (1200, 360);
+
+                for (int sectionIndex = 0; sectionIndex < properties->getSectionNames().size(); ++sectionIndex)
+                    properties->setSectionOpen (sectionIndex, true);
+
+                properties->getViewport().setViewPosition (0, 120);
+                const int savedScrollPosition = properties->getViewport().getViewPositionY();
 
                 const auto verifyCategorySelection = [&] (const String& categoryName)
                 {
@@ -722,9 +730,20 @@ public:
                     if (categoryControl == nullptr || categoryIndex < 0)
                         return;
 
-                    categoryControl->setSelectedItemIndex (categoryIndex, sendNotificationAsync);
-                    properties->refreshAll();
-                    expectEquals (categoryProperty->getIndex(), categoryIndex);
+                    categoryControl->setSelectedItemIndex (categoryIndex, sendNotificationSync);
+                    Box2DDemoTestAccess::updateForPresentation (demo, 0.0);
+                    categoryProperty = findProperty<ChoicePropertyComponent> (*properties, "Category");
+                    expect (categoryProperty != nullptr);
+
+                    if (categoryProperty != nullptr)
+                    {
+                        const int selectedCategoryIndex = categoryProperty->getIndex();
+                        expect (isPositiveAndBelow (selectedCategoryIndex, categoryProperty->getChoices().size()));
+
+                        if (isPositiveAndBelow (selectedCategoryIndex, categoryProperty->getChoices().size()))
+                            expectEquals (categoryProperty->getChoices()[selectedCategoryIndex], categoryName);
+                    }
+
                     sampleProperty = findProperty<ChoicePropertyComponent> (*properties, "Sample");
                     expect (sampleProperty != nullptr);
 
@@ -737,10 +756,40 @@ public:
 
                 verifyCategorySelection ("Bodies");
                 verifyCategorySelection ("Issues");
+
+                const auto rebuiltSectionNames = properties->getSectionNames();
+
+                for (int sectionIndex = 0; sectionIndex < rebuiltSectionNames.size(); ++sectionIndex)
+                    expect (properties->isSectionOpen (sectionIndex));
+
+                expectEquals (properties->getViewport().getViewPositionY(), savedScrollPosition);
             }
 
             if (properties != nullptr && canvas != nullptr)
             {
+                auto* profilerProperty = findProperty<BooleanPropertyComponent> (*properties, "Profiler");
+                expect (profilerProperty != nullptr);
+                expect (findComponent<Box2DSamples::MetricsComponent> (demo) == nullptr);
+
+                if (profilerProperty != nullptr)
+                {
+                    profilerProperty->setState (true);
+                    Box2DDemoTestAccess::updateForPresentation (demo, 0.0);
+                    auto* metrics = findComponent<Box2DSamples::MetricsComponent> (demo);
+                    expect (metrics != nullptr && isVisibleWithin (*metrics, demo));
+                    expect (properties->getSectionNames().contains ("Metrics"));
+                    profilerProperty = findProperty<BooleanPropertyComponent> (*properties, "Profiler");
+                    expect (profilerProperty != nullptr);
+
+                    if (profilerProperty != nullptr)
+                    {
+                        profilerProperty->setState (false);
+                        Box2DDemoTestAccess::updateForPresentation (demo, 0.0);
+                        expect (findComponent<Box2DSamples::MetricsComponent> (demo) == nullptr);
+                        expect (! properties->getSectionNames().contains ("Metrics"));
+                    }
+                }
+
                 for (const auto size : { juce::Point<int> (700, 800), juce::Point<int> (360, 720) })
                 {
                     demo.setSize (size.x, size.y);
@@ -748,9 +797,14 @@ public:
                     expectEquals (properties->getHeight(), demo.getHeight());
                     expect (isVisibleWithin (*canvas, demo));
                     expect (canvas->getWidth() > 0);
+                    expectEquals (canvas->getY(), 0);
+                    expectEquals (canvas->getHeight(), demo.getHeight());
                     expect (canvas->getX() > properties->getRight());
                 }
             }
+
+            demo.setVisible (false);
+            demo.removeFromDesktop();
         }
 
         beginTest ("View calibration controls and localisation");
@@ -862,13 +916,14 @@ public:
         beginTest ("Property-panel controls and queued edits");
 
         {
-            Box2DSamples::ControlPanel controls;
+            Box2DSamples::ControlModel controls;
             PropertyPanel properties;
             int numWorkers = 1;
             controls.beginFrame();
             controls.showIntegerSlider ("workers", "Workers", numWorkers, 1, B2_MAX_WORKERS);
             controls.endFrame();
-            controls.appendPropertiesTo (properties, "Simulation");
+            const auto initialStructureRevision = controls.getStructureRevision();
+            Box2DSamples::appendControlProperties (controls, properties);
             properties.setSize (320, 240);
 
             auto* workersProperty = findProperty<SliderPropertyComponent> (properties, "Workers");
@@ -884,11 +939,176 @@ public:
                 expectEquals (numWorkers, 2);
             }
 
+            numWorkers = 3;
+            controls.beginFrame();
+            controls.showIntegerSlider ("workers", "Workers", numWorkers, 1, B2_MAX_WORKERS);
+            controls.endFrame();
+            expectEquals (controls.getStructureRevision(), initialStructureRevision);
+            properties.refreshAll();
+            expect (findProperty<SliderPropertyComponent> (properties, "Workers") == workersProperty);
+
+            if (workersProperty != nullptr)
+                expectEquals (workersProperty->getValue(), 3.0);
+
             if (slider != nullptr)
             {
                 const float usableTrackWidth = slider->getPositionOfValue (slider->getMaximum()) - slider->getPositionOfValue (slider->getMinimum());
                 expectGreaterThan (usableTrackWidth, 100.0f);
             }
+
+            controls.beginFrame();
+            controls.showIntegerSlider ("workers", "Workers", numWorkers, 1, B2_MAX_WORKERS);
+            controls.showButton ("reset", "Reset", [] {});
+            controls.endFrame();
+            expect (controls.getStructureRevision() != initialStructureRevision);
+        }
+
+        beginTest ("Typed control edits preserve order and reject invalid input");
+
+        {
+            Box2DSamples::ControlModel controls;
+            bool isEnabled = false;
+            int numWorkers = 1,
+                numActions = 0;
+            String selectedMode = "first",
+                   editableText = "before";
+            StringArray callbackOrder;
+            const std::vector<Box2DSamples::ControlChoice> choices
+            {
+                { "first", "First" },
+                { "second", "Second" }
+            };
+
+            controls.beginFrame();
+            controls.showToggle ("enabled", "Enabled", isEnabled, [&callbackOrder] { callbackOrder.add ("enabled"); });
+            controls.showIntegerSlider ("workers", "Workers", numWorkers, 1, B2_MAX_WORKERS, [&callbackOrder] { callbackOrder.add ("workers"); });
+            controls.showChoice ("mode", "Mode", selectedMode, choices, [&callbackOrder] { callbackOrder.add ("mode"); });
+            controls.showTextInput ("text", "Text", editableText, [&callbackOrder] { callbackOrder.add ("text"); });
+            controls.showButton ("action", "Action", [&]
+            {
+                ++numActions;
+                callbackOrder.add ("action");
+            });
+            controls.endFrame();
+
+            controls.queueNumberEdit ("workers", std::numeric_limits<double>::infinity());
+            controls.queueChoiceEdit ("mode", "missing");
+            controls.queueTextEdit ("workers", "wrong kind");
+            controls.queueAction ("missing");
+            controls.queueBooleanEdit ("enabled", true);
+            controls.queueNumberEdit ("workers", 4.0);
+            controls.queueChoiceEdit ("mode", "second");
+            controls.queueTextEdit ("text", "after");
+            controls.queueAction ("action");
+            controls.applyQueuedEdits();
+
+            expect (isEnabled);
+            expectEquals (numWorkers, 4);
+            expectEquals (selectedMode, String ("second"));
+            expectEquals (editableText, String ("after"));
+            expectEquals (numActions, 1);
+            expect (callbackOrder == StringArray { "enabled", "workers", "mode", "text", "action" });
+
+            controls.queueNumberEdit ("workers", (double) B2_MAX_WORKERS + 100.0);
+            controls.applyQueuedEdits();
+            expectEquals (numWorkers, (int) B2_MAX_WORKERS);
+
+            const auto* staleWorkerSnapshot = controls.findItem ("workers");
+            expect (staleWorkerSnapshot != nullptr);
+
+            if (staleWorkerSnapshot != nullptr)
+                expectEquals (staleWorkerSnapshot->value, 1.0);
+
+            const auto structureRevision = controls.getStructureRevision();
+            controls.beginFrame();
+            controls.showToggle ("enabled", "Enabled", isEnabled);
+            controls.showIntegerSlider ("workers", "Workers", numWorkers, 1, B2_MAX_WORKERS);
+            controls.showChoice ("mode", "Mode", selectedMode, choices);
+            controls.showTextInput ("text", "Text", editableText);
+            controls.showButton ("action", "Action", [] {});
+            controls.endFrame();
+            expectEquals (controls.getStructureRevision(), structureRevision);
+            const auto* currentWorkerSnapshot = controls.findItem ("workers");
+            expect (currentWorkerSnapshot != nullptr);
+
+            if (currentWorkerSnapshot != nullptr)
+                expectEquals (currentWorkerSnapshot->value, (double) B2_MAX_WORKERS);
+        }
+
+        beginTest ("Interaction properties and catalogue help");
+
+        {
+            const auto genericHints = Box2DSamples::SampleInteractionCatalog::getGenericLiveHints();
+            const auto* replayHelp = Box2DSamples::SampleInteractionCatalog::find ("Replay", "Viewer");
+            expect (std::any_of (genericHints.begin(), genericHints.end(), [] (const auto& hint) { return hint.identifier == Identifier ("zoomViewport"); }));
+            expect (std::any_of (genericHints.begin(), genericHints.end(), [] (const auto& hint) { return hint.identifier == Identifier ("resetViewport"); }));
+            expect (replayHelp != nullptr);
+
+            if (replayHelp != nullptr)
+            {
+                expect (std::any_of (replayHelp->hints.begin(), replayHelp->hints.end(), [] (const auto& hint) { return hint.identifier == Identifier ("previousFrame"); }));
+                expect (std::any_of (replayHelp->hints.begin(), replayHelp->hints.end(), [] (const auto& hint) { return hint.identifier == Identifier ("previousFrames"); }));
+            }
+
+            Box2DSamples::ControlModel controls;
+            PropertyPanel properties;
+            controls.beginFrame();
+            controls.setGroup (Box2DSamples::ControlItem::Group::interactionHelp);
+            controls.showInteraction ("zoomHelp", "Mouse wheel", "Zooms the camera");
+            controls.setGroup (Box2DSamples::ControlItem::Group::sampleControls);
+            controls.showText ("sampleHeading", "Sample options", Box2DSamples::ControlItem::TextTone::subheading);
+            controls.endFrame();
+            Box2DSamples::appendControlProperties (controls, properties);
+            properties.setSize (320, 160);
+            expect (properties.getSectionNames() == StringArray { "Controls" });
+            auto* interaction = findComponentWithTitle (properties, "Mouse wheel");
+            expect (interaction != nullptr);
+
+            if (interaction != nullptr)
+            {
+                auto handler = interaction->createAccessibilityHandler();
+                expect (handler != nullptr);
+
+                if (handler != nullptr)
+                {
+                    expect (handler->getRole() == AccessibilityRole::staticText);
+                    expectEquals (handler->getTitle(), String ("Mouse wheel"));
+                    expect (handler->getDescription().contains ("Zooms the camera"));
+                }
+            }
+
+            auto* subheading = findLabelContainingText (properties, "Sample options");
+            expect (subheading != nullptr);
+
+            if (subheading != nullptr)
+                expect (subheading->getFont().isBold());
+        }
+
+        beginTest ("Adapted formatted text keeps stable identifiers");
+
+        {
+            Box2DSamples::ControlModel controls;
+            Box2DSamples::HostControlsBridge bridge;
+            const auto describeStep = [&] (int step)
+            {
+                controls.beginFrame();
+                controls.setGroup (Box2DSamples::ControlItem::Group::sampleControls);
+                bridge.beginFrame (controls);
+                HostControls::Text ("Step %d", step);
+                bridge.endFrame();
+                controls.endFrame();
+            };
+
+            describeStep (1);
+            const auto structureRevision = controls.getStructureRevision();
+            expectEquals ((int) controls.getItems().size(), 1);
+            const String identifier = controls.getItems()[0].identifier;
+            expectEquals (controls.getItems()[0].labelText, String ("Step 1"));
+            describeStep (2);
+            expectEquals (controls.getStructureRevision(), structureRevision);
+            expectEquals ((int) controls.getItems().size(), 1);
+            expectEquals (controls.getItems()[0].identifier, identifier);
+            expectEquals (controls.getItems()[0].labelText, String ("Step 2"));
         }
 
         beginTest ("Localisation refresh");
@@ -1051,7 +1271,7 @@ public:
 
         {
             Box2DSamples::Runtime runtime;
-            Box2DSamples::ControlPanel controlPanel;
+            Box2DSamples::ControlModel controlModel;
             PropertyPanel controlProperties;
             uint64 renderedControlRevision = 0;
             runtime.getContext().shouldUseReducedWorkload = true;
@@ -1059,11 +1279,11 @@ public:
 
             const auto refreshControlProperties = [&]
             {
-                if (renderedControlRevision != controlPanel.getRevision())
+                if (renderedControlRevision != controlModel.getStructureRevision())
                 {
                     controlProperties.clear();
-                    controlPanel.appendPropertiesTo (controlProperties, "Sample");
-                    renderedControlRevision = controlPanel.getRevision();
+                    Box2DSamples::appendControlProperties (controlModel, controlProperties);
+                    renderedControlRevision = controlModel.getStructureRevision();
                 }
 
                 controlProperties.refreshAll();
@@ -1077,7 +1297,9 @@ public:
 
                 if (stepIndex % 20 == 0)
                 {
-                    runtime.updateControls (controlPanel);
+                    controlModel.beginFrame();
+                    runtime.appendCurrentSampleControls (controlModel);
+                    controlModel.endFrame();
                     refreshControlProperties();
                     rollbackButton = findButton (controlProperties, "Roll Back");
                 }
@@ -1090,8 +1312,10 @@ public:
                 if (rollbackButton->onClick != nullptr)
                     rollbackButton->onClick();
 
-                controlPanel.applyQueuedEdits();
-                runtime.updateControls (controlPanel);
+                controlModel.applyQueuedEdits();
+                controlModel.beginFrame();
+                runtime.appendCurrentSampleControls (controlModel);
+                controlModel.endFrame();
                 refreshControlProperties();
 
                 for (int stepIndex = 0; stepIndex < 600 && ! containsLabelText (controlProperties, "match: hash"); ++stepIndex)
@@ -1100,7 +1324,9 @@ public:
 
                     if (stepIndex % 20 == 0)
                     {
-                        runtime.updateControls (controlPanel);
+                        controlModel.beginFrame();
+                        runtime.appendCurrentSampleControls (controlModel);
+                        controlModel.endFrame();
                         refreshControlProperties();
                     }
                 }
@@ -1145,7 +1371,35 @@ public:
             metricsWithHiddenProfiler.setRuntime (&runtime);
             auto* embeddedTimeline = dynamic_cast<Slider*> (findComponentWithTitle (metricsWithHiddenProfiler, "Replay timeline"));
             expect (! metricsWithHiddenProfiler.isProfilerVisible());
-            expect (embeddedTimeline != nullptr && embeddedTimeline->isVisible());
+            expect (embeddedTimeline == nullptr);
+
+            Box2DSamples::ControlModel replayControlModel;
+            replayControlModel.beginFrame();
+            runtime.appendCurrentSampleControls (replayControlModel);
+            replayControlModel.endFrame();
+            const auto* replayTimelineItem = replayControlModel.findItem ("replayTimeline");
+            expect (replayTimelineItem != nullptr);
+
+            if (replayTimelineItem != nullptr)
+            {
+                expect (replayTimelineItem->kind == Box2DSamples::ControlItem::Kind::number);
+                expectEquals (replayTimelineItem->labelText, String ("Replay timeline"));
+                expectEquals (replayTimelineItem->helpText, String ("Selects the current replay frame."));
+            }
+
+            PropertyPanel replayControlProperties;
+            Box2DSamples::appendControlProperties (replayControlModel, replayControlProperties);
+            auto* replayTimelineProperty = findProperty<SliderPropertyComponent> (replayControlProperties, "Replay timeline");
+            expect (replayTimelineProperty != nullptr);
+
+            if (replayTimelineProperty != nullptr)
+            {
+                auto* replayTimelineSlider = findComponent<Slider> (*replayTimelineProperty);
+                expect (replayTimelineSlider != nullptr);
+
+                if (replayTimelineSlider != nullptr)
+                    expectEquals (replayTimelineSlider->getDescription(), String ("Selects the current replay frame."));
+            }
 
             auto inspector = runtime.getCurrentSample()->createInspectorComponent();
             auto replayMetrics = runtime.getCurrentSample()->createMetricsComponent();
@@ -1178,7 +1432,7 @@ public:
                 auto* progress = dynamic_cast<ProgressBar*> (findComponentWithTitle (*replayMetrics, "Replay progress"));
                 auto* timeline = dynamic_cast<Slider*> (findComponentWithTitle (*replayMetrics, "Replay timeline"));
                 expect (progress != nullptr);
-                expect (timeline != nullptr);
+                expect (timeline == nullptr);
 
                 if (progress != nullptr)
                 {
@@ -1189,16 +1443,6 @@ public:
                         expect (handler->getRole() == AccessibilityRole::progressBar);
                 }
 
-                if (timeline != nullptr)
-                {
-                    auto handler = timeline->createAccessibilityHandler();
-                    expect (handler != nullptr);
-
-                    if (handler != nullptr)
-                        expect (handler->getRole() == AccessibilityRole::slider);
-
-                    expect (timeline->getDescription().contains ("Frame"));
-                }
             }
 
             replayMetrics.reset();
@@ -1325,7 +1569,7 @@ public:
 
         {
             Box2DSamples::Runtime runtime;
-            Box2DSamples::ControlPanel controlPanel;
+            Box2DSamples::ControlModel controlModel;
             Box2DSamples::Canvas canvas;
             const auto& entries = Box2DSamples::Catalog::getEntries();
             expectEquals ((int) entries.size(), g_sampleCount);
@@ -1336,9 +1580,11 @@ public:
 
             for (int sampleIndex = 0; sampleIndex < (int) entries.size(); ++sampleIndex)
             {
-                controlPanel.clear();
+                controlModel.clear();
                 expect (runtime.selectSample (sampleIndex).wasOk(), String::fromUTF8 (entries[(size_t) sampleIndex].name));
-                runtime.updateControls (controlPanel);
+                controlModel.beginFrame();
+                runtime.appendCurrentSampleControls (controlModel);
+                controlModel.endFrame();
 
                 if (auto* sample = runtime.getCurrentSample())
                 {
@@ -1352,7 +1598,7 @@ public:
                 canvas.paint (graphics);
             }
 
-            controlPanel.clear();
+            controlModel.clear();
         }
     }
 };

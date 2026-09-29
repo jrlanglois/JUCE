@@ -120,6 +120,9 @@ void Canvas::applyPendingInput()
 
 void Canvas::updateAccessibility (const String& sampleName, const String& instructions)
 {
+    if (getTitle() == sampleName && getDescription() == instructions)
+        return;
+
     setTitle (sampleName);
     setDescription (instructions);
     invalidateAccessibilityHandler();

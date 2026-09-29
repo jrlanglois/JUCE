@@ -1117,13 +1117,19 @@
     <ClCompile Include="..\..\..\Utilities\Box2D\Context.cpp">
       <Filter>DemoRunner\Box2D</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\Box2D\ControlPanel.cpp">
+    <ClCompile Include="..\..\..\Utilities\Box2D\ControlModel.cpp">
+      <Filter>DemoRunner\Box2D</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Utilities\Box2D\ControlPropertyPresenter.cpp">
       <Filter>DemoRunner\Box2D</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Utilities\Box2D\DrawList.cpp">
       <Filter>DemoRunner\Box2D</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Utilities\Box2D\HomeViews.cpp">
+      <Filter>DemoRunner\Box2D</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Utilities\Box2D\SampleInteractions.cpp">
       <Filter>DemoRunner\Box2D</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Utilities\Box2D\HostControlsBridge.cpp">

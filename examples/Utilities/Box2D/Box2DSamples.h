@@ -78,6 +78,46 @@ namespace HomeViewCatalog
     [[nodiscard]] const HomeView* find (const char* category, const char* sampleName) noexcept;
 }
 
+/** Describes one input and the action it performs. */
+struct InteractionHint final
+{
+    /** Stable untranslated merge and row key. */
+    Identifier identifier;
+
+    /** Static translated-at-display-time input and action descriptions. */
+    String inputDescription,
+           actionDescription;
+};
+
+/** Associates interaction hints with one stable sample identity. */
+struct SampleInteractionHelp final
+{
+    /** Static unrestricted upstream category and sample-name keys. */
+    String category,
+           sampleName;
+
+    /** Ordered interaction hints shown after the global controls. */
+    Span<const InteractionHint> hints;
+};
+
+namespace SampleInteractionCatalog
+{
+    /** @returns the generic interactions shared by ordinary live samples. */
+    [[nodiscard]] Span<const InteractionHint> getGenericLiveHints() noexcept;
+
+    /** @returns every authored sample interaction definition. */
+    [[nodiscard]] Span<const SampleInteractionHelp> getEntries() noexcept;
+
+    /** Finds interaction help for one stable upstream identity without allocating temporary strings.
+
+        @param category    Upstream category key.
+        @param sampleName  Upstream sample-name key.
+
+        @returns the matching static definition, or `nullptr` when the sample has no additional interactions.
+    */
+    [[nodiscard]] const SampleInteractionHelp* find (StringRef category, StringRef sampleName) noexcept;
+}
+
 /** Stores and transforms the sample viewport. */
 struct Camera final
 {
@@ -184,87 +224,207 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DrawList)
 };
 
-/** Presents immediate sample-control semantics through retained JUCE property rows. */
-class ControlPanel final
+/** Describes one stable choice without prescribing its presentation. */
+struct ControlChoice final
 {
-public:
-    /** Selects the visual treatment for a text row. */
+    /** Stable untranslated identifier and translated visible label. */
+    String identifier,
+           labelText;
+};
+
+/** Describes one Box2D demo control without prescribing its presentation. */
+struct ControlItem final
+{
+    /** Identifies a semantic control group. */
+    enum class Group
+    {
+        catalogue,
+        primaryActions,
+        interactionHelp,
+        sampleControls,
+        simulation,
+        solver,
+        drawing,
+        recording,
+        viewCalibration
+    };
+
+    /** Identifies a control's interaction shape. */
+    enum class Kind
+    {
+        button,
+        radioButton,
+        toggle,
+        number,
+        choice,
+        textInput,
+        text,
+        separator,
+        progress,
+        interaction
+    };
+
+    /** Identifies a non-interactive text row's emphasis. */
     enum class TextTone
     {
         standard,
         secondary,
-        heading,
-        warning
+        warning,
+        subheading
     };
 
-    /** Constructs an empty control panel. */
-    ControlPanel();
+    //==============================================================================
+    /** Stable identifier retained across descriptions. */
+    String identifier;
 
-    /** Destroys the control panel. */
-    ~ControlPanel();
+    /** Semantic group selected by the producer. */
+    Group group = Group::sampleControls;
+
+    /** Interaction shape presented by a view. */
+    Kind kind = Kind::text;
+
+    /** Emphasis applied when `kind` is `text`. */
+    TextTone textTone = TextTone::standard;
+
+    /** Translated visible label, current editable text, and reusable help description. */
+    String labelText,
+           stringValue,
+           helpText;
+
+    /** Stable choices presented when `kind` is `choice`. */
+    std::vector<ControlChoice> choices;
+
+    /** Current scalar value for a number or progress item. */
+    double value = 0.0,
+           minValue = 0.0,
+           maxValue = 1.0,
+           interval = 0.0;
+
+    /** Selected stable choice, or an empty value when selection is invalid. */
+    std::optional<String> selectedChoiceIdentifier;
+
+    /** Decimal precision requested for a number item. */
+    int numDecimalPlaces = 0;
+
+    /** Whether the control accepts edits. */
+    bool enabled = true,
+         booleanValue = false;
+};
+
+/** Retains one ordered description of Box2D demo controls. */
+class ControlModel final
+{
+public:
+    /** Creates an empty control model. */
+    ControlModel();
+
+    /** Releases retained controls and callbacks. */
+    ~ControlModel();
 
     //==============================================================================
-    /** Begins one control-description pass. */
-    void beginFrame();
-
-    /** Applies queued values and actions through bindings from the preceding description pass. */
+    /** Applies edits queued through stable control identifiers. */
     void applyQueuedEdits();
 
-    /** Drops all queued values, actions, bindings, and retained control rows. */
+    /** Starts one control-description pass and invalidates outstanding item views. */
+    void beginFrame();
+
+    /** Selects the semantic group assigned to subsequent controls. */
+    void setGroup (ControlItem::Group group);
+
+    /** Finishes one control-description pass and publishes its items. */
+    void endFrame();
+
+    /** Removes controls, callbacks, and queued edits before their owners are destroyed. */
     void clear();
 
-    /** Appends the live rows to a property panel, which takes ownership of the created property components. */
-    void appendPropertiesTo (PropertyPanel& propertyPanel, const String& defaultSectionTitle) const;
+    /** @returns a view of the published ordered items, valid until the next `beginFrame()` or `clear()`. */
+    [[nodiscard]] Span<const ControlItem> getItems() const noexcept;
 
-    /** @returns the revision of the live property structure. */
-    [[nodiscard]] uint64 getRevision() const noexcept;
+    /** Finds one published item. The pointer remains valid only while the current item view remains valid. */
+    [[nodiscard]] const ControlItem* findItem (const String& identifier) const noexcept;
 
-    /** Shows a native button and binds one queued activation to `action`. */
-    void showButton (const String& identifier, const String& text, std::function<void()> action, bool shouldEnable = true);
+    /** @returns the revision of the published identifiers, groups, and kinds. */
+    [[nodiscard]] uint64 getStructureRevision() const noexcept;
 
-    /** Shows a native toggle and binds queued edits to `value`. */
-    void showToggle (const String& identifier, const String& text, bool& value, std::function<void()> editAction = {}, bool shouldEnable = true);
+    //==============================================================================
+    /** Queues one action for the next edit application pass. */
+    void queueAction (const String& identifier);
 
-    /** Shows a native floating-point slider and binds queued edits to `value`. */
-    void showFloatSlider (const String& identifier, const String& text, float& value, float minValue, float maxValue, int numDecimalPlaces, std::function<void()> editAction = {}, bool shouldEnable = true);
+    /** Queues one Boolean edit for the next edit application pass. */
+    void queueBooleanEdit (const String& identifier, bool value);
 
-    /** Shows two native floating-point sliders and binds queued edits to `value`. */
-    void showFloatPairSliders (const String& identifier, const String& text, b2Vec2& value, float minValue, float maxValue, int numDecimalPlaces, std::function<void()> editAction = {}, bool shouldEnable = true);
+    /** Queues one number edit for the next edit application pass. */
+    void queueNumberEdit (const String& identifier, double value);
 
-    /** Shows a native integer slider and binds queued edits to `value`. */
-    void showIntegerSlider (const String& identifier, const String& text, int& value, int minValue, int maxValue, std::function<void()> editAction = {}, bool shouldEnable = true);
+    /** Queues one choice edit for the next edit application pass. */
+    void queueChoiceEdit (const String& identifier, const String& choiceIdentifier);
 
-    /** Shows a native choice control and binds queued selections to `selectedIndex`. */
-    void showChoice (const String& identifier, const String& text, int& selectedIndex, const StringArray& itemNames, std::function<void()> editAction = {}, bool shouldEnable = true);
+    /** Queues one text edit for the next edit application pass. */
+    void queueTextEdit (const String& identifier, const String& value);
 
-    /** Shows a native radio button and binds one queued activation to `action`. */
-    void showRadioButton (const String& identifier, const String& text, bool isSelected, std::function<void()> action, bool shouldEnable = true);
+    //==============================================================================
+    /** Describes a translated button control. */
+    void showButton (const String& identifier, const String& displayText, std::function<void()> action, bool shouldEnable = true);
 
-    /** Shows a native list and binds queued selections to `selectedIndex`. */
-    void showList (const String& identifier, int& selectedIndex, const StringArray& itemNames, int numVisibleRows, std::function<void()> editAction = {}, bool shouldEnable = true);
+    /** Describes a translated radio-button control whose activation queues an action. */
+    void showRadioButton (const String& identifier, const String& displayText, bool isSelected, std::function<void()> action, bool shouldEnable = true);
 
-    /** Shows one translated text row. */
-    void showText (const String& identifier, const String& text, TextTone tone = TextTone::standard);
+    /** Describes a translated Boolean control. */
+    void showToggle (const String& identifier, const String& displayText, bool& value, std::function<void()> editAction = {}, bool shouldEnable = true);
 
-    /** Shows one semantic group separator. */
+    /** Describes a translated numeric control. */
+    void showFloatSlider (const String& identifier, const String& displayText, float& value, float minValue, float maxValue, int numDecimalPlaces, std::function<void()> editAction = {}, bool shouldEnable = true);
+
+    /** Describes translated X and Y controls using stable `.x` and `.y` identifier suffixes. */
+    void showFloatPairSliders (const String& identifier, const String& displayText, b2Vec2& value, float minValue, float maxValue, int numDecimalPlaces, std::function<void()> editAction = {}, bool shouldEnable = true);
+
+    /** Describes a translated integer control. */
+    void showIntegerSlider (const String& identifier, const String& displayText, int& value, int minValue, int maxValue, std::function<void()> editAction = {}, bool shouldEnable = true);
+
+    /** Describes a translated choice control. */
+    void showChoice (const String& identifier, const String& displayText, int& selectedIndex, const StringArray& itemNames, std::function<void()> editAction = {}, bool shouldEnable = true);
+
+    /** Describes a translated choice control with stable producer-owned choices. */
+    void showChoice (const String& identifier, const String& displayText, String& selectedChoiceIdentifier, Span<const ControlChoice> choices, std::function<void()> editAction = {}, bool shouldEnable = true);
+
+    /** Describes a translated text-input control. */
+    void showTextInput (const String& identifier, const String& displayText, String& value, std::function<void()> editAction = {}, bool shouldEnable = true);
+
+    /** Describes translated read-only text. */
+    void showText (const String& identifier, const String& text, ControlItem::TextTone tone = ControlItem::TextTone::standard);
+
+    /** Describes a visual separator. */
     void showSeparator (const String& identifier);
 
-    /** Shows one labelled progress indicator. */
-    void showProgress (const String& identifier, const String& text, double progress);
+    /** Describes a translated progress control. */
+    void showProgress (const String& identifier, const String& displayText, double fraction);
 
-    /** Completes the pass and retires unused controls. */
-    void endFrame();
+    /** Describes one translated interaction, mapping its input to the label and its action to help text. */
+    void showInteraction (const String& identifier, const String& inputDescription, const String& actionDescription);
+
+    /** Assigns translated help text to an item already described in the current pass. */
+    void setHelpText (const String& identifier, const String& helpText);
 
 private:
     //==============================================================================
-    class Pimpl;
+    struct Pimpl;
 
     //==============================================================================
     std::unique_ptr<Pimpl> pimpl;
 
     //==============================================================================
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ControlPanel)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ControlModel)
 };
+
+/** Appends the desktop PropertyPanel presentation of one published control model.
+
+    The model must outlive the appended properties, or the panel must be cleared before the model is destroyed.
+    The caller clears and appends again when `getStructureRevision()` changes, and calls `PropertyPanel::refreshAll()` when only published values or presentation metadata change.
+
+    @param controlModel   Model supplying item state and accepting queued edits.
+    @param propertyPanel  Panel that takes ownership of the generated desktop properties.
+*/
+void appendControlProperties (ControlModel& controlModel, PropertyPanel& propertyPanel);
 
 /** Holds one sample's simulation settings. */
 struct SimulationSettings final
@@ -354,8 +514,8 @@ public:
     /** Rebuilds query results and sample-specific drawing commands for one presented frame. */
     virtual void prepareFrame();
 
-    /** Describes or refreshes the sample's native control rows. */
-    virtual void updateControls (ControlPanel& controls);
+    /** Describes or refreshes the sample's controls during an open pass. */
+    virtual void updateControls (ControlModel& controls);
 
     /** Handles one focused key press. */
     virtual bool handleKeyPress (const KeyPress& key);
@@ -491,8 +651,11 @@ public:
     /** Discards the preceding presentation timestamp and any unconsumed elapsed time. */
     void resetPresentationClock() noexcept;
 
-    /** Refreshes the active sample's native controls. */
-    void updateControls (ControlPanel& controls);
+    /** Appends the active sample's items during an open control-description pass.
+
+        @param controls  Receives items during an existing `beginFrame()` / `endFrame()` pass.
+    */
+    void appendCurrentSampleControls (ControlModel& controls);
 
     /** Begins recording the active ordinary sample. */
     void startRecording();

@@ -160,9 +160,11 @@
     <ClCompile Include="..\..\..\Utilities\Box2D\Catalog.cpp"/>
     <ClCompile Include="..\..\..\Utilities\Box2D\Canvas.cpp"/>
     <ClCompile Include="..\..\..\Utilities\Box2D\Context.cpp"/>
-    <ClCompile Include="..\..\..\Utilities\Box2D\ControlPanel.cpp"/>
+    <ClCompile Include="..\..\..\Utilities\Box2D\ControlModel.cpp"/>
+    <ClCompile Include="..\..\..\Utilities\Box2D\ControlPropertyPresenter.cpp"/>
     <ClCompile Include="..\..\..\Utilities\Box2D\DrawList.cpp"/>
     <ClCompile Include="..\..\..\Utilities\Box2D\HomeViews.cpp"/>
+    <ClCompile Include="..\..\..\Utilities\Box2D\SampleInteractions.cpp"/>
     <ClCompile Include="..\..\..\Utilities\Box2D\HostControlsBridge.cpp"/>
     <ClCompile Include="..\..\..\Utilities\Box2D\HostDrawBridge.cpp"/>
     <ClCompile Include="..\..\..\Utilities\Box2D\MetricsComponent.cpp"/>
