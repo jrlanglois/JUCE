@@ -80,6 +80,7 @@ OBJECTS_CONSOLEAPP := \
   $(JUCE_OBJDIR)/Context_4aab7587.o \
   $(JUCE_OBJDIR)/ControlPanel_260e6f19.o \
   $(JUCE_OBJDIR)/DrawList_e9c7f974.o \
+  $(JUCE_OBJDIR)/HomeViews_aea47be7.o \
   $(JUCE_OBJDIR)/HostControlsBridge_b745f859.o \
   $(JUCE_OBJDIR)/HostDrawBridge_c087efe7.o \
   $(JUCE_OBJDIR)/MetricsComponent_e82507ec.o \
@@ -220,6 +221,11 @@ $(JUCE_OBJDIR)/ControlPanel_260e6f19.o: ../../../../examples/Utilities/Box2D/Con
 $(JUCE_OBJDIR)/DrawList_e9c7f974.o: ../../../../examples/Utilities/Box2D/DrawList.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling DrawList.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_CONSOLEAPP) $(JUCE_CFLAGS_CONSOLEAPP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/HomeViews_aea47be7.o: ../../../../examples/Utilities/Box2D/HomeViews.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling HomeViews.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_CONSOLEAPP) $(JUCE_CFLAGS_CONSOLEAPP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/HostControlsBridge_b745f859.o: ../../../../examples/Utilities/Box2D/HostControlsBridge.cpp

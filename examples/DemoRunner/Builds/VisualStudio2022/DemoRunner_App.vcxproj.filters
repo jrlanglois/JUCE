@@ -1123,6 +1123,9 @@
     <ClCompile Include="..\..\..\Utilities\Box2D\DrawList.cpp">
       <Filter>DemoRunner\Box2D</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\Utilities\Box2D\HomeViews.cpp">
+      <Filter>DemoRunner\Box2D</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\Utilities\Box2D\HostControlsBridge.cpp">
       <Filter>DemoRunner\Box2D</Filter>
     </ClCompile>

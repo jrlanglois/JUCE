@@ -84,6 +84,7 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/Context_e9ea0de.o \
   $(JUCE_OBJDIR)/ControlPanel_d6d3c222.o \
   $(JUCE_OBJDIR)/DrawList_a43a38fd.o \
+  $(JUCE_OBJDIR)/HomeViews_427a2d7e.o \
   $(JUCE_OBJDIR)/HostControlsBridge_819920a2.o \
   $(JUCE_OBJDIR)/HostDrawBridge_5544a4b0.o \
   $(JUCE_OBJDIR)/MetricsComponent_4087ae75.o \
@@ -246,6 +247,11 @@ $(JUCE_OBJDIR)/ControlPanel_d6d3c222.o: ../../../Utilities/Box2D/ControlPanel.cp
 $(JUCE_OBJDIR)/DrawList_a43a38fd.o: ../../../Utilities/Box2D/DrawList.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling DrawList.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/HomeViews_427a2d7e.o: ../../../Utilities/Box2D/HomeViews.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling HomeViews.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/HostControlsBridge_819920a2.o: ../../../Utilities/Box2D/HostControlsBridge.cpp

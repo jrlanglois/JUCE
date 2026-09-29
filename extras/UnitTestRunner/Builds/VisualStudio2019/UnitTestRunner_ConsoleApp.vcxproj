@@ -158,6 +158,7 @@
     <ClCompile Include="..\..\..\..\examples\Utilities\Box2D\Context.cpp"/>
     <ClCompile Include="..\..\..\..\examples\Utilities\Box2D\ControlPanel.cpp"/>
     <ClCompile Include="..\..\..\..\examples\Utilities\Box2D\DrawList.cpp"/>
+    <ClCompile Include="..\..\..\..\examples\Utilities\Box2D\HomeViews.cpp"/>
     <ClCompile Include="..\..\..\..\examples\Utilities\Box2D\HostControlsBridge.cpp"/>
     <ClCompile Include="..\..\..\..\examples\Utilities\Box2D\HostDrawBridge.cpp"/>
     <ClCompile Include="..\..\..\..\examples\Utilities\Box2D\MetricsComponent.cpp"/>

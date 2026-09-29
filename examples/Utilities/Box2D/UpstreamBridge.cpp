@@ -190,7 +190,7 @@ bool UpstreamSampleAdapter::handleKeyPress (const KeyPress& key)
     if (upstreamSample == nullptr)
         return false;
 
-    upstreamSample->Keyboard (key.getTextCharacter(), 0, 0);
+    upstreamSample->Keyboard (static_cast<int> (key.getTextCharacter()), 0, 0);
     return true;
 }
 

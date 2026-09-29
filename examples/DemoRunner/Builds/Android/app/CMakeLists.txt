@@ -79,6 +79,7 @@ add_library( ${BINARY_NAME}
     "../../../../Utilities/Box2D/Context.cpp"
     "../../../../Utilities/Box2D/ControlPanel.cpp"
     "../../../../Utilities/Box2D/DrawList.cpp"
+    "../../../../Utilities/Box2D/HomeViews.cpp"
     "../../../../Utilities/Box2D/HostControlsBridge.cpp"
     "../../../../Utilities/Box2D/HostControlsBridge.h"
     "../../../../Utilities/Box2D/HostDrawBridge.cpp"

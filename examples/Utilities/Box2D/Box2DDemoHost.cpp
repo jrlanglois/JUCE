@@ -148,8 +148,8 @@ private:
 class EmbeddedComponentProperty final : public PropertyComponent
 {
 public:
-    EmbeddedComponentProperty (Component& componentIn, int preferredHeight) :
-        PropertyComponent ({}, preferredHeight),
+    EmbeddedComponentProperty (Component& componentIn, int preferredComponentHeight) :
+        PropertyComponent ({}, preferredComponentHeight),
         component (componentIn)
     {
         addAndMakeVisible (component);
