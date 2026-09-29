@@ -85,7 +85,12 @@ public:
         refreshTranslations();
 
         if (! filteredSampleIndices.empty())
+        {
             pendingCatalogueIndex = filteredSampleIndices.front();
+
+            if (const auto identifier = getCatalogueIdentifier (*pendingCatalogueIndex))
+                selectedSampleIdentifier = *identifier;
+        }
 
         refreshControlModel();
         rebuildPropertiesIfNeeded();
@@ -141,7 +146,7 @@ public:
     void refreshTranslations()
     {
         activeLanguageSignature = getCurrentLanguageSignature();
-        const String selectedCategory = getSelectedCategory();
+        const auto selectedCategory = getSelectedCategory();
         propertyPanel.setTitle (TRANS ("Box2D controls"));
         propertyPanel.setDescription (TRANS ("Selects a Box2D sample and configures its simulation and presentation."));
         rebuildCategoryChoices (selectedCategory);
@@ -170,18 +175,18 @@ public:
     std::unique_ptr<FileChooser> openReplayChooser,
                                  saveRecordingChooser;
     ThreadPool fileIOThreadPool { 1 };
-    std::optional<int> pendingCatalogueIndex;
+    std::optional<int> activeCatalogueIndex,
+                       pendingCatalogueIndex;
     std::optional<Box2DSamples::ReplayFileReadResult> pendingReplayRead;
+    std::optional<MemoryBlock> lastRecording;
+    std::optional<String> fileStatus;
     std::vector<int> filteredSampleIndices;
     StringArray categoryKeys;
-    MemoryBlock lastRecording;
     String activeLanguageSignature,
            catalogueSearch,
-           fileStatus,
            selectedCategoryIdentifier = "catalogue.allCategories",
            selectedSampleIdentifier;
     uint64 renderedControlStructureRevision = 0;
-    int activeCatalogueIndex = -1;
     bool recordingActive = false,
          fileIOBusy = false,
          hasFinishedConstruction = false,
@@ -201,32 +206,36 @@ private:
         return {};
     }
 
-    String getCatalogueIdentifier (int catalogueIndex) const
+    std::optional<String> getCatalogueIdentifier (int catalogueIndex) const
     {
         if (! isPositiveAndBelow (catalogueIndex, (int) Box2DSamples::Catalog::getEntries().size()))
-            return {};
+            return std::nullopt;
 
         const auto& entry = Box2DSamples::Catalog::getEntries()[(size_t) catalogueIndex];
         return String::fromUTF8 (entry.category) + "\n" + String::fromUTF8 (entry.name);
     }
 
-    int getCatalogueIndex (const String& identifier) const
+    std::optional<int> getCatalogueIndex (const String& identifier) const
     {
         for (const int catalogueIndex : filteredSampleIndices)
         {
-            if (getCatalogueIdentifier (catalogueIndex) == identifier)
-                return catalogueIndex;
+            if (const auto catalogueIdentifier = getCatalogueIdentifier (catalogueIndex);
+                catalogueIdentifier.has_value() && *catalogueIdentifier == identifier)
+                return std::optional<int> (catalogueIndex);
         }
 
-        return -1;
+        return std::nullopt;
     }
 
-    String getSelectedCategory() const
+    std::optional<String> getSelectedCategory() const
     {
-        return selectedCategoryIdentifier == "catalogue.allCategories" ? String() : selectedCategoryIdentifier;
+        if (selectedCategoryIdentifier == "catalogue.allCategories")
+            return std::nullopt;
+
+        return selectedCategoryIdentifier;
     }
 
-    void rebuildCategoryChoices (const String& selectedCategory)
+    void rebuildCategoryChoices (const std::optional<String>& selectedCategory)
     {
         categoryKeys.clear();
 
@@ -238,22 +247,26 @@ private:
                 categoryKeys.add (category);
         }
 
-        selectedCategoryIdentifier = categoryKeys.contains (selectedCategory) ? selectedCategory : String ("catalogue.allCategories");
+        selectedCategoryIdentifier = "catalogue.allCategories";
+
+        if (selectedCategory.has_value() && categoryKeys.contains (*selectedCategory))
+            selectedCategoryIdentifier = *selectedCategory;
         propertiesNeedRebuild = true;
     }
 
     void refreshCatalogueFilter()
     {
         const String searchText = catalogueSearch.trim();
-        const String selectedCategory = getSelectedCategory();
+        const auto selectedCategory = getSelectedCategory();
         const auto& entries = Box2DSamples::Catalog::getEntries();
         filteredSampleIndices.clear();
 
         for (int catalogueIndex = 0; catalogueIndex < (int) entries.size(); ++catalogueIndex)
         {
             const auto& entry = entries[(size_t) catalogueIndex];
-            const bool categoryMatches = selectedCategory.isEmpty() || selectedCategory == entry.category;
-            const bool searchMatches = searchText.isEmpty() || getCatalogueLabel (catalogueIndex).containsIgnoreCase (searchText);
+            const auto catalogueLabel = getCatalogueLabel (catalogueIndex);
+            const bool categoryMatches = ! selectedCategory.has_value() || *selectedCategory == entry.category;
+            const bool searchMatches = searchText.isEmpty() || (catalogueLabel.has_value() && catalogueLabel->containsIgnoreCase (searchText));
 
             if (categoryMatches && searchMatches)
                 filteredSampleIndices.push_back (catalogueIndex);
@@ -290,7 +303,14 @@ private:
         std::vector<Box2DSamples::ControlChoice> choices;
 
         for (const int catalogueIndex : filteredSampleIndices)
-            choices.push_back ({ getCatalogueIdentifier (catalogueIndex), getCatalogueLabel (catalogueIndex) });
+        {
+            const auto identifier = getCatalogueIdentifier (catalogueIndex);
+            const auto label = getCatalogueLabel (catalogueIndex);
+            jassert (identifier.has_value() && label.has_value());
+
+            if (identifier.has_value() && label.has_value())
+                choices.push_back ({ *identifier, *label });
+        }
 
         return choices;
     }
@@ -354,8 +374,8 @@ private:
     {
         fileStatus = std::move (newStatus);
 
-        if (shouldAnnounce && fileStatus.isNotEmpty())
-            AccessibilityHandler::postAnnouncement (fileStatus, AccessibilityHandler::AnnouncementPriority::medium);
+        if (shouldAnnounce)
+            AccessibilityHandler::postAnnouncement (*fileStatus, AccessibilityHandler::AnnouncementPriority::medium);
     }
 
     void destroyAuxiliaryViews()
@@ -408,9 +428,18 @@ private:
         }
 
         activeCatalogueIndex = sampleIndex;
-        selectedSampleIdentifier = getCatalogueIdentifier (sampleIndex);
+        const auto identifier = getCatalogueIdentifier (sampleIndex);
+        const auto label = getCatalogueLabel (sampleIndex);
+        jassert (identifier.has_value() && label.has_value());
+
+        if (identifier.has_value())
+            selectedSampleIdentifier = *identifier;
+
         canvas.resetView();
-        setFileStatus (TRANS ("Selected sample: {sampleName}.").replace ("{sampleName}", getCatalogueLabel (sampleIndex)));
+
+        if (label.has_value())
+            setFileStatus (TRANS ("Selected sample: {sampleName}.").replace ("{sampleName}", *label));
+
         rebuildAuxiliaryViews();
         propertiesNeedRebuild = true;
         shouldResetPropertyScrollPosition = true;
@@ -444,7 +473,9 @@ private:
         {
             activeCatalogueIndex = *replayIndex;
             revealCatalogueIndex (*replayIndex);
-            selectedSampleIdentifier = getCatalogueIdentifier (*replayIndex);
+
+            if (const auto identifier = getCatalogueIdentifier (*replayIndex))
+                selectedSampleIdentifier = *identifier;
         }
 
         canvas.resetView();
@@ -462,9 +493,18 @@ private:
         jassert (restartResult.wasOk());
 
         if (restartResult.failed())
+        {
             setFileStatus (restartResult.getErrorMessage());
+        }
+        else if (activeCatalogueIndex.has_value())
+        {
+            if (const auto label = getCatalogueLabel (*activeCatalogueIndex))
+                setFileStatus (TRANS ("Restarted sample: {sampleName}.").replace ("{sampleName}", *label));
+        }
         else
-            setFileStatus (TRANS ("Restarted sample: {sampleName}.").replace ("{sampleName}", getCatalogueLabel (activeCatalogueIndex)));
+        {
+            jassertfalse;
+        }
 
         rebuildAuxiliaryViews();
         propertiesNeedRebuild = true;
@@ -517,7 +557,7 @@ private:
 
     void chooseRecordingDestination()
     {
-        if (lastRecording.isEmpty())
+        if (! lastRecording.has_value())
             return;
 
         const File initialFile = File::getSpecialLocation (File::userDocumentsDirectory)
@@ -563,9 +603,12 @@ private:
 
     void writeRecordingAsync (URL url)
     {
+        if (! lastRecording.has_value())
+            return;
+
         fileIOBusy = true;
         setFileStatus (TRANS ("Saving recording..."));
-        MemoryBlock recordingData = lastRecording;
+        MemoryBlock recordingData = *lastRecording;
         fileIOThreadPool.addJob ([safeOwner = SafePointer<Box2DDemo> (&owner),
                                  urlToWrite = std::move (url),
                                  recordingDataToWrite = std::move (recordingData)]
@@ -578,10 +621,10 @@ private:
 
                 safeOwner->pimpl->fileIOBusy = false;
 
-                if (error == Box2DSamples::ReplayFileError::none)
+                if (! error.has_value())
                     safeOwner->pimpl->setFileStatus (TRANS ("Recording saved."));
                 else
-                    safeOwner->pimpl->setFileStatus (Box2DSamples::getReplayFileErrorMessage (error));
+                    safeOwner->pimpl->setFileStatus (Box2DSamples::getReplayFileErrorMessage (*error));
             });
         });
     }
@@ -594,9 +637,9 @@ private:
         auto result = std::move (*pendingReplayRead);
         pendingReplayRead.reset();
 
-        if (result.error != Box2DSamples::ReplayFileError::none)
+        if (result.error.has_value())
         {
-            setFileStatus (Box2DSamples::getReplayFileErrorMessage (result.error));
+            setFileStatus (Box2DSamples::getReplayFileErrorMessage (*result.error));
             return;
         }
 
@@ -624,16 +667,19 @@ private:
         });
         controlModel.setHelpText ("catalogue.category", TRANS ("Filters the Box2D sample catalogue to one category."));
 
-        if (isPositiveAndBelow (activeCatalogueIndex, (int) Box2DSamples::Catalog::getEntries().size()))
-            selectedSampleIdentifier = getCatalogueIdentifier (activeCatalogueIndex);
+        if (activeCatalogueIndex.has_value())
+        {
+            if (const auto identifier = getCatalogueIdentifier (*activeCatalogueIndex))
+                selectedSampleIdentifier = *identifier;
+        }
 
         const auto sampleChoices = getSampleChoices();
         controlModel.showChoice ("catalogue.sample", TRANS ("Sample"), selectedSampleIdentifier, sampleChoices, [this]
         {
-            const int catalogueIndex = getCatalogueIndex (selectedSampleIdentifier);
+            const auto catalogueIndex = getCatalogueIndex (selectedSampleIdentifier);
 
-            if (catalogueIndex >= 0)
-                pendingCatalogueIndex = catalogueIndex;
+            if (catalogueIndex.has_value())
+                pendingCatalogueIndex = *catalogueIndex;
         });
         controlModel.setHelpText ("catalogue.sample", TRANS ("Selects the Box2D sample to run."));
 
@@ -659,9 +705,9 @@ private:
         controlModel.setGroup (Box2DSamples::ControlItem::Group::interactionHelp);
         std::vector<Box2DSamples::InteractionHint> interactionHints;
 
-        if (isPositiveAndBelow (activeCatalogueIndex, (int) Box2DSamples::Catalog::getEntries().size()))
+        if (activeCatalogueIndex.has_value() && isPositiveAndBelow (*activeCatalogueIndex, (int) Box2DSamples::Catalog::getEntries().size()))
         {
-            const auto& entry = Box2DSamples::Catalog::getEntries()[(size_t) activeCatalogueIndex];
+            const auto& entry = Box2DSamples::Catalog::getEntries()[(size_t) *activeCatalogueIndex];
             const auto* sampleHelp = Box2DSamples::SampleInteractionCatalog::find (entry.category, entry.name);
 
             if (entry.isReplayViewer)
@@ -704,8 +750,13 @@ private:
                                             .replace ("{action}", actionDescription));
         }
 
-        if (hasSample)
-            canvas.updateAccessibility (getCatalogueLabel (activeCatalogueIndex), accessibleInteractions.joinIntoString (" "));
+        std::optional<String> activeCatalogueLabel;
+
+        if (activeCatalogueIndex.has_value())
+            activeCatalogueLabel = getCatalogueLabel (*activeCatalogueIndex);
+
+        if (hasSample && activeCatalogueLabel.has_value())
+            canvas.updateAccessibility (*activeCatalogueLabel, accessibleInteractions.joinIntoString (" "));
         else
             canvas.updateAccessibility (TRANS ("Box2D sample canvas"), TRANS ("Select a sample from the catalogue."));
 
@@ -784,15 +835,16 @@ private:
         controlModel.showButton ("recording.openReplay", TRANS ("Open recording..."), [this] { chooseReplayFile(); }, ! fileIOBusy);
         controlModel.showButton ("recording.playLast", TRANS ("Play last recording"), [this]
         {
-            selectReplayData (lastRecording, TRANS ("Last recording"));
-        }, ! lastRecording.isEmpty() && ! fileIOBusy);
+            if (lastRecording.has_value())
+                selectReplayData (*lastRecording, TRANS ("Last recording"));
+        }, lastRecording.has_value() && ! fileIOBusy);
         controlModel.showButton ("recording.saveLast", TRANS ("Save last recording..."), [this]
         {
             chooseRecordingDestination();
-        }, ! lastRecording.isEmpty() && ! fileIOBusy);
+        }, lastRecording.has_value() && ! fileIOBusy);
 
-        if (fileStatus.isNotEmpty())
-            controlModel.showText ("recording.fileStatus", fileStatus, Box2DSamples::ControlItem::TextTone::secondary);
+        if (fileStatus.has_value())
+            controlModel.showText ("recording.fileStatus", *fileStatus, Box2DSamples::ControlItem::TextTone::secondary);
 
         controlModel.setGroup (Box2DSamples::ControlItem::Group::viewCalibration);
         const auto& context = runtime.getContext();
@@ -845,10 +897,10 @@ private:
         }
     }
 
-    String getCatalogueLabel (int catalogueIndex) const
+    std::optional<String> getCatalogueLabel (int catalogueIndex) const
     {
         if (! isPositiveAndBelow (catalogueIndex, (int) Box2DSamples::Catalog::getEntries().size()))
-            return {};
+            return std::nullopt;
 
         const auto& entry = Box2DSamples::Catalog::getEntries()[(size_t) catalogueIndex];
         return TRANS (entry.category) + " " + String::fromUTF8 ("\xe2\x80\x94") + " " + TRANS (entry.name);

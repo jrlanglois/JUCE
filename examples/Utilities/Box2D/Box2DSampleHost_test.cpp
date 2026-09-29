@@ -36,7 +36,7 @@ struct Box2DDemoTestAccess final
 namespace
 {
 
-int findSampleIndex (const char* category, const char* name)
+std::optional<int> findSampleIndex (const char* category, const char* name)
 {
     const auto& entries = Box2DSamples::Catalog::getEntries();
 
@@ -48,7 +48,15 @@ int findSampleIndex (const char* category, const char* name)
             return index;
     }
 
-    return -1;
+    return std::nullopt;
+}
+
+Result selectSample (Box2DSamples::Runtime& runtime, const char* category, const char* name)
+{
+    if (const auto sampleIndex = findSampleIndex (category, name))
+        return runtime.selectSample (*sampleIndex);
+
+    return Result::fail ("The requested Box2D test sample is not registered.");
 }
 
 TextButton* findButton (Component& parent, const String& text)
@@ -232,7 +240,7 @@ std::optional<MemoryBlock> createRecording (const char* category, const char* na
     Box2DSamples::Runtime runtime;
     runtime.getContext().shouldUseReducedWorkload = true;
 
-    if (runtime.selectSample (findSampleIndex (category, name)).failed())
+    if (selectSample (runtime, category, name).failed())
         return std::nullopt;
 
     runtime.startRecording();
@@ -344,7 +352,7 @@ public:
         {
             Box2DSamples::Runtime runtime;
             runtime.getContext().shouldUseReducedWorkload = true;
-            expect (runtime.selectSample (findSampleIndex ("Bodies", "Bad")).wasOk());
+            expect (selectSample (runtime, "Bodies", "Bad").wasOk());
             runtime.getContext().settings.hertz = 60.0f;
             runtime.resetPresentationClock();
 
@@ -383,7 +391,7 @@ public:
         {
             Box2DSamples::Runtime runtime;
             runtime.getContext().shouldUseReducedWorkload = true;
-            expect (runtime.selectSample (findSampleIndex ("Bodies", "Bad")).wasOk());
+            expect (selectSample (runtime, "Bodies", "Bad").wasOk());
             auto& settings = runtime.getContext().settings;
             settings.hertz = 60.0f;
             settings.isPaused = false;
@@ -407,7 +415,7 @@ public:
         {
             Box2DSamples::Runtime runtime;
             runtime.getContext().shouldUseReducedWorkload = true;
-            expect (runtime.selectSample (findSampleIndex ("Bodies", "Bad")).wasOk());
+            expect (selectSample (runtime, "Bodies", "Bad").wasOk());
             auto& settings = runtime.getContext().settings;
             settings.hertz = 60.0f;
             settings.isPaused = true;
@@ -442,7 +450,8 @@ public:
             context.camera.zoom = 7.0f;
             context.debugDraw.drawJoints = false;
 
-            expect (runtime.selectSample (findSampleIndex ("Bodies", "Bad")).wasOk());
+            expect (runtime.restartSample().failed());
+            expect (selectSample (runtime, "Bodies", "Bad").wasOk());
             const Box2DSamples::SimulationSettings defaultSettings;
             expectEquals (settings.numSubSteps, defaultSettings.numSubSteps);
             expectEquals (settings.numRestitutionIterations, defaultSettings.numRestitutionIterations);
@@ -487,9 +496,9 @@ public:
         {
             Box2DSamples::Runtime runtime;
             runtime.getContext().shouldUseReducedWorkload = true;
-            expect (runtime.selectSample (findSampleIndex ("Robustness", "Cart")).wasOk());
+            expect (selectSample (runtime, "Robustness", "Cart").wasOk());
             expectEquals (runtime.getContext().settings.numSubSteps, 12);
-            expect (runtime.selectSample (findSampleIndex ("Events", "Sensor Funnel")).wasOk());
+            expect (selectSample (runtime, "Events", "Sensor Funnel").wasOk());
             expect (! runtime.getContext().debugDraw.drawJoints);
         }
 
@@ -500,7 +509,7 @@ public:
             runtime.getContext().shouldUseReducedWorkload = true;
             auto& camera = runtime.getContext().camera;
             camera.setDrawableSize (640.0f, 480.0f);
-            expect (runtime.selectSample (findSampleIndex ("Joints", "Desk Lamp")).wasOk());
+            expect (selectSample (runtime, "Joints", "Desk Lamp").wasOk());
             expect (runtime.getContext().homeView != nullptr);
 
             if (runtime.getContext().homeView != nullptr)
@@ -544,7 +553,7 @@ public:
             auto& camera = context.camera;
             context.shouldUseReducedWorkload = true;
             canvas.setRuntime (&runtime);
-            expect (runtime.selectSample (findSampleIndex ("Joints", "Desk Lamp")).wasOk());
+            expect (selectSample (runtime, "Joints", "Desk Lamp").wasOk());
             expect (context.homeView != nullptr);
             expectWithinAbsoluteError (camera.drawableWidth, 0.0f, 0.001f);
             expectWithinAbsoluteError (camera.drawableHeight, 0.0f, 0.001f);
@@ -623,7 +632,7 @@ public:
             canvas.resized();
             expect (std::abs (camera.zoom - resetZoom) > 0.001f);
 
-            expect (runtime.selectSample (findSampleIndex ("World", "Far Gate")).wasOk());
+            expect (selectSample (runtime, "World", "Far Gate").wasOk());
             canvas.resetView();
             expect (camera.centre.x > 900000.0f);
             expect (context.homeView != nullptr);
@@ -650,7 +659,7 @@ public:
             canvas.setSize (320, 240);
             canvas.setRuntime (&runtime);
             runtime.getContext().settings.isPaused = true;
-            expect (runtime.selectSample (findSampleIndex ("Bodies", "Bad")).wasOk());
+            expect (selectSample (runtime, "Bodies", "Bad").wasOk());
             canvas.resized();
 
             const auto stepsBefore = runtime.getCurrentSample()->getNumSteps();
@@ -1295,7 +1304,7 @@ public:
         {
             Box2DSamples::Runtime runtime;
             runtime.getContext().shouldUseReducedWorkload = true;
-            expect (runtime.selectSample (findSampleIndex ("Bodies", "Bad")).wasOk());
+            expect (selectSample (runtime, "Bodies", "Bad").wasOk());
             runtime.getCurrentSample()->advanceSimulation();
             Box2DSamples::MetricsComponent metrics;
             metrics.setRuntime (&runtime);
@@ -1342,7 +1351,7 @@ public:
             Box2DSamples::Runtime runtime;
             Box2DSamples::Canvas canvas;
             runtime.getContext().shouldUseReducedWorkload = true;
-            expect (runtime.selectSample (findSampleIndex ("Geometry", "Convex Hull")).wasOk());
+            expect (selectSample (runtime, "Geometry", "Convex Hull").wasOk());
             canvas.setSize (320, 240);
             canvas.setRuntime (&runtime);
             canvas.resized();
@@ -1371,7 +1380,7 @@ public:
                 receivedModifierFreeKey = receivedModifierFreeKey && ! key.getModifiers().isAnyModifierKeyDown();
                 return key.isKeyCode ('d');
             });
-            expect (runtime.selectSample (findSampleIndex ("Character", "Dynamic Mover")).wasOk());
+            expect (selectSample (runtime, "Character", "Dynamic Mover").wasOk());
             runtime.getCurrentSample()->advanceSimulation();
             expect (numKeyQueries > 0);
             expect (receivedModifierFreeKey);
@@ -1382,7 +1391,7 @@ public:
         {
             Box2DSamples::Runtime runtime;
             runtime.getContext().shouldUseReducedWorkload = true;
-            expect (runtime.selectSample (findSampleIndex ("Stacking", "Single Box")).wasOk());
+            expect (selectSample (runtime, "Stacking", "Single Box").wasOk());
             auto* sample = runtime.getCurrentSample();
             expect (sample != nullptr);
 
@@ -1401,7 +1410,7 @@ public:
                 expectEquals (b2World_GetCounters (worldId).jointCount, initialJointCount);
             }
 
-            expect (runtime.selectSample (findSampleIndex ("Stacking", "Vertical Stack")).wasOk());
+            expect (selectSample (runtime, "Stacking", "Vertical Stack").wasOk());
             sample = runtime.getCurrentSample();
             expect (sample != nullptr);
 
@@ -1413,7 +1422,7 @@ public:
                 expectGreaterThan (b2World_GetCounters (worldId).bodyCount, initialBodyCount);
             }
 
-            expect (runtime.selectSample (findSampleIndex ("Shapes", "Rolling Resistance")).wasOk());
+            expect (selectSample (runtime, "Shapes", "Rolling Resistance").wasOk());
             sample = runtime.getCurrentSample();
             expect (sample != nullptr);
 
@@ -1433,7 +1442,7 @@ public:
             Box2DSamples::Runtime runtime;
             Box2DSamples::Canvas canvas;
             runtime.getContext().shouldUseReducedWorkload = true;
-            expect (runtime.selectSample (findSampleIndex ("Stacking", "Single Box")).wasOk());
+            expect (selectSample (runtime, "Stacking", "Single Box").wasOk());
             canvas.setRuntime (&runtime);
             canvas.setSize (320, 240);
             canvas.resized();
@@ -1525,18 +1534,18 @@ public:
 
             expect (numBenchmarks > 0);
 
-            const int capacitySampleIndex = findSampleIndex ("Benchmark", "Many Pyramids");
-            expect (isPositiveAndBelow (capacitySampleIndex, (int) entries.size()));
+            const auto capacitySampleIndex = findSampleIndex ("Benchmark", "Many Pyramids");
+            expect (capacitySampleIndex.has_value());
 
-            if (isPositiveAndBelow (capacitySampleIndex, (int) entries.size()))
+            if (capacitySampleIndex.has_value())
             {
-                const auto& capacityEntry = entries[(size_t) capacitySampleIndex];
+                const auto& capacityEntry = entries[(size_t) *capacitySampleIndex];
                 expect (capacityEntry.getCapacity != nullptr);
 
                 if (capacityEntry.getCapacity != nullptr)
                 {
                     const auto expectedCapacity = capacityEntry.getCapacity();
-                    expect (runtime.selectSample (capacitySampleIndex).wasOk());
+                    expect (runtime.selectSample (*capacitySampleIndex).wasOk());
                     expectEquals (runtime.getContext().capacity.dynamicBodyCount, expectedCapacity.dynamicBodyCount);
                     expectEquals (runtime.getContext().capacity.dynamicShapeCount, expectedCapacity.dynamicShapeCount);
                 }
@@ -1551,7 +1560,7 @@ public:
             PropertyPanel controlProperties;
             uint64 renderedControlRevision = 0;
             runtime.getContext().shouldUseReducedWorkload = true;
-            expect (runtime.selectSample (findSampleIndex ("Determinism", "Rollback")).wasOk());
+            expect (selectSample (runtime, "Determinism", "Rollback").wasOk());
 
             const auto refreshControlProperties = [&]
             {
@@ -1623,8 +1632,11 @@ public:
             runtime.getContext().shouldUseReducedWorkload = true;
             replayCanvas.setRuntime (&runtime);
             replayCanvas.setSize (960, 540);
-            expect (runtime.selectSample (findSampleIndex ("Bodies", "Bad")).wasOk());
+            expect (selectSample (runtime, "Bodies", "Bad").wasOk());
             auto* previousSample = runtime.getCurrentSample();
+            expect (! Box2DSamples::getReplayFrame (*previousSample).has_value());
+            expect (! Box2DSamples::getReplayNumFrames (*previousSample).has_value());
+            expect (! Box2DSamples::getReplayNumQueries (*previousSample).has_value());
             const MemoryBlock malformedData ("invalid", 7);
             expect (runtime.selectReplay (malformedData, "malformed.b2rec").failed());
             expect (runtime.getCurrentSample() == previousSample);
@@ -1723,7 +1735,7 @@ public:
 
             replayMetrics.reset();
             inspector.reset();
-            expect (runtime.selectSample (findSampleIndex ("Bodies", "Bad")).wasOk());
+            expect (selectSample (runtime, "Bodies", "Bad").wasOk());
         }
 
         beginTest ("Replay cadence, speed, transport, and recorded queries");
@@ -1740,10 +1752,10 @@ public:
             Box2DSamples::applyReplayPendingChanges (*replay);
             expect (replay->handleKeyPress (KeyPress (',', ModifierKeys::shiftModifier, '<')));
             Box2DSamples::applyReplayPendingChanges (*replay);
-            expectEquals (Box2DSamples::getReplayFrame (*replay), 5);
+            expect (Box2DSamples::getReplayFrame (*replay) == 5);
             expect (replay->handleKeyPress (KeyPress (',', ModifierKeys(), ',')));
             Box2DSamples::applyReplayPendingChanges (*replay);
-            expectEquals (Box2DSamples::getReplayFrame (*replay), 4);
+            expect (Box2DSamples::getReplayFrame (*replay) == 4);
             Box2DSamples::queueReplaySeek (*replay, 0);
             Box2DSamples::applyReplayPendingChanges (*replay);
             const double recordedInterval = replay->getStepIntervalSeconds();
@@ -1752,36 +1764,39 @@ public:
             runtime.resetPresentationClock();
             runtime.updateForPresentation (0.0);
             runtime.updateForPresentation (recordedInterval);
-            expectEquals (Box2DSamples::getReplayFrame (*replay), 1);
+            expect (Box2DSamples::getReplayFrame (*replay) == 1);
 
             Box2DSamples::queueReplaySpeed (*replay, 2.0f);
             runtime.updateForPresentation (recordedInterval * 1.5);
-            expectEquals (Box2DSamples::getReplayFrame (*replay), 2);
+            expect (Box2DSamples::getReplayFrame (*replay) == 2);
 
             Box2DSamples::queueReplaySeek (*replay, 0);
             runtime.updateForPresentation (recordedInterval * 2.0);
-            expectEquals (Box2DSamples::getReplayFrame (*replay), 0);
+            expect (Box2DSamples::getReplayFrame (*replay) == 0);
             expect (runtime.getContext().settings.isPaused);
 
             runtime.getContext().settings.numSingleSteps = 1;
             runtime.updateForPresentation (recordedInterval * 3.0);
-            expectEquals (Box2DSamples::getReplayFrame (*replay), 1);
+            expect (Box2DSamples::getReplayFrame (*replay) == 1);
 
-            int frameWithQueries = -1;
+            const auto numReplayFrames = Box2DSamples::getReplayNumFrames (*replay);
+            expect (numReplayFrames.has_value());
+            std::optional<int> frameWithQueries;
 
-            for (int frame = 0; frame <= Box2DSamples::getReplayNumFrames (*replay); ++frame)
+            for (int frame = 0; numReplayFrames.has_value() && frame <= *numReplayFrames; ++frame)
             {
                 Box2DSamples::queueReplaySeek (*replay, frame);
                 runtime.updateForPresentation (recordedInterval * (double) (frame + 4));
 
-                if (Box2DSamples::getReplayNumQueries (*replay) > 0)
+                if (const auto numQueries = Box2DSamples::getReplayNumQueries (*replay);
+                    numQueries.has_value() && *numQueries > 0)
                 {
                     frameWithQueries = frame;
                     break;
                 }
             }
 
-            expect (frameWithQueries >= 0);
+            expect (frameWithQueries.has_value());
             runtime.getDrawList().clear();
             replay->prepareFrame();
         }
@@ -1794,8 +1809,8 @@ public:
                                            .getNonexistentChildFile ("juce-box2d-recording", ".b2rec");
             const URL recordingURL (recordingFile);
             WaitableEvent ioCompleted;
-            Box2DSamples::ReplayFileError writeError = Box2DSamples::ReplayFileError::writeFailed;
-            Box2DSamples::ReplayFileReadResult readResult;
+            std::optional<Box2DSamples::ReplayFileError> writeError;
+            std::optional<Box2DSamples::ReplayFileReadResult> readResult;
 
             {
                 ThreadPool threadPool (1);
@@ -1809,9 +1824,12 @@ public:
                 expect (ioCompleted.wait (5000));
             }
 
-            expect (writeError == Box2DSamples::ReplayFileError::none);
-            expect (readResult.error == Box2DSamples::ReplayFileError::none);
-            expect (readResult.data == *recording);
+            expect (! writeError.has_value());
+            expect (readResult.has_value());
+            expect (readResult.has_value() && ! readResult->error.has_value());
+
+            if (readResult.has_value())
+                expect (readResult->data == *recording);
 
            #if JUCE_MODAL_LOOPS_PERMITTED
             WaitableEvent jobPosted,
@@ -1826,7 +1844,7 @@ public:
                 threadPool.addJob ([&, safeComponent]
                 {
                     const auto lifetimeRead = Box2DSamples::readReplayFile (recordingURL);
-                    const bool readSucceeded = lifetimeRead.error == Box2DSamples::ReplayFileError::none;
+                    const bool readSucceeded = ! lifetimeRead.error.has_value();
                     MessageManager::callAsync ([&, safeComponent, readSucceeded]
                     {
                         completionSawDestroyedComponent = safeComponent == nullptr;

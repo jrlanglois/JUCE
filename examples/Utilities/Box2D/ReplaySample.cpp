@@ -106,21 +106,33 @@ public:
     virtual void refresh() = 0;
 };
 
-enum class SelectionKind
+struct BodySelection final
 {
-    none,
-    body,
-    shape,
-    joint,
-    query
+    int bodyOrdinal = 0;
 };
 
-struct Selection final
+struct ShapeSelection final
 {
-    SelectionKind kind = SelectionKind::none;
-    int bodyOrdinal = -1,
-        slot = -1,
-        queryIndex = -1;
+    int bodyOrdinal = 0,
+        shapeIndex = 0;
+};
+
+struct JointSelection final
+{
+    int bodyOrdinal = 0,
+        jointIndex = 0;
+};
+
+struct QuerySelection final
+{
+    int queryIndex = 0;
+};
+
+using Selection = std::variant<BodySelection, ShapeSelection, JointSelection, QuerySelection>;
+
+struct SelectionChange final
+{
+    std::optional<Selection> selection;
 };
 
 struct PickContext final
@@ -189,13 +201,10 @@ public:
             pendingLoopState.reset();
         }
 
-        if (pendingSelection.has_value())
+        if (pendingSelectionChange.has_value())
         {
-            selectionKind = pendingSelection->kind;
-            selectedBodyOrdinal = pendingSelection->bodyOrdinal;
-            selectedSlot = pendingSelection->slot;
-            selectedQueryIndex = pendingSelection->queryIndex;
-            pendingSelection.reset();
+            selection = std::move (pendingSelectionChange->selection);
+            pendingSelectionChange.reset();
         }
 
         if (player != nullptr && shouldApplyKeyframePolicy)
@@ -256,12 +265,12 @@ public:
 
     b2BodyId getBodyId (int bodyOrdinal) const noexcept { return player != nullptr ? b2Replay_GetBodyId (player, bodyOrdinal) : b2_nullBodyId; }
 
-    String getBodyLabel (int bodyOrdinal) const
+    std::optional<String> getBodyLabel (int bodyOrdinal) const
     {
         const b2BodyId bodyId = getBodyId (bodyOrdinal);
 
         if (! b2Body_IsValid (bodyId))
-            return {};
+            return std::nullopt;
 
         String label = TRANS ("Body {bodyOrdinal}").replace ("{bodyOrdinal}", String (bodyOrdinal));
         const char* name = b2Body_GetName (bodyId);
@@ -285,34 +294,34 @@ public:
         return b2Body_IsValid (bodyId) ? b2Body_GetJointCount (bodyId) : 0;
     }
 
-    String getShapeLabel (int bodyOrdinal, int shapeIndex) const
+    std::optional<String> getShapeLabel (int bodyOrdinal, int shapeIndex) const
     {
         const b2ShapeId shapeId = getShapeId (bodyOrdinal, shapeIndex);
 
         if (! b2Shape_IsValid (shapeId))
-            return {};
+            return std::nullopt;
 
         return TRANS ("Shape {shapeIndex}: {shapeType}")
             .replace ("{shapeIndex}", String (shapeIndex))
             .replace ("{shapeType}", getShapeTypeName (b2Shape_GetType (shapeId)));
     }
 
-    String getJointLabel (int bodyOrdinal, int jointIndex) const
+    std::optional<String> getJointLabel (int bodyOrdinal, int jointIndex) const
     {
         const b2JointId jointId = getJointId (bodyOrdinal, jointIndex);
 
         if (! b2Joint_IsValid (jointId))
-            return {};
+            return std::nullopt;
 
         return TRANS ("Joint {jointIndex}: {jointType}")
             .replace ("{jointIndex}", String (jointIndex))
             .replace ("{jointType}", getJointTypeName (b2Joint_GetType (jointId)));
     }
 
-    String getQueryLabel (int queryIndex) const
+    std::optional<String> getQueryLabel (int queryIndex) const
     {
         if (! isPositiveAndBelow (queryIndex, getNumQueries()))
-            return {};
+            return std::nullopt;
 
         const b2ReplayQueryInfo query = b2Replay_GetFrameQuery (player, queryIndex);
         return TRANS ("Query {queryIndex}: {queryType}")
@@ -325,11 +334,15 @@ public:
         if (player == nullptr)
             return TRANS ("No recording is loaded.");
 
-        if (selectionKind == SelectionKind::query && isPositiveAndBelow (selectedQueryIndex, getNumQueries()))
+        if (! selection.has_value())
+            return TRANS ("Select a body, shape, joint, or recorded query.");
+
+        if (const auto* querySelection = std::get_if<QuerySelection> (&*selection);
+            querySelection != nullptr && isPositiveAndBelow (querySelection->queryIndex, getNumQueries()))
         {
-            const b2ReplayQueryInfo query = b2Replay_GetFrameQuery (player, selectedQueryIndex);
+            const b2ReplayQueryInfo query = b2Replay_GetFrameQuery (player, querySelection->queryIndex);
             return TRANS ("Query {queryIndex}\nType: {queryType}\nOrigin: {origin}\nTranslation: {translation}\nHits: {numHits}")
-                .replace ("{queryIndex}", String (selectedQueryIndex))
+                .replace ("{queryIndex}", String (querySelection->queryIndex))
                 .replace ("{queryType}", getQueryTypeName (query.type))
                 .replace ("{origin}", getCoordinateText (query.origin))
                 .replace ("{translation}", getCoordinateText (query.translation))
@@ -341,35 +354,40 @@ public:
         if (! b2Body_IsValid (bodyId))
             return TRANS ("Select a body, shape, joint, or recorded query.");
 
-        if (selectionKind == SelectionKind::shape)
+        if (const auto* shapeSelection = std::get_if<ShapeSelection> (&*selection))
         {
-            const b2ShapeId shapeId = getShapeId (selectedBodyOrdinal, selectedSlot);
+            const b2ShapeId shapeId = getShapeId (shapeSelection->bodyOrdinal, shapeSelection->shapeIndex);
 
             if (b2Shape_IsValid (shapeId))
             {
                 const b2AABB bounds = b2Shape_GetAABB (shapeId);
                 return TRANS ("Shape {shapeIndex}\nType: {shapeType}\nLower bound: {lowerBound}\nUpper bound: {upperBound}")
-                    .replace ("{shapeIndex}", String (selectedSlot))
+                    .replace ("{shapeIndex}", String (shapeSelection->shapeIndex))
                     .replace ("{shapeType}", getShapeTypeName (b2Shape_GetType (shapeId)))
                     .replace ("{lowerBound}", getCoordinateText (bounds.lowerBound))
                     .replace ("{upperBound}", getCoordinateText (bounds.upperBound));
             }
         }
 
-        if (selectionKind == SelectionKind::joint)
+        if (const auto* jointSelection = std::get_if<JointSelection> (&*selection))
         {
-            const b2JointId jointId = getJointId (selectedBodyOrdinal, selectedSlot);
+            const b2JointId jointId = getJointId (jointSelection->bodyOrdinal, jointSelection->jointIndex);
 
             if (b2Joint_IsValid (jointId))
             {
                 return TRANS ("Joint {jointIndex}\nType: {jointType}")
-                    .replace ("{jointIndex}", String (selectedSlot))
+                    .replace ("{jointIndex}", String (jointSelection->jointIndex))
                     .replace ("{jointType}", getJointTypeName (b2Joint_GetType (jointId)));
             }
         }
 
+        const auto bodyOrdinal = getSelectedBodyOrdinal();
+
+        if (! bodyOrdinal.has_value())
+            return TRANS ("Select a body, shape, joint, or recorded query.");
+
         return TRANS ("Body {bodyOrdinal}\nType: {bodyType}\nPosition: {position}\nLinear velocity: {linearVelocity}\nAngular velocity: {angularVelocity}\nMass: {mass}\nAwake: {isAwake}")
-            .replace ("{bodyOrdinal}", String (selectedBodyOrdinal))
+            .replace ("{bodyOrdinal}", String (*bodyOrdinal))
             .replace ("{bodyType}", getBodyTypeName (b2Body_GetType (bodyId)))
             .replace ("{position}", getCoordinateText (b2Body_GetPosition (bodyId)))
             .replace ("{linearVelocity}", getCoordinateText (b2Body_GetLinearVelocity (bodyId)))
@@ -380,36 +398,22 @@ public:
 
     void queueBodySelection (int bodyOrdinal)
     {
-        Selection selection;
-        selection.kind = SelectionKind::body;
-        selection.bodyOrdinal = bodyOrdinal;
-        queueSelection (selection);
+        queueSelection (Selection { BodySelection { bodyOrdinal } });
     }
 
     void queueShapeSelection (int bodyOrdinal, int shapeIndex)
     {
-        Selection selection;
-        selection.kind = SelectionKind::shape;
-        selection.bodyOrdinal = bodyOrdinal;
-        selection.slot = shapeIndex;
-        queueSelection (selection);
+        queueSelection (Selection { ShapeSelection { bodyOrdinal, shapeIndex } });
     }
 
     void queueJointSelection (int bodyOrdinal, int jointIndex)
     {
-        Selection selection;
-        selection.kind = SelectionKind::joint;
-        selection.bodyOrdinal = bodyOrdinal;
-        selection.slot = jointIndex;
-        queueSelection (selection);
+        queueSelection (Selection { JointSelection { bodyOrdinal, jointIndex } });
     }
 
     void queueQuerySelection (int queryIndex)
     {
-        Selection selection;
-        selection.kind = SelectionKind::query;
-        selection.queryIndex = queryIndex;
-        queueSelection (selection);
+        queueSelection (Selection { QuerySelection { queryIndex } });
     }
 
     double getStepIntervalSeconds() const noexcept override
@@ -453,8 +457,10 @@ public:
         }
 
         context.drawList.getDebugDraw().drawingBounds = context.camera.getVisibleBounds();
-        const int queryIndex = selectionKind == SelectionKind::query ? selectedQueryIndex : -1;
-        b2Replay_DrawFrameQueries (player, &context.drawList.getDebugDraw(), queryIndex);
+        const auto selectedQueryIndex = getSelectedQueryIndex();
+
+        // Box2D uses -1 to request all recorded queries for the current frame.
+        b2Replay_DrawFrameQueries (player, &context.drawList.getDebugDraw(), selectedQueryIndex.value_or (-1));
 
         const b2BodyId selectedBody = getSelectedBody();
 
@@ -524,7 +530,7 @@ public:
 
         if (key == KeyPress::escapeKey)
         {
-            queueSelection ({});
+            queueSelection (std::nullopt);
             return true;
         }
 
@@ -547,29 +553,32 @@ public:
         PickContext pickContext { position, b2_nullShapeId };
         b2World_OverlapAABB (worldId, position, bounds, b2DefaultQueryFilter(), pickShape, &pickContext);
 
-        Selection selection;
+        std::optional<Selection> pickedSelection;
 
         if (b2Shape_IsValid (pickContext.shapeId))
         {
             const b2BodyId bodyId = b2Shape_GetBody (pickContext.shapeId);
-            selection.kind = SelectionKind::shape;
-            selection.bodyOrdinal = findBodyOrdinal (bodyId);
-
             const int numShapes = b2Body_GetShapeCount (bodyId);
             std::vector<b2ShapeId> shapeIds ((size_t) numShapes);
             b2Body_GetShapes (bodyId, shapeIds.data(), numShapes);
+            std::optional<int> pickedShapeIndex;
 
             for (int shapeIndex = 0; shapeIndex < numShapes; ++shapeIndex)
             {
                 if (B2_ID_EQUALS (shapeIds[(size_t) shapeIndex], pickContext.shapeId))
                 {
-                    selection.slot = shapeIndex;
+                    pickedShapeIndex = shapeIndex;
                     break;
                 }
             }
+
+            const auto bodyOrdinal = findBodyOrdinal (bodyId);
+
+            if (bodyOrdinal.has_value() && pickedShapeIndex.has_value())
+                pickedSelection = Selection { ShapeSelection { *bodyOrdinal, *pickedShapeIndex } };
         }
 
-        queueSelection (selection);
+        queueSelection (std::move (pickedSelection));
     }
 
     void resetCamera() override
@@ -606,18 +615,15 @@ private:
     float playbackSpeed = 1.0f;
     int keyframeBudgetMB = 64,
         keyframeMinInterval = 16,
-        timelineFrame = 0,
-        selectedBodyOrdinal = -1,
-        selectedSlot = -1,
-        selectedQueryIndex = -1;
-    SelectionKind selectionKind = SelectionKind::none;
+        timelineFrame = 0;
     bool shouldLoop = false,
          shouldApplyKeyframePolicy = false;
+    std::optional<Selection> selection;
     std::optional<float> pendingPlaybackSpeed;
     std::optional<int> pendingFrame;
     std::optional<bool> pendingPlaying,
                         pendingLoopState;
-    std::optional<Selection> pendingSelection;
+    std::optional<SelectionChange> pendingSelectionChange;
 
     static bool pickShape (b2ShapeId shapeId, void* userData)
     {
@@ -632,7 +638,7 @@ private:
         return true;
     }
 
-    int findBodyOrdinal (b2BodyId bodyId) const noexcept
+    std::optional<int> findBodyOrdinal (b2BodyId bodyId) const noexcept
     {
         for (int bodyOrdinal = 0; bodyOrdinal < getNumBodySlots(); ++bodyOrdinal)
         {
@@ -640,7 +646,7 @@ private:
                 return bodyOrdinal;
         }
 
-        return -1;
+        return std::nullopt;
     }
 
     b2ShapeId getShapeId (int bodyOrdinal, int shapeIndex) const
@@ -677,9 +683,41 @@ private:
         return jointIds[(size_t) jointIndex];
     }
 
-    b2BodyId getSelectedBody() const noexcept { return selectionKind == SelectionKind::query ? b2_nullBodyId : getBodyId (selectedBodyOrdinal); }
+    std::optional<int> getSelectedBodyOrdinal() const noexcept
+    {
+        if (! selection.has_value())
+            return std::nullopt;
 
-    void queueSelection (Selection selection) { pendingSelection = selection; }
+        if (const auto* bodySelection = std::get_if<BodySelection> (&*selection))
+            return bodySelection->bodyOrdinal;
+
+        if (const auto* shapeSelection = std::get_if<ShapeSelection> (&*selection))
+            return shapeSelection->bodyOrdinal;
+
+        if (const auto* jointSelection = std::get_if<JointSelection> (&*selection))
+            return jointSelection->bodyOrdinal;
+
+        return std::nullopt;
+    }
+
+    std::optional<int> getSelectedQueryIndex() const noexcept
+    {
+        if (selection.has_value())
+        {
+            if (const auto* querySelection = std::get_if<QuerySelection> (&*selection))
+                return querySelection->queryIndex;
+        }
+
+        return std::nullopt;
+    }
+
+    b2BodyId getSelectedBody() const noexcept
+    {
+        const auto bodyOrdinal = getSelectedBodyOrdinal();
+        return bodyOrdinal.has_value() ? getBodyId (*bodyOrdinal) : b2_nullBodyId;
+    }
+
+    void queueSelection (std::optional<Selection> newSelection) { pendingSelectionChange = SelectionChange { std::move (newSelection) }; }
 };
 
 namespace
@@ -766,34 +804,40 @@ private:
 
         for (int bodyOrdinal = 0; bodyOrdinal < sample.getNumBodySlots(); ++bodyOrdinal)
         {
-            const String bodyLabel = sample.getBodyLabel (bodyOrdinal);
+            const auto bodyLabel = sample.getBodyLabel (bodyOrdinal);
 
-            if (bodyLabel.isEmpty())
+            if (! bodyLabel.has_value())
                 continue;
 
-            auto bodyItem = std::make_unique<ReplayTreeItem> (bodyLabel, [this, bodyOrdinal]
+            auto bodyItem = std::make_unique<ReplayTreeItem> (*bodyLabel, [this, bodyOrdinal]
             {
                 sample.queueBodySelection (bodyOrdinal);
             });
 
             for (int shapeIndex = 0; shapeIndex < sample.getNumShapes (bodyOrdinal); ++shapeIndex)
             {
-                auto shapeItem = std::make_unique<ReplayTreeItem> (sample.getShapeLabel (bodyOrdinal, shapeIndex),
-                                                                  [this, bodyOrdinal, shapeIndex]
-                                                                  {
-                                                                      sample.queueShapeSelection (bodyOrdinal, shapeIndex);
-                                                                  });
-                bodyItem->addSubItem (shapeItem.release());
+                if (const auto shapeLabel = sample.getShapeLabel (bodyOrdinal, shapeIndex))
+                {
+                    auto shapeItem = std::make_unique<ReplayTreeItem> (*shapeLabel,
+                                                                      [this, bodyOrdinal, shapeIndex]
+                                                                      {
+                                                                          sample.queueShapeSelection (bodyOrdinal, shapeIndex);
+                                                                      });
+                    bodyItem->addSubItem (shapeItem.release());
+                }
             }
 
             for (int jointIndex = 0; jointIndex < sample.getNumJoints (bodyOrdinal); ++jointIndex)
             {
-                auto jointItem = std::make_unique<ReplayTreeItem> (sample.getJointLabel (bodyOrdinal, jointIndex),
-                                                                  [this, bodyOrdinal, jointIndex]
-                                                                  {
-                                                                      sample.queueJointSelection (bodyOrdinal, jointIndex);
-                                                                  });
-                bodyItem->addSubItem (jointItem.release());
+                if (const auto jointLabel = sample.getJointLabel (bodyOrdinal, jointIndex))
+                {
+                    auto jointItem = std::make_unique<ReplayTreeItem> (*jointLabel,
+                                                                      [this, bodyOrdinal, jointIndex]
+                                                                      {
+                                                                          sample.queueJointSelection (bodyOrdinal, jointIndex);
+                                                                      });
+                    bodyItem->addSubItem (jointItem.release());
+                }
             }
 
             bodiesItem->addSubItem (bodyItem.release());
@@ -803,7 +847,13 @@ private:
 
         for (int queryIndex = 0; queryIndex < sample.getNumQueries(); ++queryIndex)
         {
-            auto queryItem = std::make_unique<ReplayTreeItem> (sample.getQueryLabel (queryIndex), [this, queryIndex]
+            const auto queryLabel = sample.getQueryLabel (queryIndex);
+            jassert (queryLabel.has_value());
+
+            if (! queryLabel.has_value())
+                continue;
+
+            auto queryItem = std::make_unique<ReplayTreeItem> (*queryLabel, [this, queryIndex]
             {
                 sample.queueQuerySelection (queryIndex);
             });
@@ -923,28 +973,28 @@ void refreshReplayComponent (Component& component)
 
 bool isReplaySample (const Sample& sample) noexcept { return dynamic_cast<const ReplaySample*> (&sample) != nullptr; }
 
-int getReplayFrame (const Sample& sample) noexcept
+std::optional<int> getReplayFrame (const Sample& sample) noexcept
 {
     if (const auto* replay = dynamic_cast<const ReplaySample*> (&sample))
         return replay->getFrame();
 
-    return 0;
+    return std::nullopt;
 }
 
-int getReplayNumFrames (const Sample& sample) noexcept
+std::optional<int> getReplayNumFrames (const Sample& sample) noexcept
 {
     if (const auto* replay = dynamic_cast<const ReplaySample*> (&sample))
         return replay->getNumFrames();
 
-    return 0;
+    return std::nullopt;
 }
 
-int getReplayNumQueries (const Sample& sample) noexcept
+std::optional<int> getReplayNumQueries (const Sample& sample) noexcept
 {
     if (const auto* replay = dynamic_cast<const ReplaySample*> (&sample))
         return replay->getNumQueries();
 
-    return 0;
+    return std::nullopt;
 }
 
 void queueReplaySeek (Sample& sample, int frame)

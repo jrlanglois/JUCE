@@ -43,14 +43,14 @@ void refreshReplayComponent (Component& component);
 /** @returns whether `sample` is the native Replay Viewer. */
 [[nodiscard]] bool isReplaySample (const Sample& sample) noexcept;
 
-/** @returns the replay's current frame, or zero for an ordinary sample. */
-[[nodiscard]] int getReplayFrame (const Sample& sample) noexcept;
+/** @returns the replay's current frame, or no value for an ordinary sample. */
+[[nodiscard]] std::optional<int> getReplayFrame (const Sample& sample) noexcept;
 
-/** @returns the replay's total frame quantity, or zero for an ordinary sample. */
-[[nodiscard]] int getReplayNumFrames (const Sample& sample) noexcept;
+/** @returns the replay's total frame quantity, or no value for an ordinary sample. */
+[[nodiscard]] std::optional<int> getReplayNumFrames (const Sample& sample) noexcept;
 
-/** @returns the current replay frame's recorded query quantity. */
-[[nodiscard]] int getReplayNumQueries (const Sample& sample) noexcept;
+/** @returns the current replay frame's recorded query quantity, or no value for an ordinary sample. */
+[[nodiscard]] std::optional<int> getReplayNumQueries (const Sample& sample) noexcept;
 
 /** Queues a replay seek for the next presentation boundary. */
 void queueReplaySeek (Sample& sample, int frame);

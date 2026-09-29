@@ -29,7 +29,6 @@ namespace Box2DSamples
 /** Identifies a recording stream failure without translating on an I/O thread. */
 enum class ReplayFileError
 {
-    none,
     cannotOpenForReading,
     cannotOpenForWriting,
     emptyRecording,
@@ -42,14 +41,14 @@ struct ReplayFileReadResult final
 {
     MemoryBlock data;
     String displayName;
-    ReplayFileError error = ReplayFileError::none;
+    std::optional<ReplayFileError> error;
 };
 
 /** Reads one recording URL synchronously on the calling thread. */
 [[nodiscard]] ReplayFileReadResult readReplayFile (const URL& url);
 
-/** Writes one recording URL synchronously on the calling thread. */
-[[nodiscard]] ReplayFileError writeReplayFile (const URL& url, const MemoryBlock& data);
+/** Writes one recording URL synchronously on the calling thread, returning an error on failure. */
+[[nodiscard]] std::optional<ReplayFileError> writeReplayFile (const URL& url, const MemoryBlock& data);
 
 /** @returns a translated complete message for an I/O error. */
 [[nodiscard]] String getReplayFileErrorMessage (ReplayFileError error);

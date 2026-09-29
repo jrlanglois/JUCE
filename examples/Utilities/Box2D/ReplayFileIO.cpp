@@ -58,7 +58,7 @@ ReplayFileReadResult readReplayFile (const URL& url)
     return result;
 }
 
-ReplayFileError writeReplayFile (const URL& url, const MemoryBlock& data)
+std::optional<ReplayFileError> writeReplayFile (const URL& url, const MemoryBlock& data)
 {
     if (url.isLocalFile())
     {
@@ -77,15 +77,13 @@ ReplayFileError writeReplayFile (const URL& url, const MemoryBlock& data)
         return ReplayFileError::writeFailed;
 
     stream->flush();
-    return ReplayFileError::none;
+    return std::nullopt;
 }
 
 String getReplayFileErrorMessage (ReplayFileError error)
 {
     switch (error)
     {
-        case ReplayFileError::none:
-            return {};
         case ReplayFileError::cannotOpenForReading:
             return TRANS ("The recording could not be opened for reading.");
         case ReplayFileError::cannotOpenForWriting:

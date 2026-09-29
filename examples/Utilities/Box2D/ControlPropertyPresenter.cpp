@@ -198,6 +198,7 @@ public:
         refresh();
     }
 
+    //==============================================================================
     void setIndex (int newIndex) override
     {
         if (const auto* item = getItem(); item != nullptr && isPositiveAndBelow (newIndex, (int) item->choices.size()))
@@ -207,33 +208,21 @@ public:
         }
     }
 
-    int getIndex() const override
-    {
-        const auto* item = getItem();
-
-        if (item == nullptr || ! item->selectedChoiceIdentifier.has_value())
-            return -1;
-
-        const auto iterator = std::find_if (item->choices.begin(), item->choices.end(), [&item] (const auto& choice)
-        {
-            return choice.identifier == *item->selectedChoiceIdentifier;
-        });
-        return iterator != item->choices.end() ? (int) std::distance (item->choices.begin(), iterator) : -1;
-    }
+    int getIndex() const override { return getSelectedModelIndex().value_or (-1); }
 
     void refresh() override
     {
-        if (choiceControl != nullptr && hasChoiceSnapshot)
+        if (choiceControl != nullptr && previousChoiceSnapshot.has_value())
         {
-            const int modelIndex = getIndex();
-            const int controlIndex = choiceControl->getSelectedItemIndex();
-            const bool modelChanged = modelIndex != previousModelIndex;
-            const bool controlChanged = controlIndex != previousControlIndex;
+            const auto modelIndex = getSelectedModelIndex();
+            const auto controlIndex = getSelectedControlIndex();
+            const bool modelChanged = modelIndex != previousChoiceSnapshot->modelIndex;
+            const bool controlChanged = controlIndex != previousChoiceSnapshot->controlIndex;
 
             if (queuedIndex.has_value() && modelIndex == *queuedIndex)
                 queuedIndex.reset();
-            else if (! queuedIndex.has_value() && controlChanged && ! modelChanged)
-                setIndex (controlIndex);
+            else if (! queuedIndex.has_value() && controlChanged && ! modelChanged && controlIndex.has_value())
+                setIndex (*controlIndex);
         }
 
         const auto* item = getItem();
@@ -268,7 +257,7 @@ public:
         {
             choiceControl->clear (dontSendNotification);
             choiceControl->addItemList (choices, 1);
-            choiceControl->setSelectedItemIndex (getIndex(), dontSendNotification);
+            choiceControl->setSelectedItemIndex (getSelectedModelIndex().value_or (-1), dontSendNotification);
             choiceControl->setTitle (item->labelText);
             choiceControl->setDescription (item->helpText);
             captureChoiceSnapshot();
@@ -276,22 +265,55 @@ public:
     }
 
 private:
+    //==============================================================================
+    struct ChoiceSnapshot final
+    {
+        std::optional<int> modelIndex,
+                           controlIndex;
+    };
+
+    //==============================================================================
     ComboBox* choiceControl = nullptr;
-    int previousModelIndex = -1,
-        previousControlIndex = -1;
-    bool hasChoiceSnapshot = false;
+    std::optional<ChoiceSnapshot> previousChoiceSnapshot;
     std::optional<int> queuedIndex;
+
+    //==============================================================================
+    std::optional<int> getSelectedModelIndex() const
+    {
+        const auto* item = getItem();
+
+        if (item == nullptr || ! item->selectedChoiceIdentifier.has_value())
+            return std::nullopt;
+
+        const auto iterator = std::find_if (item->choices.begin(), item->choices.end(), [&item] (const auto& choice)
+        {
+            return choice.identifier == *item->selectedChoiceIdentifier;
+        });
+
+        if (iterator == item->choices.end())
+            return std::nullopt;
+
+        return (int) std::distance (item->choices.begin(), iterator);
+    }
+
+    std::optional<int> getSelectedControlIndex() const
+    {
+        if (choiceControl == nullptr)
+            return std::nullopt;
+
+        const int selectedIndex = choiceControl->getSelectedItemIndex();
+        return selectedIndex >= 0 ? std::optional<int> (selectedIndex) : std::nullopt;
+    }
 
     void captureChoiceSnapshot()
     {
         if (choiceControl == nullptr)
             return;
 
-        previousModelIndex = getIndex();
-        previousControlIndex = choiceControl->getSelectedItemIndex();
-        hasChoiceSnapshot = true;
+        previousChoiceSnapshot = ChoiceSnapshot { getSelectedModelIndex(), getSelectedControlIndex() };
     }
 
+    //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ChoiceProperty)
 };
 

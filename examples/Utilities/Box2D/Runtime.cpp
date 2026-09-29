@@ -36,10 +36,9 @@ public:
     DrawList drawList;
     Context context { drawList };
     std::unique_ptr<Sample> currentSample;
-    double lastPresentationTimeSeconds = 0.0,
-           elapsedAccumulatorSeconds = 0.0;
-    int selectedSampleIndex = 0;
-    bool hasPresentationClock = false;
+    double elapsedAccumulatorSeconds = 0.0;
+    std::optional<double> lastPresentationTimeSeconds;
+    std::optional<int> selectedSampleIndex;
 };
 
 Runtime::Runtime() : pimpl (std::make_unique<Pimpl>()) { Catalog::initialise(); }
@@ -118,18 +117,23 @@ Result Runtime::selectReplay (const MemoryBlock& recordingData, const String& di
     return result;
 }
 
-Result Runtime::restartSample() { return selectSample (pimpl->selectedSampleIndex, true); }
+Result Runtime::restartSample()
+{
+    if (! pimpl->selectedSampleIndex.has_value())
+        return Result::fail (TRANS ("No sample is selected."));
+
+    return selectSample (*pimpl->selectedSampleIndex, true);
+}
 
 void Runtime::updateForPresentation (double presentationTimeSeconds)
 {
     if (pimpl->currentSample != nullptr)
         applyReplayPendingChanges (*pimpl->currentSample);
 
-    if (! pimpl->hasPresentationClock || presentationTimeSeconds <= pimpl->lastPresentationTimeSeconds)
+    if (! pimpl->lastPresentationTimeSeconds.has_value() || presentationTimeSeconds <= *pimpl->lastPresentationTimeSeconds)
     {
         pimpl->lastPresentationTimeSeconds = presentationTimeSeconds;
         pimpl->elapsedAccumulatorSeconds = 0.0;
-        pimpl->hasPresentationClock = true;
     }
     else if (pimpl->context.settings.isPaused)
     {
@@ -138,7 +142,7 @@ void Runtime::updateForPresentation (double presentationTimeSeconds)
     }
     else
     {
-        const double elapsedSeconds = presentationTimeSeconds - pimpl->lastPresentationTimeSeconds;
+        const double elapsedSeconds = presentationTimeSeconds - *pimpl->lastPresentationTimeSeconds;
         pimpl->lastPresentationTimeSeconds = presentationTimeSeconds;
         pimpl->elapsedAccumulatorSeconds += std::min (elapsedSeconds, Pimpl::maxPresentationDeltaSeconds);
     }
@@ -171,7 +175,7 @@ void Runtime::updateForPresentation (double presentationTimeSeconds)
 
 void Runtime::resetPresentationClock() noexcept
 {
-    pimpl->hasPresentationClock = false;
+    pimpl->lastPresentationTimeSeconds.reset();
     pimpl->elapsedAccumulatorSeconds = 0.0;
 }
 
