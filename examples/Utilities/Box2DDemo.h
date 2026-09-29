@@ -61,6 +61,7 @@
 #include "Box2D/Context.cpp"
 #include "Box2D/ControlPanel.cpp"
 #include "Box2D/DrawList.cpp"
+#include "Box2D/HomeViews.cpp"
 #include "Box2D/HostControlsBridge.cpp"
 #include "Box2D/HostControlsBridge.h"
 #include "Box2D/HostDrawBridge.cpp"

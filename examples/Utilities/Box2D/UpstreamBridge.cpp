@@ -77,10 +77,10 @@ void UpstreamBridge::syncHostToUpstream (bool shouldRestart)
     sampleContext.camera.center = hostContext.camera.centre;
     sampleContext.camera.zoom = hostContext.camera.zoom;
 
-    if (hostContext.camera.componentWidth > 0.0f && hostContext.camera.componentHeight > 0.0f)
+    if (hostContext.camera.drawableWidth > 0.0f && hostContext.camera.drawableHeight > 0.0f)
     {
-        sampleContext.camera.width = hostContext.camera.componentWidth;
-        sampleContext.camera.height = hostContext.camera.componentHeight;
+        sampleContext.camera.width = hostContext.camera.drawableWidth;
+        sampleContext.camera.height = hostContext.camera.drawableHeight;
     }
 
     sampleContext.homeCenter = hostContext.homeCameraCentre;
@@ -214,11 +214,8 @@ void UpstreamSampleAdapter::handleMouseMove (b2Pos position)
 
 void UpstreamSampleAdapter::resetCamera()
 {
-    if (upstreamSample == nullptr)
-        return;
-
-    upstreamSample->FocusHome();
-    bridge.syncHostFromUpstream();
+    Sample::resetCamera();
+    bridge.syncHostToUpstream (false);
 }
 
 bool UpstreamSampleAdapter::hasSolverControls() const noexcept

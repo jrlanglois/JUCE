@@ -18,6 +18,7 @@
       <FILE id="B2Ut06" name="Context.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/Context.cpp"/>
       <FILE id="B2Ut07" name="ControlPanel.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/ControlPanel.cpp"/>
       <FILE id="B2Ut08" name="DrawList.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/DrawList.cpp"/>
+      <FILE id="B2Ut51" name="HomeViews.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/HomeViews.cpp"/>
       <FILE id="B2Ut21" name="HostControlsBridge.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/HostControlsBridge.cpp"/>
       <FILE id="B2Ut22" name="HostControlsBridge.h" compile="0" resource="0" file="../../examples/Utilities/Box2D/HostControlsBridge.h"/>
       <FILE id="B2Ut09" name="HostDrawBridge.cpp" compile="1" resource="0" file="../../examples/Utilities/Box2D/HostDrawBridge.cpp"/>

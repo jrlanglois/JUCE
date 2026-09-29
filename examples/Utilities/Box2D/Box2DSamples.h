@@ -38,14 +38,54 @@ enum class MouseButton
     middle
 };
 
+/** Describes one ordinary sample's authored home framing. */
+struct HomeView final
+{
+    /** Chooses the bounds for a drawable aspect ratio.
+
+        @param aspectRatio Drawable width divided by drawable height.
+
+        @returns the portrait override for a portrait ratio when present; otherwise, the default bounds.
+    */
+    [[nodiscard]] b2AABB getBoundsForAspectRatio (float aspectRatio) const noexcept;
+
+    //==============================================================================
+    /** Static upstream category key. */
+    const char* category = nullptr;
+
+    /** Static upstream sample-name key. */
+    const char* sampleName = nullptr;
+
+    /** Aspect-independent default home bounds. */
+    b2AABB defaultBounds = {};
+
+    /** Optional bounds used when the drawable area is portrait. */
+    std::optional<b2AABB> portraitBounds;
+};
+
+namespace HomeViewCatalog
+{
+    /** @returns every authored ordinary-sample home view. */
+    [[nodiscard]] Span<const HomeView> getEntries() noexcept;
+
+    /** Finds the home view for one stable upstream identity.
+
+        @param category     Static upstream category key.
+        @param sampleName   Static upstream sample-name key.
+
+        @returns the matching static definition, or `nullptr` when none exists.
+    */
+    [[nodiscard]] const HomeView* find (const char* category, const char* sampleName) noexcept;
+}
+
 /** Stores and transforms the sample viewport. */
 struct Camera final
 {
     /** Restores the default centre and zoom. */
     void reset() noexcept;
 
-    /** Updates the component dimensions used by the transforms. */
-    void setComponentSize (float newWidth, float newHeight) noexcept;
+    /** Updates the drawable dimensions used by viewport transforms. */
+    void setDrawableSize (float newWidth, float newHeight) noexcept;
 
     /** Sets the viewport to frame the supplied world bounds. */
     void setViewToBounds (b2AABB bounds) noexcept;
@@ -55,6 +95,9 @@ struct Camera final
 
     /** @returns the component position corresponding to a world position. */
     [[nodiscard]] juce::Point<float> convertWorldToComponent (b2Pos worldPosition, const juce::Rectangle<float>& targetArea) const noexcept;
+
+    /** @returns the drawable aspect ratio, or the upstream baseline before layout. */
+    [[nodiscard]] float getAspectRatio() const noexcept;
 
     /** @returns the visible world bounds. */
     [[nodiscard]] b2AABB getVisibleBounds() const noexcept;
@@ -66,10 +109,10 @@ struct Camera final
     /** World-space centre of the viewport. */
     b2Pos centre = { 0.0f, 20.0f };
 
-    /** Visible vertical half-extent and component dimensions, in that order. */
+    /** Visible vertical half-extent and drawable dimensions, in that order. */
     float zoom = 1.0f,
-          componentWidth = 0.0f,
-          componentHeight = 0.0f;
+          drawableWidth = 0.0f,
+          drawableHeight = 0.0f;
 };
 
 /** Buffers sample-specific drawing commands for native JUCE painting. */
@@ -264,7 +307,10 @@ public:
     SimulationSettings settings;
     b2Capacity capacity = {};
 
-    /** Home camera established by the active sample. */
+    /** Static authored home view for the active ordinary sample. */
+    const HomeView* homeView = nullptr;
+
+    /** Camera values derived from the active home bounds for the current drawable aspect. */
     b2Pos homeCameraCentre = { 0.0f, 20.0f };
     float homeCameraZoom = 1.0f;
 
@@ -488,6 +534,9 @@ public:
     /** Points the canvas at a non-owned runtime. */
     void setRuntime (Runtime* newRuntime) noexcept;
 
+    /** Restores Home and enables responsive refitting until the user pans or zooms. */
+    void resetView();
+
     /** Applies queued keyboard, pointer, pan, zoom, and home input at a presentation boundary. */
     void applyPendingInput();
 
@@ -536,12 +585,16 @@ private:
     Box2DRenderer renderer;
     MouseButton activePointerButton = MouseButton::primary;
     bool panActive = false,
-         homeRequested = false;
+         homeRequested = false,
+         shouldRefitHomeViewOnResize = true;
     float pendingZoomFactor = 1.0f;
     juce::Point<float> lastPanPosition,
                        pendingPanDelta;
     std::vector<KeyPress> pendingKeyPresses;
     std::vector<PendingPointerEvent> pendingPointerEvents;
+
+    //==============================================================================
+    [[nodiscard]] juce::Rectangle<float> getDrawableArea() const noexcept;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Canvas)

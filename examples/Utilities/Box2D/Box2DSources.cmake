@@ -24,6 +24,7 @@ function(juce_add_box2d_sample_sources targetName)
         "${box2DHostDirectory}/Context.cpp"
         "${box2DHostDirectory}/ControlPanel.cpp"
         "${box2DHostDirectory}/DrawList.cpp"
+        "${box2DHostDirectory}/HomeViews.cpp"
         "${box2DHostDirectory}/HostControlsBridge.cpp"
         "${box2DHostDirectory}/HostDrawBridge.cpp"
         "${box2DHostDirectory}/MetricsComponent.cpp"

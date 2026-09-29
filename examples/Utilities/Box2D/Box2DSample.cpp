@@ -99,6 +99,16 @@ void Sample::handleMouseMove (b2Pos) {}
 
 void Sample::resetCamera()
 {
+    if (context.homeView != nullptr
+        && context.camera.drawableWidth > 0.0f
+        && context.camera.drawableHeight > 0.0f)
+    {
+        context.camera.setViewToBounds (context.homeView->getBoundsForAspectRatio (context.camera.getAspectRatio()));
+        context.homeCameraCentre = context.camera.centre;
+        context.homeCameraZoom = context.camera.zoom;
+        return;
+    }
+
     context.camera.centre = context.homeCameraCentre;
     context.camera.zoom = context.homeCameraZoom;
 }

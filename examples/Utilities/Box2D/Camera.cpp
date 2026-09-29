@@ -32,15 +32,15 @@ void Camera::reset() noexcept
     zoom = 1.0f;
 }
 
-void Camera::setComponentSize (float newWidth, float newHeight) noexcept
+void Camera::setDrawableSize (float newWidth, float newHeight) noexcept
 {
-    componentWidth = newWidth;
-    componentHeight = newHeight;
+    drawableWidth = newWidth;
+    drawableHeight = newHeight;
 }
 
 void Camera::setViewToBounds (b2AABB bounds) noexcept
 {
-    if (componentWidth <= 0.0f || componentHeight <= 0.0f)
+    if (drawableWidth <= 0.0f || drawableHeight <= 0.0f)
         return;
 
     const b2Vec2 extents = b2AABB_Extents (bounds);
@@ -48,17 +48,21 @@ void Camera::setViewToBounds (b2AABB bounds) noexcept
     if (extents.x <= 0.0f && extents.y <= 0.0f)
         return;
 
-    zoom = std::max (extents.x * componentHeight / componentWidth, extents.y);
+    zoom = std::max (extents.x / getAspectRatio(), extents.y);
     zoom = std::max (zoom, 0.01f);
     centre = b2ToPos (b2AABB_Center (bounds));
+}
+
+float Camera::getAspectRatio() const noexcept
+{
+    return drawableWidth > 0.0f && drawableHeight > 0.0f ? drawableWidth / drawableHeight : 16.0f / 9.0f;
 }
 
 b2Vec2 Camera::getViewSize() const noexcept
 {
     const float positiveZoom = std::max (zoom, 0.01f);
-    const float aspectRatio = componentWidth > 0.0f && componentHeight > 0.0f ? componentWidth / componentHeight : 16.0f / 9.0f;
 
-    return { 2.0f * positiveZoom * aspectRatio, 2.0f * positiveZoom };
+    return { 2.0f * positiveZoom * getAspectRatio(), 2.0f * positiveZoom };
 }
 
 b2AABB Camera::getVisibleBounds() const noexcept

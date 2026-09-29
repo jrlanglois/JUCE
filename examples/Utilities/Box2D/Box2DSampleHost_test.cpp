@@ -185,6 +185,95 @@ public:
 
     void runTest() override
     {
+        const auto expectBoundsEqual = [this] (b2AABB actual, b2AABB expected, float tolerance = 0.001f)
+        {
+            expectWithinAbsoluteError (actual.lowerBound.x, expected.lowerBound.x, tolerance);
+            expectWithinAbsoluteError (actual.lowerBound.y, expected.lowerBound.y, tolerance);
+            expectWithinAbsoluteError (actual.upperBound.x, expected.upperBound.x, tolerance);
+            expectWithinAbsoluteError (actual.upperBound.y, expected.upperBound.y, tolerance);
+        };
+
+        const auto expectBoundsContain = [this] (b2AABB outer, b2AABB inner, float tolerance = 0.001f)
+        {
+            expect (outer.lowerBound.x <= inner.lowerBound.x + tolerance);
+            expect (outer.lowerBound.y <= inner.lowerBound.y + tolerance);
+            expect (outer.upperBound.x >= inner.upperBound.x - tolerance);
+            expect (outer.upperBound.y >= inner.upperBound.y - tolerance);
+        };
+
+        beginTest ("Authored Home catalogue parity");
+
+        {
+            Box2DSamples::Catalog::initialise();
+            const auto& catalogueEntries = Box2DSamples::Catalog::getEntries();
+            const auto homeViews = Box2DSamples::HomeViewCatalog::getEntries();
+            int numOrdinaryEntries = 0;
+
+            for (const auto& entry : catalogueEntries)
+            {
+                const auto* homeView = Box2DSamples::HomeViewCatalog::find (entry.category, entry.name);
+
+                if (entry.isReplayViewer)
+                {
+                    expect (homeView == nullptr);
+                    continue;
+                }
+
+                ++numOrdinaryEntries;
+                expect (homeView != nullptr, String::fromUTF8 (entry.category) + " / " + String::fromUTF8 (entry.name));
+            }
+
+            expectEquals ((int) homeViews.size(), numOrdinaryEntries);
+            expect (Box2DSamples::HomeViewCatalog::find (nullptr, "Sample") == nullptr);
+            expect (Box2DSamples::HomeViewCatalog::find ("Category", nullptr) == nullptr);
+
+            for (size_t homeViewIndex = 0; homeViewIndex < homeViews.size(); ++homeViewIndex)
+            {
+                const auto& homeView = homeViews[homeViewIndex];
+                expect (homeView.category != nullptr);
+                expect (homeView.sampleName != nullptr);
+                expect (b2IsValidAABB (homeView.defaultBounds));
+                const auto defaultExtents = b2AABB_Extents (homeView.defaultBounds);
+                expect (defaultExtents.x > 0.0f);
+                expect (defaultExtents.y > 0.0f);
+
+                if (homeView.portraitBounds.has_value())
+                {
+                    expect (b2IsValidAABB (*homeView.portraitBounds));
+                    const auto portraitExtents = b2AABB_Extents (*homeView.portraitBounds);
+                    expect (portraitExtents.x > 0.0f);
+                    expect (portraitExtents.y > 0.0f);
+                }
+
+                int numCatalogueMatches = 0;
+
+                for (const auto& entry : catalogueEntries)
+                {
+                    if (! entry.isReplayViewer
+                        && std::strcmp (entry.category, homeView.category) == 0
+                        && std::strcmp (entry.name, homeView.sampleName) == 0)
+                        ++numCatalogueMatches;
+                }
+
+                expectEquals (numCatalogueMatches, 1);
+
+                if (homeViewIndex > 0)
+                {
+                    const auto& previous = homeViews[homeViewIndex - 1];
+                    const int categoryComparison = std::strcmp (previous.category, homeView.category);
+                    expect (categoryComparison < 0
+                            || (categoryComparison == 0 && std::strcmp (previous.sampleName, homeView.sampleName) < 0));
+                }
+            }
+
+            const b2AABB defaultBounds = { { -4.0f, -2.0f }, { 4.0f, 2.0f } };
+            const b2AABB portraitBounds = { { -2.0f, -4.0f }, { 2.0f, 4.0f } };
+            const Box2DSamples::HomeView homeView { "Category", "Sample", defaultBounds, portraitBounds };
+            expectBoundsEqual (homeView.getBoundsForAspectRatio (0.5f), portraitBounds);
+            expectBoundsEqual (homeView.getBoundsForAspectRatio (1.0f), defaultBounds);
+            expectBoundsEqual (homeView.getBoundsForAspectRatio (0.0f), defaultBounds);
+        }
+
         beginTest ("Presentation clock cadence");
 
         {
@@ -339,23 +428,28 @@ public:
             expect (! runtime.getContext().debugDraw.drawJoints);
         }
 
-        beginTest ("Imported sample camera framing");
+        beginTest ("Runtime authored camera framing");
 
         {
             Box2DSamples::Runtime runtime;
             runtime.getContext().shouldUseReducedWorkload = true;
-            expect (runtime.selectSample (findSampleIndex ("Joints", "Desk Lamp")).wasOk());
             auto& camera = runtime.getContext().camera;
-            camera.setComponentSize (640.0f, 480.0f);
-            expectWithinAbsoluteError (camera.zoom, 1.6f, 0.001f);
-            expectWithinAbsoluteError (camera.getViewSize().y, 3.2f, 0.001f);
+            camera.setDrawableSize (640.0f, 480.0f);
+            expect (runtime.selectSample (findSampleIndex ("Joints", "Desk Lamp")).wasOk());
+            expect (runtime.getContext().homeView != nullptr);
+
+            if (runtime.getContext().homeView != nullptr)
+            {
+                const auto expectedBounds = runtime.getContext().homeView->getBoundsForAspectRatio (camera.getAspectRatio());
+                expectBoundsContain (camera.getVisibleBounds(), expectedBounds);
+            }
         }
 
         beginTest ("Camera round trip");
 
         {
             Box2DSamples::Camera camera;
-            camera.setComponentSize (640.0f, 480.0f);
+            camera.setDrawableSize (640.0f, 480.0f);
             camera.centre = { 1.0f, 2.0f };
             camera.zoom = 2.0f;
             const juce::Rectangle<float> area (0.0f, 0.0f, 640.0f, 480.0f);
@@ -374,6 +468,112 @@ public:
             expectWithinAbsoluteError (camera.zoom, 3.0f, 0.001f);
             expectWithinAbsoluteError (camera.getViewSize().x, 8.0f, 0.001f);
             expectWithinAbsoluteError (camera.getViewSize().y, 6.0f, 0.001f);
+        }
+
+        beginTest ("Responsive authored Home framing");
+
+        {
+            Box2DSamples::Runtime runtime;
+            Box2DSamples::Canvas canvas;
+            auto& context = runtime.getContext();
+            auto& camera = context.camera;
+            context.shouldUseReducedWorkload = true;
+            canvas.setRuntime (&runtime);
+            expect (runtime.selectSample (findSampleIndex ("Joints", "Desk Lamp")).wasOk());
+            expect (context.homeView != nullptr);
+            expectWithinAbsoluteError (camera.drawableWidth, 0.0f, 0.001f);
+            expectWithinAbsoluteError (camera.drawableHeight, 0.0f, 0.001f);
+            expectWithinAbsoluteError (camera.zoom, 1.6f, 0.001f);
+
+            canvas.setSize (640, 480);
+            canvas.resized();
+            expectWithinAbsoluteError (camera.drawableWidth, 624.0f, 0.001f);
+            expectWithinAbsoluteError (camera.drawableHeight, 464.0f, 0.001f);
+            expectWithinAbsoluteError (camera.getAspectRatio(), 624.0f / 464.0f, 0.001f);
+
+            if (context.homeView != nullptr)
+            {
+                const auto expectedBounds = context.homeView->getBoundsForAspectRatio (camera.getAspectRatio());
+                expectBoundsContain (camera.getVisibleBounds(), expectedBounds);
+                const auto expectedCentre = b2AABB_Center (expectedBounds);
+                expectWithinAbsoluteError ((float) camera.centre.x, expectedCentre.x, 0.001f);
+                expectWithinAbsoluteError ((float) camera.centre.y, expectedCentre.y, 0.001f);
+            }
+
+            const float landscapeZoom = camera.zoom;
+            canvas.setSize (480, 640);
+            canvas.resized();
+            expectWithinAbsoluteError (camera.getAspectRatio(), 464.0f / 624.0f, 0.001f);
+            expect (camera.zoom > landscapeZoom);
+
+            if (context.homeView != nullptr)
+                expectBoundsContain (camera.getVisibleBounds(), context.homeView->getBoundsForAspectRatio (camera.getAspectRatio()));
+
+            const Time eventTime = Time::getCurrentTime();
+            const juce::Point<float> eventPosition (100.0f, 100.0f);
+            const MouseEvent mouseEvent (Desktop::getInstance().getMainMouseSource(),
+                                         eventPosition,
+                                         {},
+                                         MouseInputSource::defaultPressure,
+                                         MouseInputSource::defaultOrientation,
+                                         MouseInputSource::defaultRotation,
+                                         MouseInputSource::defaultTiltX,
+                                         MouseInputSource::defaultTiltY,
+                                         &canvas,
+                                         &canvas,
+                                         eventTime,
+                                         eventPosition,
+                                         eventTime,
+                                         1,
+                                         false);
+            const MouseWheelDetails wheel { 0.0f, 1.0f, false, false, false };
+            canvas.mouseWheelMove (mouseEvent, wheel);
+            canvas.applyPendingInput();
+            const b2Pos manualCentre = camera.centre;
+            const float manualZoom = camera.zoom;
+            canvas.setSize (640, 480);
+            canvas.resized();
+            expectWithinAbsoluteError ((float) camera.centre.x, (float) manualCentre.x, 0.001f);
+            expectWithinAbsoluteError ((float) camera.centre.y, (float) manualCentre.y, 0.001f);
+            expectWithinAbsoluteError (camera.zoom, manualZoom, 0.001f);
+
+            expect (runtime.restartSample().wasOk());
+            expectWithinAbsoluteError ((float) camera.centre.x, (float) manualCentre.x, 0.001f);
+            expectWithinAbsoluteError ((float) camera.centre.y, (float) manualCentre.y, 0.001f);
+            expectWithinAbsoluteError (camera.zoom, manualZoom, 0.001f);
+            canvas.setSize (800, 500);
+            canvas.resized();
+            expectWithinAbsoluteError ((float) camera.centre.x, (float) manualCentre.x, 0.001f);
+            expectWithinAbsoluteError ((float) camera.centre.y, (float) manualCentre.y, 0.001f);
+            expectWithinAbsoluteError (camera.zoom, manualZoom, 0.001f);
+
+            expect (canvas.keyPressed (KeyPress (KeyPress::homeKey)));
+            canvas.applyPendingInput();
+
+            if (context.homeView != nullptr)
+                expectBoundsContain (camera.getVisibleBounds(), context.homeView->getBoundsForAspectRatio (camera.getAspectRatio()));
+
+            const float resetZoom = camera.zoom;
+            canvas.setSize (500, 800);
+            canvas.resized();
+            expect (std::abs (camera.zoom - resetZoom) > 0.001f);
+
+            expect (runtime.selectSample (findSampleIndex ("World", "Far Gate")).wasOk());
+            canvas.resetView();
+            expect (camera.centre.x > 900000.0f);
+            expect (context.homeView != nullptr);
+
+            if (context.homeView != nullptr)
+                expectBoundsContain (camera.getVisibleBounds(), context.homeView->getBoundsForAspectRatio (camera.getAspectRatio()), 1.0f);
+
+            camera.centre = { 1234567.0f, 45.0f };
+            camera.zoom = 9.0f;
+            runtime.getCurrentSample()->advanceSimulation();
+            runtime.getDrawList().clear();
+            runtime.getCurrentSample()->prepareFrame();
+            expectWithinAbsoluteError ((float) camera.centre.x, 1234567.0f, 0.001f);
+            expectWithinAbsoluteError ((float) camera.centre.y, 45.0f, 0.001f);
+            expectWithinAbsoluteError (camera.zoom, 9.0f, 0.001f);
         }
 
         beginTest ("Canvas paint purity");
@@ -789,7 +989,10 @@ public:
         if (recording.has_value())
         {
             Box2DSamples::Runtime runtime;
+            Box2DSamples::Canvas replayCanvas;
             runtime.getContext().shouldUseReducedWorkload = true;
+            replayCanvas.setRuntime (&runtime);
+            replayCanvas.setSize (960, 540);
             expect (runtime.selectSample (findSampleIndex ("Bodies", "Bad")).wasOk());
             auto* previousSample = runtime.getCurrentSample();
             const MemoryBlock malformedData ("invalid", 7);
@@ -800,6 +1003,15 @@ public:
             releasedRecording.reset();
             expect (Box2DSamples::isReplaySample (*runtime.getCurrentSample()));
             expect (b2World_IsValid (runtime.getCurrentSample()->getWorldId()));
+            expect (runtime.getContext().homeView == nullptr);
+            replayCanvas.resetView();
+            const auto replayWorldBounds = b2World_GetBounds (runtime.getCurrentSample()->getWorldId());
+            expectBoundsContain (runtime.getContext().camera.getVisibleBounds(), replayWorldBounds);
+            const float replayLandscapeZoom = runtime.getContext().camera.zoom;
+            replayCanvas.setSize (540, 960);
+            replayCanvas.resized();
+            expect (runtime.getContext().camera.zoom > replayLandscapeZoom);
+            expectBoundsContain (runtime.getContext().camera.getVisibleBounds(), replayWorldBounds);
 
             Box2DSamples::MetricsComponent metricsWithHiddenProfiler;
             metricsWithHiddenProfiler.setRuntime (&runtime);

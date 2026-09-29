@@ -80,6 +80,13 @@ Result Runtime::selectSample (int sampleIndex, bool shouldRestart)
     if (creationResult.failed())
         return creationResult;
 
+    if (! shouldRestart)
+    {
+        pimpl->context.homeView = entry.isReplayViewer ? nullptr : HomeViewCatalog::find (entry.category, entry.name);
+        jassert (entry.isReplayViewer || pimpl->context.homeView != nullptr);
+        sample->resetCamera();
+    }
+
     pimpl->currentSample = std::move (sample);
     pimpl->selectedSampleIndex = sampleIndex;
     resetPresentationClock();

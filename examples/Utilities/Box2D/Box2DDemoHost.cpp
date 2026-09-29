@@ -555,6 +555,7 @@ private:
         }
 
         activeCatalogueIndex = sampleIndex;
+        canvas.resetView();
         updateCanvasAccessibility();
         setFileStatus (TRANS ("Selected sample: {sampleName}.").replace ("{sampleName}", getCatalogueLabel (sampleIndex)));
         rebuildAuxiliaryViews();
@@ -592,6 +593,7 @@ private:
             updateCanvasAccessibility();
         }
 
+        canvas.resetView();
         setFileStatus (TRANS ("Loaded recording: {recordingName}.").replace ("{recordingName}", displayName));
         rebuildAuxiliaryViews();
         refreshGlobalControls();
@@ -762,8 +764,7 @@ private:
         }, hasSample);
         globalControlPanel.showButton ("resetView", TRANS ("Reset view"), [this]
         {
-            if (auto* currentSample = runtime.getCurrentSample())
-                currentSample->resetCamera();
+            canvas.resetView();
         }, hasSample);
         globalControlPanel.showToggle ("profiler", TRANS ("Profiler"), profilerVisible, [this]
         {

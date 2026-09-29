@@ -34,6 +34,18 @@ Canvas::Canvas()
 
 void Canvas::setRuntime (Runtime* newRuntime) noexcept { runtime = newRuntime; }
 
+void Canvas::resetView()
+{
+    shouldRefitHomeViewOnResize = true;
+    homeRequested = false;
+
+    if (runtime != nullptr)
+    {
+        if (auto* sample = runtime->getCurrentSample())
+            sample->resetCamera();
+    }
+}
+
 void Canvas::applyPendingInput()
 {
     if (runtime == nullptr)
@@ -42,15 +54,11 @@ void Canvas::applyPendingInput()
     auto& camera = runtime->getContext().camera;
 
     if (homeRequested)
-    {
-        if (auto* sample = runtime->getCurrentSample())
-            sample->resetCamera();
-
-        homeRequested = false;
-    }
+        resetView();
 
     if (pendingZoomFactor != 1.0f)
     {
+        shouldRefitHomeViewOnResize = false;
         camera.zoom *= pendingZoomFactor;
         camera.zoom = std::clamp (camera.zoom, 0.05f, 100.0f);
         pendingZoomFactor = 1.0f;
@@ -59,11 +67,13 @@ void Canvas::applyPendingInput()
     if (pendingPanDelta != juce::Point<float>())
     {
         const b2Vec2 viewSize = camera.getViewSize();
+        const auto targetArea = getDrawableArea();
 
-        if (getWidth() > 0 && getHeight() > 0)
+        if (! targetArea.isEmpty())
         {
-            camera.centre.x -= pendingPanDelta.x * viewSize.x / (float) getWidth();
-            camera.centre.y += pendingPanDelta.y * viewSize.y / (float) getHeight();
+            shouldRefitHomeViewOnResize = false;
+            camera.centre.x -= pendingPanDelta.x * viewSize.x / targetArea.getWidth();
+            camera.centre.y += pendingPanDelta.y * viewSize.y / targetArea.getHeight();
         }
 
         pendingPanDelta = {};
@@ -83,7 +93,7 @@ void Canvas::applyPendingInput()
 
     pendingKeyPresses.clear();
 
-    const auto targetArea = getLocalBounds().toFloat().reduced (8.0f);
+    const auto targetArea = getDrawableArea();
 
     for (const auto& event : pendingPointerEvents)
     {
@@ -131,7 +141,7 @@ void Canvas::paint (Graphics& graphics)
         return;
 
     auto& camera = runtime->getContext().camera;
-    const auto targetArea = getLocalBounds().toFloat().reduced (8.0f);
+    const auto targetArea = getDrawableArea();
     const b2Vec2 viewSize = camera.getViewSize();
     const b2WorldId worldId = sample->getWorldId();
 
@@ -146,10 +156,17 @@ void Canvas::paint (Graphics& graphics)
 
 void Canvas::resized()
 {
-    if (runtime != nullptr)
+    if (runtime == nullptr)
+        return;
+
+    const auto targetArea = getDrawableArea();
+    auto& camera = runtime->getContext().camera;
+    camera.setDrawableSize (targetArea.getWidth(), targetArea.getHeight());
+
+    if (shouldRefitHomeViewOnResize && ! targetArea.isEmpty())
     {
-        auto& camera = runtime->getContext().camera;
-        camera.setComponentSize ((float) getWidth(), (float) getHeight());
+        if (auto* sample = runtime->getCurrentSample())
+            sample->resetCamera();
     }
 }
 
@@ -176,6 +193,7 @@ void Canvas::mouseDown (const MouseEvent& event)
     if (event.mods.isMiddleButtonDown())
     {
         panActive = true;
+        shouldRefitHomeViewOnResize = false;
         lastPanPosition = event.position;
         return;
     }
@@ -230,8 +248,14 @@ void Canvas::mouseMove (const MouseEvent& event)
 void Canvas::mouseWheelMove (const MouseEvent& event, const MouseWheelDetails& wheel)
 {
     ignoreUnused (event);
+
+    if (wheel.deltaY != 0.0f)
+        shouldRefitHomeViewOnResize = false;
+
     pendingZoomFactor *= std::max (0.1f, 1.0f - 0.1f * (float) wheel.deltaY);
 }
+
+juce::Rectangle<float> Canvas::getDrawableArea() const noexcept { return getLocalBounds().toFloat().reduced (8.0f); }
 
 std::unique_ptr<AccessibilityHandler> Canvas::createAccessibilityHandler()
 {
