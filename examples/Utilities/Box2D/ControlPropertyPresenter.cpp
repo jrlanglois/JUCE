@@ -56,9 +56,9 @@ class ActionProperty final : public PropertyComponent,
                              private ModelProperty
 {
 public:
-    ActionProperty (ControlModel& controlModel, const ControlItem& item) :
+    ActionProperty (ControlModel& presentedControlModel, const ControlItem& item) :
         PropertyComponent (item.labelText, standardControlRowHeight),
-        ModelProperty (controlModel, item.identifier)
+        ModelProperty (presentedControlModel, item.identifier)
     {
         addAndMakeVisible (button);
         button.onClick = [this] { this->controlModel.queueAction (identifier); };
@@ -90,9 +90,9 @@ class BooleanProperty final : public BooleanPropertyComponent,
                               private ModelProperty
 {
 public:
-    BooleanProperty (ControlModel& controlModel, const ControlItem& item) :
+    BooleanProperty (ControlModel& presentedControlModel, const ControlItem& item) :
         BooleanPropertyComponent (item.labelText, {}, {}),
-        ModelProperty (controlModel, item.identifier)
+        ModelProperty (presentedControlModel, item.identifier)
     {
         setPreferredHeight (standardControlRowHeight);
         refresh();
@@ -147,9 +147,9 @@ class NumberProperty final : public SliderPropertyComponent,
                              private ModelProperty
 {
 public:
-    NumberProperty (ControlModel& controlModel, const ControlItem& item) :
+    NumberProperty (ControlModel& presentedControlModel, const ControlItem& item) :
         SliderPropertyComponent (item.labelText, item.minValue, item.maxValue, item.interval),
-        ModelProperty (controlModel, item.identifier)
+        ModelProperty (presentedControlModel, item.identifier)
     {
         setPreferredHeight (standardControlRowHeight);
         refresh();
@@ -190,9 +190,9 @@ class ChoiceProperty final : public ChoicePropertyComponent,
                              private ModelProperty
 {
 public:
-    ChoiceProperty (ControlModel& controlModel, const ControlItem& item) :
+    ChoiceProperty (ControlModel& presentedControlModel, const ControlItem& item) :
         ChoicePropertyComponent (item.labelText),
-        ModelProperty (controlModel, item.identifier)
+        ModelProperty (presentedControlModel, item.identifier)
     {
         setPreferredHeight (standardControlRowHeight);
         refresh();
@@ -299,9 +299,9 @@ class TextInputProperty final : public TextPropertyComponent,
                                 private ModelProperty
 {
 public:
-    TextInputProperty (ControlModel& controlModel, const ControlItem& item) :
+    TextInputProperty (ControlModel& presentedControlModel, const ControlItem& item) :
         TextPropertyComponent (item.labelText, 0, false),
-        ModelProperty (controlModel, item.identifier)
+        ModelProperty (presentedControlModel, item.identifier)
     {
         setPreferredHeight (standardControlRowHeight);
         refresh();
@@ -348,9 +348,9 @@ class ReadOnlyProperty final : public PropertyComponent,
                                private ModelProperty
 {
 public:
-    ReadOnlyProperty (ControlModel& controlModel, const ControlItem& item) :
+    ReadOnlyProperty (ControlModel& presentedControlModel, const ControlItem& item) :
         PropertyComponent (item.labelText, standardControlRowHeight),
-        ModelProperty (controlModel, item.identifier)
+        ModelProperty (presentedControlModel, item.identifier)
     {
         label.setJustificationType (Justification::centredLeft);
         label.setMinimumHorizontalScale (0.65f);
@@ -407,9 +407,9 @@ class ProgressProperty final : public PropertyComponent,
                                private ModelProperty
 {
 public:
-    ProgressProperty (ControlModel& controlModel, const ControlItem& item) :
+    ProgressProperty (ControlModel& presentedControlModel, const ControlItem& item) :
         PropertyComponent (item.labelText, standardControlRowHeight),
-        ModelProperty (controlModel, item.identifier),
+        ModelProperty (presentedControlModel, item.identifier),
         progressBar (progressValue, ProgressBar::Style::linear)
     {
         progressBar.setPercentageDisplay (true);
@@ -468,9 +468,9 @@ class InteractionProperty final : public PropertyComponent,
                                   private ModelProperty
 {
 public:
-    InteractionProperty (ControlModel& controlModel, const ControlItem& item) :
+    InteractionProperty (ControlModel& presentedControlModel, const ControlItem& item) :
         PropertyComponent (item.labelText, interactionControlRowHeight),
-        ModelProperty (controlModel, item.identifier)
+        ModelProperty (presentedControlModel, item.identifier)
     {
         actionText.setAccessible (false);
         actionText.setInterceptsMouseClicks (false, false);
