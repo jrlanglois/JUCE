@@ -43,7 +43,7 @@ void Camera::setViewToBounds (b2AABB bounds) noexcept
     if (drawableWidth <= 0.0f || drawableHeight <= 0.0f)
         return;
 
-    const b2Vec2 extents = b2AABB_Extents (bounds);
+    const auto extents = b2AABB_Extents (bounds);
 
     if (extents.x <= 0.0f && extents.y <= 0.0f)
         return;
@@ -60,14 +60,14 @@ float Camera::getAspectRatio() const noexcept
 
 b2Vec2 Camera::getViewSize() const noexcept
 {
-    const float positiveZoom = std::max (zoom, 0.01f);
+    const auto positiveZoom = std::max (zoom, 0.01f);
 
     return { 2.0f * positiveZoom * getAspectRatio(), 2.0f * positiveZoom };
 }
 
 b2AABB Camera::getVisibleBounds() const noexcept
 {
-    const b2Vec2 viewSize = getViewSize();
+    const auto viewSize = getViewSize();
     const b2Vec2 halfSize = { 0.5f * viewSize.x, 0.5f * viewSize.y };
 
     return { { (float) (centre.x - halfSize.x), (float) (centre.y - halfSize.y) },
@@ -76,16 +76,16 @@ b2AABB Camera::getVisibleBounds() const noexcept
 
 juce::Point<float> Camera::convertWorldToComponent (b2Pos worldPosition, const juce::Rectangle<float>& targetArea) const noexcept
 {
-    const b2Vec2 viewSize = getViewSize();
+    const auto viewSize = getViewSize();
 
     if (viewSize.x <= 0.0f || viewSize.y <= 0.0f)
         return targetArea.getCentre();
 
-    const float scaleX = targetArea.getWidth() / viewSize.x;
-    const float scaleY = targetArea.getHeight() / viewSize.y;
+    const auto scaleX = targetArea.getWidth() / viewSize.x;
+    const auto scaleY = targetArea.getHeight() / viewSize.y;
 
-    const float localX = (float) (worldPosition.x - centre.x) * scaleX;
-    const float localY = (float) (centre.y - worldPosition.y) * scaleY;
+    const auto localX = (float) (worldPosition.x - centre.x) * scaleX;
+    const auto localY = (float) (centre.y - worldPosition.y) * scaleY;
 
     return { targetArea.getCentreX() + localX,
              targetArea.getCentreY() + localY };
@@ -93,16 +93,16 @@ juce::Point<float> Camera::convertWorldToComponent (b2Pos worldPosition, const j
 
 b2Pos Camera::convertComponentToWorld (juce::Point<float> componentPosition, const juce::Rectangle<float>& targetArea) const noexcept
 {
-    const b2Vec2 viewSize = getViewSize();
+    const auto viewSize = getViewSize();
 
     if (viewSize.x <= 0.0f || viewSize.y <= 0.0f)
         return centre;
 
-    const float scaleX = targetArea.getWidth() / viewSize.x;
-    const float scaleY = targetArea.getHeight() / viewSize.y;
+    const auto scaleX = targetArea.getWidth() / viewSize.x;
+    const auto scaleY = targetArea.getHeight() / viewSize.y;
 
-    const float localX = componentPosition.x - targetArea.getCentreX();
-    const float localY = componentPosition.y - targetArea.getCentreY();
+    const auto localX = componentPosition.x - targetArea.getCentreX();
+    const auto localY = componentPosition.y - targetArea.getCentreY();
 
     return { centre.x + localX / scaleX,
              centre.y - localY / scaleY };

@@ -117,7 +117,7 @@ struct ControlModel::Pimpl final
         jassert (isInFrame);
         jassert (identifier.isNotEmpty());
 
-        const bool isDuplicate = std::any_of (buildingItems.begin(), buildingItems.end(), [&identifier] (const auto& item)
+        const auto isDuplicate = std::any_of (buildingItems.begin(), buildingItems.end(), [&identifier] (const auto& item)
         {
             return item.identifier == identifier;
         });
@@ -341,9 +341,9 @@ uint64 ControlModel::getStructureRevision() const noexcept { return pimpl->struc
 void ControlModel::queueAction (const String& identifier)
 {
     const auto* item = findItem (identifier);
-    const bool isValid = item != nullptr
-                         && item->enabled
-                         && (item->kind == ControlItem::Kind::button || item->kind == ControlItem::Kind::radioButton);
+    const auto isValid = item != nullptr
+                        && item->enabled
+                        && (item->kind == ControlItem::Kind::button || item->kind == ControlItem::Kind::radioButton);
     jassert (isValid);
 
     if (isValid)
@@ -353,7 +353,7 @@ void ControlModel::queueAction (const String& identifier)
 void ControlModel::queueBooleanEdit (const String& identifier, bool value)
 {
     const auto* item = findItem (identifier);
-    const bool isValid = item != nullptr && item->enabled && item->kind == ControlItem::Kind::toggle;
+    const auto isValid = item != nullptr && item->enabled && item->kind == ControlItem::Kind::toggle;
     jassert (isValid);
 
     if (isValid)
@@ -363,10 +363,10 @@ void ControlModel::queueBooleanEdit (const String& identifier, bool value)
 void ControlModel::queueNumberEdit (const String& identifier, double value)
 {
     const auto* item = findItem (identifier);
-    const bool isValid = item != nullptr
-                         && item->enabled
-                         && item->kind == ControlItem::Kind::number
-                         && std::isfinite (value);
+    const auto isValid = item != nullptr
+                        && item->enabled
+                        && item->kind == ControlItem::Kind::number
+                        && std::isfinite (value);
     jassert (isValid);
 
     if (isValid)
@@ -376,10 +376,10 @@ void ControlModel::queueNumberEdit (const String& identifier, double value)
 void ControlModel::queueChoiceEdit (const String& identifier, const String& choiceIdentifier)
 {
     const auto* item = findItem (identifier);
-    const bool isValid = item != nullptr
-                         && item->enabled
-                         && item->kind == ControlItem::Kind::choice
-                         && containsChoice (*item, choiceIdentifier);
+    const auto isValid = item != nullptr
+                        && item->enabled
+                        && item->kind == ControlItem::Kind::choice
+                        && containsChoice (*item, choiceIdentifier);
     jassert (isValid);
 
     if (isValid)
@@ -389,7 +389,7 @@ void ControlModel::queueChoiceEdit (const String& identifier, const String& choi
 void ControlModel::queueTextEdit (const String& identifier, const String& value)
 {
     const auto* item = findItem (identifier);
-    const bool isValid = item != nullptr && item->enabled && item->kind == ControlItem::Kind::textInput;
+    const auto isValid = item != nullptr && item->enabled && item->kind == ControlItem::Kind::textInput;
     jassert (isValid);
 
     if (isValid)
@@ -511,7 +511,7 @@ void ControlModel::showChoice (const String& identifier, const String& displayTe
 
 void ControlModel::showChoice (const String& identifier, const String& displayText, String& selectedChoiceIdentifier, Span<const ControlChoice> choices, std::function<void()> editAction, bool shouldEnable)
 {
-    const bool choicesAreValid = areChoicesValid (choices);
+    const auto choicesAreValid = areChoicesValid (choices);
     jassert (choicesAreValid);
 
     if (! choicesAreValid)

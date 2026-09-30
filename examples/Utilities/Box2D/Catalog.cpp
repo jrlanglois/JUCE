@@ -68,7 +68,7 @@ void initialise()
     for (int upstreamIndex = 0; upstreamIndex < g_sampleCount; ++upstreamIndex)
     {
         const auto& upstreamEntry = g_sampleEntries[upstreamIndex];
-        const bool isReplayViewer = upstreamIndex == g_replayIndex;
+        const auto isReplayViewer = upstreamIndex == g_replayIndex;
         registerSample (upstreamEntry.category,
                         upstreamEntry.name,
                         isReplayViewer ? createReplaySample : upstreamFactories[(size_t) upstreamIndex],
@@ -78,7 +78,7 @@ void initialise()
 
     std::stable_sort (entries.begin(), entries.end(), [] (const Entry& first, const Entry& second)
     {
-        const int categoryComparison = std::strcmp (first.category, second.category);
+        const auto categoryComparison = std::strcmp (first.category, second.category);
         return categoryComparison != 0 ? categoryComparison < 0 : std::strcmp (first.name, second.name) < 0;
     });
 

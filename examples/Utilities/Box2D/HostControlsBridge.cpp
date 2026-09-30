@@ -53,8 +53,8 @@ String formatText (const char* format, va_list arguments)
 
 int getNumDecimalPlaces (const char* format)
 {
-    const String formatString = String::fromUTF8 (format != nullptr ? format : "");
-    const int decimalPoint = formatString.indexOfChar ('.');
+    const auto formatString = String::fromUTF8 (format != nullptr ? format : "");
+    const auto decimalPoint = formatString.indexOfChar ('.');
 
     if (decimalPoint < 0)
         return 3;
@@ -100,7 +100,7 @@ public:
     bool showButton (const char* label)
     {
         auto [identifier, state] = getState ("button", label);
-        const bool wasActivated = std::exchange (state.changed, false);
+        const auto wasActivated = std::exchange (state.changed, false);
 
         if (controlModel != nullptr)
             controlModel->showButton (identifier, getDisplayText (label), [statePointer = &state] { statePointer->changed = true; });
@@ -114,7 +114,7 @@ public:
             return false;
 
         auto [identifier, state] = getState ("toggle", label);
-        const bool wasEdited = std::exchange (state.changed, false);
+        const auto wasEdited = std::exchange (state.changed, false);
 
         if (wasEdited)
             *value = state.boolValue;
@@ -130,7 +130,7 @@ public:
     bool showRadioButton (const char* label, bool selected)
     {
         auto [identifier, state] = getState ("radio", label);
-        const bool wasActivated = std::exchange (state.changed, false);
+        const auto wasActivated = std::exchange (state.changed, false);
 
         if (controlModel != nullptr)
             controlModel->showRadioButton (identifier, getDisplayText (label), selected, [statePointer = &state] { statePointer->changed = true; });
@@ -144,7 +144,7 @@ public:
             return false;
 
         auto [identifier, state] = getState ("float", label);
-        const bool wasEdited = std::exchange (state.changed, false);
+        const auto wasEdited = std::exchange (state.changed, false);
 
         if (wasEdited)
             *value = state.floatValue;
@@ -163,7 +163,7 @@ public:
             return false;
 
         auto [identifier, state] = getState ("floatPair", label);
-        const bool wasEdited = std::exchange (state.changed, false);
+        const auto wasEdited = std::exchange (state.changed, false);
 
         if (wasEdited)
         {
@@ -187,7 +187,7 @@ public:
             return false;
 
         auto [identifier, state] = getState ("integer", label);
-        const bool wasEdited = std::exchange (state.changed, false);
+        const auto wasEdited = std::exchange (state.changed, false);
 
         if (wasEdited)
             *value = state.intValue;
@@ -206,7 +206,7 @@ public:
             return false;
 
         auto [identifier, state] = getState ("choice", label);
-        const bool wasEdited = std::exchange (state.changed, false);
+        const auto wasEdited = std::exchange (state.changed, false);
 
         if (wasEdited)
             *index = state.intValue;
@@ -254,10 +254,10 @@ public:
 private:
     std::pair<String, HostControlState&> getState (const String& kind, const char* label)
     {
-        const String sourceLabel = String::fromUTF8 (label != nullptr ? label : "");
-        const String occurrenceKey = kind + "\n" + sourceLabel;
-        const int occurrence = occurrences[occurrenceKey]++;
-        const String identifier = kind + "." + sourceLabel + "." + String (occurrence);
+        const auto sourceLabel = String::fromUTF8 (label != nullptr ? label : "");
+        const auto occurrenceKey = kind + "\n" + sourceLabel;
+        const auto occurrence = occurrences[occurrenceKey]++;
+        const auto identifier = kind + "." + sourceLabel + "." + String (occurrence);
         return { identifier, states[identifier] };
     }
 

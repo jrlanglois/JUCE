@@ -66,7 +66,7 @@ void Canvas::applyPendingInput()
 
     if (pendingPanDelta != juce::Point<float>())
     {
-        const b2Vec2 viewSize = camera.getViewSize();
+        const auto viewSize = camera.getViewSize();
         const auto targetArea = getDrawableArea();
 
         if (! targetArea.isEmpty())
@@ -97,7 +97,7 @@ void Canvas::applyPendingInput()
 
     for (const auto& event : pendingPointerEvents)
     {
-        const b2Pos worldPosition = camera.convertComponentToWorld (event.position, targetArea);
+        const auto worldPosition = camera.convertComponentToWorld (event.position, targetArea);
 
         switch (event.type)
         {
@@ -145,8 +145,8 @@ void Canvas::paint (Graphics& graphics)
 
     auto& camera = runtime->getContext().camera;
     const auto targetArea = getDrawableArea();
-    const b2Vec2 viewSize = camera.getViewSize();
-    const b2WorldId worldId = sample->getWorldId();
+    const auto viewSize = camera.getViewSize();
+    const auto worldId = sample->getWorldId();
 
     if (b2World_IsValid (worldId))
     {

@@ -256,9 +256,9 @@ public:
             case Command::Type::circle:
             {
                 const auto centre = camera.convertWorldToComponent (command.posA, targetArea);
-                const b2Vec2 viewSize = camera.getViewSize();
-                const float scale = targetArea.getWidth() / viewSize.x;
-                const float diameter = 2.0f * command.radius * scale;
+                const auto viewSize = camera.getViewSize();
+                const auto scale = targetArea.getWidth() / viewSize.x;
+                const auto diameter = 2.0f * command.radius * scale;
                 graphics.drawEllipse (centre.x - diameter * 0.5f,
                                       centre.y - diameter * 0.5f,
                                       diameter,
@@ -271,9 +271,9 @@ public:
             {
                 const auto start = camera.convertWorldToComponent (command.posA, targetArea);
                 const auto end = camera.convertWorldToComponent (command.posB, targetArea);
-                const b2Vec2 viewSize = camera.getViewSize();
-                const float worldScale = std::min (targetArea.getWidth() / viewSize.x, targetArea.getHeight() / viewSize.y);
-                const float diameter = 2.0f * command.radius * worldScale;
+                const auto viewSize = camera.getViewSize();
+                const auto worldScale = std::min (targetArea.getWidth() / viewSize.x, targetArea.getHeight() / viewSize.y);
+                const auto diameter = 2.0f * command.radius * worldScale;
                 graphics.drawLine ({ start.x, start.y, end.x, end.y }, diameter);
                 graphics.drawEllipse (start.x - diameter * 0.5f, start.y - diameter * 0.5f, diameter, diameter, colourHelper.getLineThickness());
                 graphics.drawEllipse (end.x - diameter * 0.5f, end.y - diameter * 0.5f, diameter, diameter, colourHelper.getLineThickness());
@@ -317,7 +317,7 @@ public:
 
                 for (int vertexIndex = 0; vertexIndex < (int) command.vertices.size(); ++vertexIndex)
                 {
-                    const b2Pos worldVertex = b2TransformWorldPoint (command.transform, command.vertices[(size_t) vertexIndex]);
+                    const auto worldVertex = b2TransformWorldPoint (command.transform, command.vertices[(size_t) vertexIndex]);
                     const auto componentVertex = camera.convertWorldToComponent (worldVertex, targetArea);
 
                     if (vertexIndex == 0)
@@ -333,11 +333,11 @@ public:
 
             case Command::Type::solidCircle:
             {
-                const b2Pos worldCentre = b2TransformWorldPoint (command.transform, { (float) command.posA.x, (float) command.posA.y });
+                const auto worldCentre = b2TransformWorldPoint (command.transform, { (float) command.posA.x, (float) command.posA.y });
                 const auto componentCentre = camera.convertWorldToComponent (worldCentre, targetArea);
-                const b2Vec2 viewSize = camera.getViewSize();
-                const float scale = targetArea.getWidth() / viewSize.x;
-                const float diameter = 2.0f * command.radius * scale;
+                const auto viewSize = camera.getViewSize();
+                const auto scale = targetArea.getWidth() / viewSize.x;
+                const auto diameter = 2.0f * command.radius * scale;
                 graphics.fillEllipse (componentCentre.x - diameter * 0.5f,
                                       componentCentre.y - diameter * 0.5f,
                                       diameter,
@@ -354,7 +354,7 @@ public:
 
                 for (int vertexIndex = 0; vertexIndex < (int) command.vertices.size(); ++vertexIndex)
                 {
-                    const b2Pos worldVertex = b2TransformWorldPoint (command.transform, command.vertices[(size_t) vertexIndex]);
+                    const auto worldVertex = b2TransformWorldPoint (command.transform, command.vertices[(size_t) vertexIndex]);
                     const auto componentVertex = camera.convertWorldToComponent (worldVertex, targetArea);
 
                     if (vertexIndex == 0)
@@ -370,10 +370,10 @@ public:
 
             case Command::Type::transformMarker:
             {
-                const float axisLength = command.scale;
-                const b2Pos origin = b2TransformWorldPoint (command.transform, b2Vec2_zero);
-                const b2Pos xAxis = b2TransformWorldPoint (command.transform, { axisLength, 0.0f });
-                const b2Pos yAxis = b2TransformWorldPoint (command.transform, { 0.0f, axisLength });
+                const auto axisLength = command.scale;
+                const auto origin = b2TransformWorldPoint (command.transform, b2Vec2_zero);
+                const auto xAxis = b2TransformWorldPoint (command.transform, { axisLength, 0.0f });
+                const auto yAxis = b2TransformWorldPoint (command.transform, { 0.0f, axisLength });
                 const auto originComponent = camera.convertWorldToComponent (origin, targetArea);
                 const auto xComponent = camera.convertWorldToComponent (xAxis, targetArea);
                 const auto yComponent = camera.convertWorldToComponent (yAxis, targetArea);

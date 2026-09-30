@@ -30,7 +30,7 @@ namespace
 
 [[nodiscard]] String formatCalibrationValue (float value)
 {
-    const float normalisedValue = std::abs (value) < 0.00005f ? 0.0f : value;
+    const auto normalisedValue = std::abs (value) < 0.00005f ? 0.0f : value;
     return String (normalisedValue, 4);
 }
 
@@ -135,8 +135,8 @@ public:
 
     void layoutComponents (juce::Rectangle<int> bounds)
     {
-        const int maxPanelWidth = std::max (140, bounds.getWidth() - 160);
-        const int panelWidth = std::min (std::clamp (bounds.getWidth() / 3, 220, 360), maxPanelWidth);
+        const auto maxPanelWidth = std::max (140, bounds.getWidth() - 160);
+        const auto panelWidth = std::min (std::clamp (bounds.getWidth() / 3, 220, 360), maxPanelWidth);
         propertyPanel.setBounds (bounds.removeFromLeft (panelWidth));
         bounds.removeFromLeft (4);
         canvas.setBounds (bounds);
@@ -241,7 +241,7 @@ private:
 
         for (const auto& entry : Box2DSamples::Catalog::getEntries())
         {
-            const String category = String::fromUTF8 (entry.category);
+            const auto category = String::fromUTF8 (entry.category);
 
             if (! categoryKeys.contains (category))
                 categoryKeys.add (category);
@@ -256,7 +256,7 @@ private:
 
     void refreshCatalogueFilter()
     {
-        const String searchText = catalogueSearch.trim();
+        const auto searchText = catalogueSearch.trim();
         const auto selectedCategory = getSelectedCategory();
         const auto& entries = Box2DSamples::Catalog::getEntries();
         filteredSampleIndices.clear();
@@ -265,8 +265,8 @@ private:
         {
             const auto& entry = entries[(size_t) catalogueIndex];
             const auto catalogueLabel = getCatalogueLabel (catalogueIndex);
-            const bool categoryMatches = ! selectedCategory.has_value() || *selectedCategory == entry.category;
-            const bool searchMatches = searchText.isEmpty() || (catalogueLabel.has_value() && catalogueLabel->containsIgnoreCase (searchText));
+            const auto categoryMatches = ! selectedCategory.has_value() || *selectedCategory == entry.category;
+            const auto searchMatches = searchText.isEmpty() || (catalogueLabel.has_value() && catalogueLabel->containsIgnoreCase (searchText));
 
             if (categoryMatches && searchMatches)
                 filteredSampleIndices.push_back (catalogueIndex);
@@ -342,7 +342,7 @@ private:
             return;
 
         auto opennessState = shouldRestorePropertyState ? propertyPanel.getOpennessState() : nullptr;
-        const int scrollPosition = propertyPanel.getViewport().getViewPositionY();
+        const auto scrollPosition = propertyPanel.getViewport().getViewPositionY();
         propertyPanel.clear();
         Box2DSamples::appendControlProperties (controlModel, propertyPanel);
 
@@ -417,7 +417,7 @@ private:
         stopRecordingBeforeSampleChange();
         destroyAuxiliaryViews();
         controlModel.clear();
-        const Result selectResult = runtime.selectSample (sampleIndex);
+        const auto selectResult = runtime.selectSample (sampleIndex);
         jassert (selectResult.wasOk());
 
         if (selectResult.failed())
@@ -450,7 +450,7 @@ private:
         if (! pendingCatalogueIndex.has_value())
             return;
 
-        const int sampleIndex = *pendingCatalogueIndex;
+        const auto sampleIndex = *pendingCatalogueIndex;
         pendingCatalogueIndex.reset();
         selectCatalogueSample (sampleIndex);
     }
@@ -460,7 +460,7 @@ private:
         stopRecordingBeforeSampleChange();
         destroyAuxiliaryViews();
         controlModel.clear();
-        const Result selectResult = runtime.selectReplay (recordingData, displayName);
+        const auto selectResult = runtime.selectReplay (recordingData, displayName);
 
         if (selectResult.failed())
         {
@@ -489,7 +489,7 @@ private:
     {
         destroyAuxiliaryViews();
         controlModel.clear();
-        const Result restartResult = runtime.restartSample();
+        const auto restartResult = runtime.restartSample();
         jassert (restartResult.wasOk());
 
         if (restartResult.failed())
@@ -548,7 +548,7 @@ private:
                                             if (safeOwner == nullptr)
                                                 return;
 
-                                            const URL url = chooser.getURLResult();
+                                            const auto url = chooser.getURLResult();
 
                                             if (! url.isEmpty())
                                                 safeOwner->pimpl->readReplayAsync (url);
@@ -560,7 +560,7 @@ private:
         if (! lastRecording.has_value())
             return;
 
-        const File initialFile = File::getSpecialLocation (File::userDocumentsDirectory)
+        const auto initialFile = File::getSpecialLocation (File::userDocumentsDirectory)
                                      .getChildFile ("Box2D-recording.b2rec");
         saveRecordingChooser = std::make_unique<FileChooser> (TRANS ("Save the Box2D recording"),
                                                               initialFile,
@@ -576,7 +576,7 @@ private:
                                                if (safeOwner == nullptr)
                                                    return;
 
-                                               const URL url = chooser.getURLResult();
+                                               const auto url = chooser.getURLResult();
 
                                                if (! url.isEmpty())
                                                    safeOwner->pimpl->writeRecordingAsync (url);
@@ -608,7 +608,7 @@ private:
 
         fileIOBusy = true;
         setFileStatus (TRANS ("Saving recording..."));
-        MemoryBlock recordingData = *lastRecording;
+        auto recordingData = *lastRecording;
         fileIOThreadPool.addJob ([safeOwner = SafePointer<Box2DDemo> (&owner),
                                  urlToWrite = std::move (url),
                                  recordingDataToWrite = std::move (recordingData)]
@@ -650,7 +650,7 @@ private:
     {
         auto& settings = runtime.getContext().settings;
         const auto* sample = runtime.getCurrentSample();
-        const bool hasSample = sample != nullptr,
+        const auto hasSample = sample != nullptr,
                    isReplayViewer = hasSample && Box2DSamples::isReplaySample (*sample);
         controlModel.beginFrame();
         controlModel.setGroup (Box2DSamples::ControlItem::Group::catalogue);
@@ -742,8 +742,8 @@ private:
 
         for (const auto& hint : interactionHints)
         {
-            const String inputDescription = TRANS (hint.inputDescription);
-            const String actionDescription = TRANS (hint.actionDescription);
+            const auto inputDescription = TRANS (hint.inputDescription);
+            const auto actionDescription = TRANS (hint.actionDescription);
             controlModel.showInteraction ("interaction." + hint.identifier.toString(), inputDescription, actionDescription);
             accessibleInteractions.add (TRANS ("{input}: {action}")
                                             .replace ("{input}", inputDescription)
@@ -879,7 +879,7 @@ private:
 
         if (const auto* sample = runtime.getCurrentSample())
         {
-            const b2WorldId worldId = sample->getWorldId();
+            const auto worldId = sample->getWorldId();
 
             if (b2World_IsValid (worldId))
                 b2World_SetWorkerCount (worldId, settings.numWorkers);
@@ -890,7 +890,7 @@ private:
     {
         if (const auto* sample = runtime.getCurrentSample())
         {
-            const b2WorldId worldId = sample->getWorldId();
+            const auto worldId = sample->getWorldId();
 
             if (b2World_IsValid (worldId))
                 b2World_SetContactRecycleDistance (worldId, runtime.getContext().settings.recycleDistance);

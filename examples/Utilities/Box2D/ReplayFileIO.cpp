@@ -40,8 +40,8 @@ ReplayFileReadResult readReplayFile (const URL& url)
         return result;
     }
 
-    const int64 expectedNumBytes = stream->getTotalLength();
-    const size_t numBytesRead = stream->readIntoMemoryBlock (result.data);
+    const auto expectedNumBytes = stream->getTotalLength();
+    const auto numBytesRead = stream->readIntoMemoryBlock (result.data);
 
     if (result.data.isEmpty())
     {
@@ -62,7 +62,7 @@ std::optional<ReplayFileError> writeReplayFile (const URL& url, const MemoryBloc
 {
     if (url.isLocalFile())
     {
-        const File file = url.getLocalFile();
+        const auto file = url.getLocalFile();
 
         if (file.existsAsFile() && ! file.deleteFile())
             return ReplayFileError::writeFailed;

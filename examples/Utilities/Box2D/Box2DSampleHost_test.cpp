@@ -333,7 +333,7 @@ public:
                 if (homeViewIndex > 0)
                 {
                     const auto& previous = homeViews[homeViewIndex - 1];
-                    const int categoryComparison = std::strcmp (previous.category, homeView.category);
+                    const auto categoryComparison = std::strcmp (previous.category, homeView.category);
                     expect (categoryComparison < 0
                             || (categoryComparison == 0 && std::strcmp (previous.sampleName, homeView.sampleName) < 0));
                 }
@@ -460,8 +460,8 @@ public:
             expect (settings.isRestitutionPropagationEnabled == defaultSettings.isRestitutionPropagationEnabled);
             expect (context.camera.centre.x != 123.0f || context.camera.centre.y != 456.0f);
             expect (context.debugDraw.drawJoints);
-            const b2Pos homeCameraCentre = context.homeCameraCentre;
-            const float homeCameraZoom = context.homeCameraZoom;
+            const auto homeCameraCentre = context.homeCameraCentre;
+            const auto homeCameraZoom = context.homeCameraZoom;
             expectWithinAbsoluteError ((float) context.camera.centre.x, (float) homeCameraCentre.x, 0.001f);
             expectWithinAbsoluteError ((float) context.camera.centre.y, (float) homeCameraCentre.y, 0.001f);
             expectWithinAbsoluteError (context.camera.zoom, homeCameraZoom, 0.001f);
@@ -529,7 +529,7 @@ public:
             const juce::Rectangle<float> area (0.0f, 0.0f, 640.0f, 480.0f);
             const b2Pos worldPoint { 3.0f, 4.0f };
             const auto componentPoint = camera.convertWorldToComponent (worldPoint, area);
-            const b2Pos roundTrip = camera.convertComponentToWorld (componentPoint, area);
+            const auto roundTrip = camera.convertComponentToWorld (componentPoint, area);
             expectWithinAbsoluteError<double> ((double) roundTrip.x, (double) worldPoint.x, 0.02);
             expectWithinAbsoluteError<double> ((double) roundTrip.y, (double) worldPoint.y, 0.02);
             const auto viewSize = camera.getViewSize();
@@ -574,7 +574,7 @@ public:
                 expectWithinAbsoluteError ((float) camera.centre.y, expectedCentre.y, 0.001f);
             }
 
-            const float landscapeZoom = camera.zoom;
+            const auto landscapeZoom = camera.zoom;
             canvas.setSize (480, 640);
             canvas.resized();
             expectWithinAbsoluteError (camera.getAspectRatio(), 464.0f / 624.0f, 0.001f);
@@ -583,7 +583,7 @@ public:
             if (context.homeView != nullptr)
                 expectBoundsContain (camera.getVisibleBounds(), context.homeView->getBoundsForAspectRatio (camera.getAspectRatio()));
 
-            const Time eventTime = Time::getCurrentTime();
+            const auto eventTime = Time::getCurrentTime();
             const juce::Point<float> eventPosition (100.0f, 100.0f);
             const MouseEvent mouseEvent (Desktop::getInstance().getMainMouseSource(),
                                          eventPosition,
@@ -603,8 +603,8 @@ public:
             const MouseWheelDetails wheel { 0.0f, 1.0f, false, false, false };
             canvas.mouseWheelMove (mouseEvent, wheel);
             canvas.applyPendingInput();
-            const b2Pos manualCentre = camera.centre;
-            const float manualZoom = camera.zoom;
+            const auto manualCentre = camera.centre;
+            const auto manualZoom = camera.zoom;
             canvas.setSize (640, 480);
             canvas.resized();
             expectWithinAbsoluteError ((float) camera.centre.x, (float) manualCentre.x, 0.001f);
@@ -627,7 +627,7 @@ public:
             if (context.homeView != nullptr)
                 expectBoundsContain (camera.getVisibleBounds(), context.homeView->getBoundsForAspectRatio (camera.getAspectRatio()));
 
-            const float resetZoom = camera.zoom;
+            const auto resetZoom = camera.zoom;
             canvas.setSize (500, 800);
             canvas.resized();
             expect (std::abs (camera.zoom - resetZoom) > 0.001f);
@@ -769,7 +769,7 @@ public:
                     properties->setSectionOpen (sectionIndex, true);
 
                 properties->getViewport().setViewPosition (0, 120);
-                const int savedScrollPosition = properties->getViewport().getViewPositionY();
+                const auto savedScrollPosition = properties->getViewport().getViewPositionY();
 
                 const auto verifyCategorySelection = [&] (const String& categoryName)
                 {
@@ -780,7 +780,7 @@ public:
                         return;
 
                     auto* categoryControl = findComponent<ComboBox> (*categoryProperty);
-                    const int categoryIndex = categoryProperty->getChoices().indexOf (categoryName);
+                    const auto categoryIndex = categoryProperty->getChoices().indexOf (categoryName);
                     expect (categoryControl != nullptr);
                     expect (categoryIndex >= 0);
 
@@ -794,7 +794,7 @@ public:
 
                     if (categoryProperty != nullptr)
                     {
-                        const int selectedCategoryIndex = categoryProperty->getIndex();
+                        const auto selectedCategoryIndex = categoryProperty->getIndex();
                         expect (isPositiveAndBelow (selectedCategoryIndex, categoryProperty->getChoices().size()));
 
                         if (isPositiveAndBelow (selectedCategoryIndex, categoryProperty->getChoices().size()))
@@ -880,8 +880,8 @@ public:
 
                 if (sampleProperty != nullptr)
                 {
-                    const String sampleLabel = "Bodies " + String::fromUTF8 ("\xe2\x80\x94") + " Bad";
-                    const int sampleRow = sampleProperty->getChoices().indexOf (sampleLabel);
+                    const auto sampleLabel = "Bodies " + String::fromUTF8 ("\xe2\x80\x94") + " Bad";
+                    const auto sampleRow = sampleProperty->getChoices().indexOf (sampleLabel);
                     expect (sampleRow >= 0);
 
                     if (sampleRow >= 0)
@@ -1009,7 +1009,7 @@ public:
 
             if (slider != nullptr)
             {
-                const float usableTrackWidth = slider->getPositionOfValue (slider->getMaximum()) - slider->getPositionOfValue (slider->getMinimum());
+                const auto usableTrackWidth = slider->getPositionOfValue (slider->getMaximum()) - slider->getPositionOfValue (slider->getMinimum());
                 expectGreaterThan (usableTrackWidth, 100.0f);
             }
 
@@ -1166,7 +1166,7 @@ public:
                 if (entryIndex > 0)
                 {
                     const auto& previous = interactionEntries[entryIndex - 1];
-                    const int categoryComparison = previous.category.compare (interactionEntry.category);
+                    const auto categoryComparison = previous.category.compare (interactionEntry.category);
                     expect (categoryComparison < 0
                             || (categoryComparison == 0 && previous.sampleName.compare (interactionEntry.sampleName) < 0));
                 }
@@ -1260,7 +1260,7 @@ public:
             describeStep (1);
             const auto structureRevision = controls.getStructureRevision();
             expectEquals ((int) controls.getItems().size(), 1);
-            const String identifier = controls.getItems()[0].identifier;
+            const auto identifier = controls.getItems()[0].identifier;
             expectEquals (controls.getItems()[0].labelText, String ("Step 1"));
             describeStep (2);
             expectEquals (controls.getStructureRevision(), structureRevision);
@@ -1398,7 +1398,7 @@ public:
             if (sample != nullptr)
             {
                 const auto worldId = sample->getWorldId();
-                const int initialJointCount = b2World_GetCounters (worldId).jointCount;
+                const auto initialJointCount = b2World_GetCounters (worldId).jointCount;
                 sample->handleMouseDown ({ 0.0f, 1.0f }, ModifierKeys (ModifierKeys::rightButtonModifier));
                 expectEquals (b2World_GetCounters (worldId).jointCount, initialJointCount);
                 sample->handleMouseDown ({ 0.0f, 1.0f }, ModifierKeys (ModifierKeys::leftButtonModifier));
@@ -1417,7 +1417,7 @@ public:
             if (sample != nullptr)
             {
                 const auto worldId = sample->getWorldId();
-                const int initialBodyCount = b2World_GetCounters (worldId).bodyCount;
+                const auto initialBodyCount = b2World_GetCounters (worldId).bodyCount;
                 expect (sample->handleKeyPress (KeyPress ('b', ModifierKeys(), 0)));
                 expectGreaterThan (b2World_GetCounters (worldId).bodyCount, initialBodyCount);
             }
@@ -1452,7 +1452,7 @@ public:
             if (sample != nullptr)
             {
                 const auto worldId = sample->getWorldId();
-                const int initialJointCount = b2World_GetCounters (worldId).jointCount;
+                const auto initialJointCount = b2World_GetCounters (worldId).jointCount;
                 const auto targetArea = canvas.getLocalBounds().toFloat().reduced (8.0f);
                 const auto bodyPosition = runtime.getContext().camera.convertWorldToComponent ({ 0.0f, 1.0f }, targetArea);
                 canvas.mouseDown (makeMouseEvent (canvas,
@@ -1640,7 +1640,7 @@ public:
             const MemoryBlock malformedData ("invalid", 7);
             expect (runtime.selectReplay (malformedData, "malformed.b2rec").failed());
             expect (runtime.getCurrentSample() == previousSample);
-            MemoryBlock releasedRecording = *recording;
+            auto releasedRecording = *recording;
             expect (runtime.selectReplay (releasedRecording, "owned.b2rec").wasOk());
             releasedRecording.reset();
             expect (Box2DSamples::isReplaySample (*runtime.getCurrentSample()));
@@ -1649,7 +1649,7 @@ public:
             replayCanvas.resetView();
             const auto replayWorldBounds = b2World_GetBounds (runtime.getCurrentSample()->getWorldId());
             expectBoundsContain (runtime.getContext().camera.getVisibleBounds(), replayWorldBounds);
-            const float replayLandscapeZoom = runtime.getContext().camera.zoom;
+            const auto replayLandscapeZoom = runtime.getContext().camera.zoom;
             replayCanvas.setSize (540, 960);
             replayCanvas.resized();
             expect (runtime.getContext().camera.zoom > replayLandscapeZoom);
@@ -1758,7 +1758,7 @@ public:
             expect (Box2DSamples::getReplayFrame (*replay) == 4);
             Box2DSamples::queueReplaySeek (*replay, 0);
             Box2DSamples::applyReplayPendingChanges (*replay);
-            const double recordedInterval = replay->getStepIntervalSeconds();
+            const auto recordedInterval = replay->getStepIntervalSeconds();
             expect (recordedInterval > 0.0);
             runtime.getContext().settings.isPaused = false;
             runtime.resetPresentationClock();
@@ -1805,7 +1805,7 @@ public:
 
         if (recording.has_value())
         {
-            const File recordingFile = File::getSpecialLocation (File::tempDirectory)
+            const auto recordingFile = File::getSpecialLocation (File::tempDirectory)
                                            .getNonexistentChildFile ("juce-box2d-recording", ".b2rec");
             const URL recordingURL (recordingFile);
             WaitableEvent ioCompleted;
@@ -1844,7 +1844,7 @@ public:
                 threadPool.addJob ([&, safeComponent]
                 {
                     const auto lifetimeRead = Box2DSamples::readReplayFile (recordingURL);
-                    const bool readSucceeded = ! lifetimeRead.error.has_value();
+                    const auto readSucceeded = ! lifetimeRead.error.has_value();
                     MessageManager::callAsync ([&, safeComponent, readSucceeded]
                     {
                         completionSawDestroyedComponent = safeComponent == nullptr;

@@ -61,7 +61,7 @@ public:
                 totalSolveMilliseconds += (double) profile.solve;
             }
 
-            const double numProfiles = (double) history.size();
+            const auto numProfiles = (double) history.size();
             setDescription (TRANS ("Step profile. Latest step: {latestStepMilliseconds} milliseconds; collision: {latestCollisionMilliseconds} milliseconds; solve: {latestSolveMilliseconds} milliseconds. Average step: {averageStepMilliseconds} milliseconds; collision: {averageCollisionMilliseconds} milliseconds; solve: {averageSolveMilliseconds} milliseconds.")
                                 .replace ("{latestStepMilliseconds}", String (latest.step, 3))
                                 .replace ("{latestCollisionMilliseconds}", String (latest.collide, 3))
@@ -87,7 +87,7 @@ public:
             return;
         }
 
-        float maxMilliseconds = 0.001f;
+        auto maxMilliseconds = 0.001f;
 
         for (const auto& profile : history)
             maxMilliseconds = std::max (maxMilliseconds, profile.step);
@@ -116,9 +116,9 @@ private:
 
         for (size_t index = 0; index < history.size(); ++index)
         {
-            const float proportion = history.size() > 1 ? (float) index / (float) (history.size() - 1) : 0.0f;
-            const float x = bounds.getX() + proportion * bounds.getWidth();
-            const float y = bounds.getBottom() - std::clamp (getValue (history[index]) / maxMilliseconds, 0.0f, 1.0f) * bounds.getHeight();
+            const auto proportion = history.size() > 1 ? (float) index / (float) (history.size() - 1) : 0.0f;
+            const auto x = bounds.getX() + proportion * bounds.getWidth();
+            const auto y = bounds.getBottom() - std::clamp (getValue (history[index]) / maxMilliseconds, 0.0f, 1.0f) * bounds.getHeight();
 
             if (index == 0)
                 path.startNewSubPath (x, y);
@@ -201,7 +201,7 @@ bool MetricsComponent::isProfilerVisible() const noexcept { return pimpl->profil
 
 void MetricsComponent::refresh()
 {
-    const Sample* sample = pimpl->runtime != nullptr ? pimpl->runtime->getCurrentSample() : nullptr;
+    const auto* sample = pimpl->runtime != nullptr ? pimpl->runtime->getCurrentSample() : nullptr;
     pimpl->stepLabel.setVisible (pimpl->profilerVisible);
 
     if (sample == nullptr)
@@ -217,16 +217,16 @@ void MetricsComponent::refresh()
         pimpl->stepLabel.setText (TRANS ("Steps: {numSteps}.").replace ("{numSteps}", String (sample->getNumSteps())),
                                   dontSendNotification);
 
-        const b2WorldId worldId = sample->getWorldId();
-        const bool hasWorld = b2World_IsValid (worldId);
+        const auto worldId = sample->getWorldId();
+        const auto hasWorld = b2World_IsValid (worldId);
         pimpl->counterLabel.setVisible (pimpl->profilerVisible && hasWorld);
 
         if (pimpl->profilerVisible && hasWorld)
         {
-            const b2Counters counters = b2World_GetCounters (worldId);
-            const b2Capacity capacity = b2World_GetMaxCapacity (worldId);
-            const int bodyCapacity = capacity.staticBodyCount + capacity.dynamicBodyCount,
-                      shapeCapacity = capacity.staticShapeCount + capacity.dynamicShapeCount;
+            const auto counters = b2World_GetCounters (worldId);
+            const auto capacity = b2World_GetMaxCapacity (worldId);
+            const auto bodyCapacity = capacity.staticBodyCount + capacity.dynamicBodyCount,
+                       shapeCapacity = capacity.staticShapeCount + capacity.dynamicShapeCount;
             pimpl->counterLabel.setText (TRANS ("Bodies: {numBodies} of {bodyCapacity}. Shapes: {numShapes} of {shapeCapacity}.\nContacts: {numContacts}. Joints: {numJoints}. Islands: {numIslands}.\nTasks: {numTasks}. Memory: {numKilobytes} KB.")
                                                .replace ("{numBodies}", String (counters.bodyCount))
                                                .replace ("{bodyCapacity}", String (bodyCapacity))
@@ -241,7 +241,7 @@ void MetricsComponent::refresh()
         }
 
         const auto history = pimpl->profilerVisible && sample->hasProfile() ? sample->getProfileHistory() : std::vector<b2Profile>();
-        const bool hasProfile = ! history.empty();
+        const auto hasProfile = ! history.empty();
         pimpl->profileLabel.setVisible (hasProfile);
         pimpl->profileChart.setVisible (hasProfile);
         pimpl->profileChart.setHistory (history);

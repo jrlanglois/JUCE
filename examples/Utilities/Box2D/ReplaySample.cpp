@@ -267,13 +267,13 @@ public:
 
     std::optional<String> getBodyLabel (int bodyOrdinal) const
     {
-        const b2BodyId bodyId = getBodyId (bodyOrdinal);
+        const auto bodyId = getBodyId (bodyOrdinal);
 
         if (! b2Body_IsValid (bodyId))
             return std::nullopt;
 
-        String label = TRANS ("Body {bodyOrdinal}").replace ("{bodyOrdinal}", String (bodyOrdinal));
-        const char* name = b2Body_GetName (bodyId);
+        auto label = TRANS ("Body {bodyOrdinal}").replace ("{bodyOrdinal}", String (bodyOrdinal));
+        const auto* name = b2Body_GetName (bodyId);
 
         if (name != nullptr && name[0] != '\0')
             label += " " + String::fromUTF8 ("\xe2\x80\x94") + " " + String::fromUTF8 (name);
@@ -284,19 +284,19 @@ public:
 
     int getNumShapes (int bodyOrdinal) const noexcept
     {
-        const b2BodyId bodyId = getBodyId (bodyOrdinal);
+        const auto bodyId = getBodyId (bodyOrdinal);
         return b2Body_IsValid (bodyId) ? b2Body_GetShapeCount (bodyId) : 0;
     }
 
     int getNumJoints (int bodyOrdinal) const noexcept
     {
-        const b2BodyId bodyId = getBodyId (bodyOrdinal);
+        const auto bodyId = getBodyId (bodyOrdinal);
         return b2Body_IsValid (bodyId) ? b2Body_GetJointCount (bodyId) : 0;
     }
 
     std::optional<String> getShapeLabel (int bodyOrdinal, int shapeIndex) const
     {
-        const b2ShapeId shapeId = getShapeId (bodyOrdinal, shapeIndex);
+        const auto shapeId = getShapeId (bodyOrdinal, shapeIndex);
 
         if (! b2Shape_IsValid (shapeId))
             return std::nullopt;
@@ -308,7 +308,7 @@ public:
 
     std::optional<String> getJointLabel (int bodyOrdinal, int jointIndex) const
     {
-        const b2JointId jointId = getJointId (bodyOrdinal, jointIndex);
+        const auto jointId = getJointId (bodyOrdinal, jointIndex);
 
         if (! b2Joint_IsValid (jointId))
             return std::nullopt;
@@ -323,7 +323,7 @@ public:
         if (! isPositiveAndBelow (queryIndex, getNumQueries()))
             return std::nullopt;
 
-        const b2ReplayQueryInfo query = b2Replay_GetFrameQuery (player, queryIndex);
+        const auto query = b2Replay_GetFrameQuery (player, queryIndex);
         return TRANS ("Query {queryIndex}: {queryType}")
             .replace ("{queryIndex}", String (queryIndex))
             .replace ("{queryType}", getQueryTypeName (query.type));
@@ -340,7 +340,7 @@ public:
         if (const auto* querySelection = std::get_if<QuerySelection> (&*selection);
             querySelection != nullptr && isPositiveAndBelow (querySelection->queryIndex, getNumQueries()))
         {
-            const b2ReplayQueryInfo query = b2Replay_GetFrameQuery (player, querySelection->queryIndex);
+            const auto query = b2Replay_GetFrameQuery (player, querySelection->queryIndex);
             return TRANS ("Query {queryIndex}\nType: {queryType}\nOrigin: {origin}\nTranslation: {translation}\nHits: {numHits}")
                 .replace ("{queryIndex}", String (querySelection->queryIndex))
                 .replace ("{queryType}", getQueryTypeName (query.type))
@@ -349,18 +349,18 @@ public:
                 .replace ("{numHits}", String (query.hitCount));
         }
 
-        const b2BodyId bodyId = getSelectedBody();
+        const auto bodyId = getSelectedBody();
 
         if (! b2Body_IsValid (bodyId))
             return TRANS ("Select a body, shape, joint, or recorded query.");
 
         if (const auto* shapeSelection = std::get_if<ShapeSelection> (&*selection))
         {
-            const b2ShapeId shapeId = getShapeId (shapeSelection->bodyOrdinal, shapeSelection->shapeIndex);
+            const auto shapeId = getShapeId (shapeSelection->bodyOrdinal, shapeSelection->shapeIndex);
 
             if (b2Shape_IsValid (shapeId))
             {
-                const b2AABB bounds = b2Shape_GetAABB (shapeId);
+                const auto bounds = b2Shape_GetAABB (shapeId);
                 return TRANS ("Shape {shapeIndex}\nType: {shapeType}\nLower bound: {lowerBound}\nUpper bound: {upperBound}")
                     .replace ("{shapeIndex}", String (shapeSelection->shapeIndex))
                     .replace ("{shapeType}", getShapeTypeName (b2Shape_GetType (shapeId)))
@@ -371,7 +371,7 @@ public:
 
         if (const auto* jointSelection = std::get_if<JointSelection> (&*selection))
         {
-            const b2JointId jointId = getJointId (jointSelection->bodyOrdinal, jointSelection->jointIndex);
+            const auto jointId = getJointId (jointSelection->bodyOrdinal, jointSelection->jointIndex);
 
             if (b2Joint_IsValid (jointId))
             {
@@ -462,14 +462,14 @@ public:
         // Box2D uses -1 to request all recorded queries for the current frame.
         b2Replay_DrawFrameQueries (player, &context.drawList.getDebugDraw(), selectedQueryIndex.value_or (-1));
 
-        const b2BodyId selectedBody = getSelectedBody();
+        const auto selectedBody = getSelectedBody();
 
         if (b2Body_IsValid (selectedBody))
             context.drawList.addBounds (b2Body_ComputeAABB (selectedBody), b2_colorOrange);
 
-        String status = TRANS ("Frame {currentFrame} of {numFrames}.")
-                            .replace ("{currentFrame}", String (getFrame()))
-                            .replace ("{numFrames}", String (info.frameCount));
+        auto status = TRANS ("Frame {currentFrame} of {numFrames}.")
+                          .replace ("{currentFrame}", String (getFrame()))
+                          .replace ("{numFrames}", String (info.frameCount));
 
         if (b2Replay_HasDiverged (player))
         {
@@ -557,8 +557,8 @@ public:
 
         if (b2Shape_IsValid (pickContext.shapeId))
         {
-            const b2BodyId bodyId = b2Shape_GetBody (pickContext.shapeId);
-            const int numShapes = b2Body_GetShapeCount (bodyId);
+            const auto bodyId = b2Shape_GetBody (pickContext.shapeId);
+            const auto numShapes = b2Body_GetShapeCount (bodyId);
             std::vector<b2ShapeId> shapeIds ((size_t) numShapes);
             b2Body_GetShapes (bodyId, shapeIds.data(), numShapes);
             std::optional<int> pickedShapeIndex;
@@ -589,8 +589,8 @@ public:
             return;
         }
 
-        b2AABB bounds = info.bounds;
-        const b2Vec2 extents = b2AABB_Extents (bounds);
+        auto bounds = info.bounds;
+        const auto extents = b2AABB_Extents (bounds);
 
         if (extents.x <= 0.0f && extents.y <= 0.0f)
             bounds = b2World_GetBounds (worldId);
@@ -651,12 +651,12 @@ private:
 
     b2ShapeId getShapeId (int bodyOrdinal, int shapeIndex) const
     {
-        const b2BodyId bodyId = getBodyId (bodyOrdinal);
+        const auto bodyId = getBodyId (bodyOrdinal);
 
         if (! b2Body_IsValid (bodyId))
             return b2_nullShapeId;
 
-        const int numShapes = b2Body_GetShapeCount (bodyId);
+        const auto numShapes = b2Body_GetShapeCount (bodyId);
 
         if (! isPositiveAndBelow (shapeIndex, numShapes))
             return b2_nullShapeId;
@@ -668,12 +668,12 @@ private:
 
     b2JointId getJointId (int bodyOrdinal, int jointIndex) const
     {
-        const b2BodyId bodyId = getBodyId (bodyOrdinal);
+        const auto bodyId = getBodyId (bodyOrdinal);
 
         if (! b2Body_IsValid (bodyId))
             return b2_nullJointId;
 
-        const int numJoints = b2Body_GetJointCount (bodyId);
+        const auto numJoints = b2Body_GetJointCount (bodyId);
 
         if (! isPositiveAndBelow (jointIndex, numJoints))
             return b2_nullJointId;
@@ -892,13 +892,13 @@ public:
 
     void refresh() override
     {
-        const int numFrames = sample.getNumFrames(),
-                  frame = sample.getFrame();
+        const auto numFrames = sample.getNumFrames(),
+                   frame = sample.getFrame();
         progress = numFrames > 0 ? (double) frame / (double) numFrames : 0.0;
 
-        String status = TRANS ("Frame {currentFrame} of {numFrames}.")
-                            .replace ("{currentFrame}", String (frame))
-                            .replace ("{numFrames}", String (numFrames));
+        auto status = TRANS ("Frame {currentFrame} of {numFrames}.")
+                          .replace ("{currentFrame}", String (frame))
+                          .replace ("{numFrames}", String (numFrames));
 
         if (sample.isAtEnd())
             status += " " + TRANS ("End of recording.");

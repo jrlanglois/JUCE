@@ -71,7 +71,7 @@ void Sample::advanceSimulation()
     if (! ownsWorld || ! b2World_IsValid (worldId))
         return;
 
-    const float timeStepSeconds = (float) getStepIntervalSeconds();
+    const auto timeStepSeconds = (float) getStepIntervalSeconds();
 
     if (timeStepSeconds <= 0.0f)
         return;
@@ -170,7 +170,7 @@ std::optional<MemoryBlock> Sample::stopRecording()
     }
 
     b2World_StopRecording (worldId);
-    const int numBytes = b2Recording_GetSize (pimpl->recording);
+    const auto numBytes = b2Recording_GetSize (pimpl->recording);
     const auto* data = b2Recording_GetData (pimpl->recording);
     std::optional<MemoryBlock> result;
 
@@ -198,7 +198,7 @@ void Sample::createWorld()
         b2DestroyWorld (worldId);
     }
 
-    b2WorldDef worldDefinition = b2DefaultWorldDef();
+    auto worldDefinition = b2DefaultWorldDef();
     worldDefinition.restitutionIterations = context.settings.numRestitutionIterations;
     worldDefinition.enableRestitutionPropagation = context.settings.isRestitutionPropagationEnabled;
     worldDefinition.enableSleep = context.settings.isSleepingEnabled;

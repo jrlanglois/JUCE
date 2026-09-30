@@ -216,8 +216,8 @@ public:
         {
             const auto modelIndex = getSelectedModelIndex();
             const auto controlIndex = getSelectedControlIndex();
-            const bool modelChanged = modelIndex != previousChoiceSnapshot->modelIndex;
-            const bool controlChanged = controlIndex != previousChoiceSnapshot->controlIndex;
+            const auto modelChanged = modelIndex != previousChoiceSnapshot->modelIndex;
+            const auto controlChanged = controlIndex != previousChoiceSnapshot->controlIndex;
 
             if (queuedIndex.has_value() && modelIndex == *queuedIndex)
                 queuedIndex.reset();
@@ -301,7 +301,7 @@ private:
         if (choiceControl == nullptr)
             return std::nullopt;
 
-        const int selectedIndex = choiceControl->getSelectedItemIndex();
+        const auto selectedIndex = choiceControl->getSelectedItemIndex();
         return selectedIndex >= 0 ? std::optional<int> (selectedIndex) : std::nullopt;
     }
 

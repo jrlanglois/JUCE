@@ -74,7 +74,7 @@ Result Runtime::selectSample (int sampleIndex, bool shouldRestart)
     if (sample == nullptr)
         return Result::fail (TRANS ("Sample construction failed."));
 
-    const Result creationResult = getReplaySampleCreationResult (*sample);
+    const auto creationResult = getReplaySampleCreationResult (*sample);
 
     if (creationResult.failed())
         return creationResult;
@@ -102,11 +102,11 @@ Result Runtime::selectReplay (const MemoryBlock& recordingData, const String& di
     if (! replayIndex.has_value())
         return Result::fail (TRANS ("Replay Viewer is not registered."));
 
-    MemoryBlock previousReplayData = pimpl->context.replayData;
-    String previousReplayName = pimpl->context.replayName;
+    auto previousReplayData = pimpl->context.replayData;
+    auto previousReplayName = pimpl->context.replayName;
     pimpl->context.replayData = recordingData;
     pimpl->context.replayName = displayName;
-    const Result result = selectSample (*replayIndex);
+    const auto result = selectSample (*replayIndex);
 
     if (result.failed())
     {
@@ -142,7 +142,7 @@ void Runtime::updateForPresentation (double presentationTimeSeconds)
     }
     else
     {
-        const double elapsedSeconds = presentationTimeSeconds - *pimpl->lastPresentationTimeSeconds;
+        const auto elapsedSeconds = presentationTimeSeconds - *pimpl->lastPresentationTimeSeconds;
         pimpl->lastPresentationTimeSeconds = presentationTimeSeconds;
         pimpl->elapsedAccumulatorSeconds += std::min (elapsedSeconds, Pimpl::maxPresentationDeltaSeconds);
     }
@@ -150,12 +150,12 @@ void Runtime::updateForPresentation (double presentationTimeSeconds)
     if (pimpl->currentSample == nullptr)
         return;
 
-    const double stepIntervalSeconds = pimpl->currentSample->getStepIntervalSeconds();
+    const auto stepIntervalSeconds = pimpl->currentSample->getStepIntervalSeconds();
     int numAutomaticSteps = 0;
 
     if (! pimpl->context.settings.isPaused && stepIntervalSeconds > 0.0)
     {
-        const int numElapsedSteps = (int) std::floor (pimpl->elapsedAccumulatorSeconds / stepIntervalSeconds);
+        const auto numElapsedSteps = (int) std::floor (pimpl->elapsedAccumulatorSeconds / stepIntervalSeconds);
         pimpl->elapsedAccumulatorSeconds -= (double) numElapsedSteps * stepIntervalSeconds;
         numAutomaticSteps = std::min (numElapsedSteps, Pimpl::maxAutomaticStepsPerPresentation);
     }
