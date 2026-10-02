@@ -51,8 +51,10 @@
 
 #include "juce_opengl.h"
 
-#define JUCE_STATIC_LINK_GL_VERSION_1_0 1
-#define JUCE_STATIC_LINK_GL_VERSION_1_1 1
+#if ! (JUCE_LINUX || JUCE_BSD)
+ #define JUCE_STATIC_LINK_GL_VERSION_1_0 1
+ #define JUCE_STATIC_LINK_GL_VERSION_1_1 1
+#endif
 
 #if JUCE_MAC
  #define JUCE_STATIC_LINK_GL_VERSION_1_2 1
@@ -296,3 +298,7 @@ JUCE_IMPL_WGL_EXTENSION_FUNCTION (wglCreateContextAttribsARB)
 
 #include "opengl/juce_OpenGLContext.cpp"
 #include "utils/juce_OpenGLAppComponent.cpp"
+
+#if JUCE_UNIT_TESTS
+ #include "opengl/juce_OpenGLContext_test.cpp"
+#endif

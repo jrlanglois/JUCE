@@ -54,7 +54,7 @@
   dependencies:       juce_gui_extra
   OSXFrameworks:      OpenGL
   iOSFrameworks:      OpenGLES
-  linuxPackages:      egl gl
+  linuxPackages:      egl
 
  END_JUCE_MODULE_DECLARATION
 
@@ -78,11 +78,13 @@
 #endif
 
 /** Config: JUCE_OPENGL_ES
-    Builds juce_opengl against OpenGL ES rather than desktop OpenGL.
+    Builds juce_opengl against the OpenGL ES headers rather than the desktop OpenGL
+    headers.
 
-    This is only a choice on Linux and BSD, for systems whose graphics drivers only
-    provide OpenGL ES, such as many embedded Arm boards. It is always enabled on iOS
-    and Android and cannot be enabled on macOS or Windows.
+    An ordinary Linux or BSD build can choose desktop OpenGL or OpenGL ES at
+    runtime. Enable this only when the target provides OpenGL ES headers but no
+    desktop OpenGL headers, as on some embedded Arm systems. It is always enabled
+    on iOS and Android and cannot be enabled on macOS or Windows.
 
     Building against OpenGL ES requires linking libGLESv2 rather than libGL. With
     CMake, enable it with the NEEDS_OPENGL_ES target option rather than by defining

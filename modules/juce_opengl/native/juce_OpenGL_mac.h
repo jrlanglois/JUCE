@@ -50,23 +50,58 @@ public:
                    void* contextToShare,
                    bool shouldUseMultisampling,
                    [[maybe_unused]] API apiIn,
-                   Version versionIn,
-                   Profile profileIn)
+                   const std::vector<Version>& versionsIn,
+                   Profile profileIn,
+                   bool /*mayFallBackToDefault*/)
         : owner (component)
     {
         // OpenGL ES is not supported on macOS
         jassert (apiIn == API::openGL);
 
-        const auto attribs = createAttribs (versionIn,
-                                            profileIn,
-                                            pixFormat,
-                                            shouldUseMultisampling);
-
-        NSOpenGLPixelFormat* format = [[NSOpenGLPixelFormat alloc] initWithAttributes: attribs.data()];
-
         static MouseForwardingNSOpenGLViewClass cls;
-        view = [cls.createInstance() initWithFrame: NSMakeRect (0, 0, 100.0f, 100.0f)
-                                       pixelFormat: format];
+
+        for (const auto version : versionsIn)
+        {
+            const auto attribs = createAttribs (version,
+                                                profileIn,
+                                                pixFormat,
+                                                shouldUseMultisampling);
+
+            NSOpenGLPixelFormat* format = [[NSOpenGLPixelFormat alloc] initWithAttributes: attribs.data()];
+
+            if (format == nil)
+            {
+                DBG ("NSOpenGLPixelFormat failed for OpenGL "
+                     << version.major << "." << version.minor);
+                continue;
+            }
+
+            renderContext = [[[NSOpenGLContext alloc] initWithFormat: format
+                                                        shareContext: (NSOpenGLContext*) contextToShare] autorelease];
+
+            if (renderContext != nil)
+            {
+                DBG ("NSOpenGLContext succeeded for OpenGL "
+                     << version.major << "." << version.minor);
+                acceptedVersion = version;
+                view = [cls.createInstance() initWithFrame: NSMakeRect (0, 0, 100.0f, 100.0f)
+                                               pixelFormat: format];
+                [view setOpenGLContext: renderContext];
+            }
+            else
+            {
+                DBG ("NSOpenGLContext failed for OpenGL "
+                     << version.major << "." << version.minor);
+            }
+
+            [format release];
+
+            if (renderContext != nil)
+                break;
+        }
+
+        if (view == nil)
+            return;
 
         if ([view respondsToSelector: @selector (setWantsBestResolutionOpenGLSurface:)])
             [view setWantsBestResolutionOpenGLSurface: YES];
@@ -77,12 +112,6 @@ public:
                                                      name: NSViewGlobalFrameDidChangeNotification
                                                    object: view];
         JUCE_END_IGNORE_WARNINGS_GCC_LIKE
-
-        renderContext = [[[NSOpenGLContext alloc] initWithFormat: format
-                                                    shareContext: (NSOpenGLContext*) contextToShare] autorelease];
-
-        [view setOpenGLContext: renderContext];
-        [format release];
 
         viewAttachment = NSViewComponent::attachViewToComponent (component, view);
     }
@@ -156,6 +185,7 @@ public:
     bool createdOk() const noexcept                   { return getRawContext() != nullptr; }
     NSOpenGLView* getNSView() const noexcept          { return view; }
     NSOpenGLContext* getRawContext() const noexcept   { return renderContext; }
+    Version getAcceptedVersion() const noexcept       { return acceptedVersion; }
     GLuint getFrameBufferID() const noexcept          { return 0; }
 
     bool makeActive() const noexcept
@@ -323,6 +353,7 @@ public:
     Component& owner;
     NSOpenGLContext* renderContext = nil;
     NSOpenGLView* view = nil;
+    Version acceptedVersion{};
     ReferenceCountedObjectPtr<ReferenceCountedObject> viewAttachment;
     double lastSwapTime = 0;
     int underrunCounter = 0;

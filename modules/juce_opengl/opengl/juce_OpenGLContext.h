@@ -36,6 +36,7 @@ namespace juce
 {
 
 class OpenGLTexture;
+class OpenGLFrameBuffer;
 
 /**
     Denotes different kinds of OpenGL API that might be available.
@@ -88,6 +89,38 @@ struct OpenGLVersion
     bool operator<= (const OpenGLVersion&) const;
     bool operator>  (const OpenGLVersion&) const;
     bool operator>= (const OpenGLVersion&) const;
+};
+
+//==============================================================================
+/**
+    Describes one OpenGL context that may be requested.
+
+    @tags{OpenGL}
+*/
+struct OpenGLContextRequest
+{
+    OpenGLAPI api = OpenGLAPI::openGL;
+    OpenGLVersion version;
+    OpenGLProfile profile = OpenGLProfile::core;
+
+    bool operator== (const OpenGLContextRequest&) const;
+    bool operator!= (const OpenGLContextRequest&) const;
+};
+
+/**
+    Describes the request that created an OpenGL context and the context that
+    the driver actually provided.
+
+    @tags{OpenGL}
+*/
+struct OpenGLContextInfo
+{
+    OpenGLContextRequest requested;
+    OpenGLVersion acceptedVersion;
+    OpenGLAPI api = OpenGLAPI::openGL;
+    OpenGLVersion version;
+    OpenGLProfile profile = OpenGLProfile::compatibility;
+    bool matchesRequest = false;
 };
 
 //==============================================================================
@@ -221,10 +254,10 @@ public:
 
     using Version = juce::OpenGLVersion;
 
-    /** Sets the OpenGL API version that will be requested when the context is attached.
+    /** Sets the OpenGL API version of the first entry in the default context chain.
 
-        Platforms may ignore this request. Use getVersion() to determine the actual version that is
-        in use.
+        Platforms may ignore this request. Use getVersion() to determine the actual
+        version that is in use.
 
         If you pass a Version with major and minor both set to 0, the platform will select its
         default version, which will normally be a compatibility context.
@@ -236,14 +269,17 @@ public:
     /** Gets the OpenGL API version that will be requested when the context is attached. */
     Version getPreferredVersion() const;
 
-    /** If the OpenGL context is attached, returns the API version of the context.
-        Avoid calling this while the context is detached.
+    /** Returns the version of the current OpenGL context.
+
+        This function is safe to call from any thread. If no context exists, it
+        returns an empty Version. Use getContextInfo() to distinguish that case
+        from a context which reported an empty version.
     */
     Version getVersion() const;
 
     using API = OpenGLAPI;
 
-    /** Sets the API that will be requested when the context is attached.
+    /** Sets the API of the first entry in the default context chain.
 
         Platforms may ignore this request. Use getAPI() to determine the actual API that is in use.
     */
@@ -252,14 +288,17 @@ public:
     /** Gets the API that will be requested when the context is attached. */
     API getPreferredAPI() const;
 
-    /** If the OpenGL context is attached, returns the API in use by the context.
-        Avoid calling this while the context is detached.
+    /** Returns the API of the current OpenGL context.
+
+        This function is safe to call from any thread. If no context exists, it
+        returns OpenGLAPI::openGL. Use getContextInfo() to distinguish that case
+        from a desktop OpenGL context.
     */
     API getAPI() const;
 
     using Profile = OpenGLProfile;
 
-    /** Sets the Profile that will be requested when the context is attached.
+    /** Sets the Profile of the first entry in the default context chain.
 
         Platforms may ignore this request. Use getProfile() to determine the actual Profile that is in use.
     */
@@ -268,10 +307,63 @@ public:
     /** Gets the Profile that will be requested when the context is attached. */
     Profile getPreferredProfile() const;
 
-    /** If the OpenGL context is attached, returns the Profile in use by the context.
-        Avoid calling this while the context is detached.
+    /** Returns the profile of the current OpenGL context.
+
+        This function is safe to call from any thread. If no context exists, it
+        returns OpenGLProfile::compatibility. Use getContextInfo() to distinguish
+        that case from a compatibility context.
     */
     Profile getProfile() const;
+
+    using ContextRequest = OpenGLContextRequest;
+    using ContextInfo = OpenGLContextInfo;
+
+    /** Sets the contexts that will be tried when this context is attached.
+
+        Entries are tried in order. Entries for APIs unavailable on the current
+        platform are discarded. Versions that were not released are snapped down,
+        then clamped to the platform's range. Each versioned entry steps down
+        through released versions to that range's floor.
+
+        Desktop core contexts range from 3.2 to 4.6 on Windows and Linux/BSD,
+        and from 3.2 to 4.1 on macOS. Desktop compatibility contexts range from
+        2.0 to 4.6 on Windows and Linux/BSD, and use 2.1 on macOS. OpenGL ES
+        contexts range from 2.0 to 3.2 on Linux/BSD and Android, and from 2.0 to
+        3.0 on iOS.
+
+        An empty list restores the default chain. It first tries the preferred
+        API, version, and profile. A versioned preferred entry is followed by
+        the same API at its default version. If this context has no renderer and
+        the platform supports both APIs, the other API at its default version is
+        tried last.
+
+        A default desktop version requests a compatibility context. A default
+        OpenGL ES version tries ES 3.0 and then ES 2.0. Android can create its
+        native context only after its surface exists, so it tries the first
+        supported OpenGL ES entry only.
+
+        This must be called before attaching the context.
+    */
+    void setContextRequests (std::vector<ContextRequest>);
+
+    /** Returns the explicitly configured context requests.
+
+        An empty list means that the default chain will be used.
+    */
+    std::vector<ContextRequest> getContextRequests() const;
+
+    /** Returns information about the current context.
+
+        This function is safe to call from any thread, and returns an empty
+        optional while no context exists.
+    */
+    std::optional<ContextInfo> getContextInfo() const;
+
+    /** Called on the message thread after each context has been created. */
+    std::function<void (const ContextInfo&)> onCreated;
+
+    /** Called on the message thread once all context requests have failed. */
+    std::function<void()> onCreationFailed;
 
     /** Enables or disables the use of the GL context to perform 2D rendering
         of the component to which it is attached.
@@ -470,6 +562,7 @@ private:
     };
 
     friend class OpenGLTexture;
+    friend class OpenGLFrameBuffer;
 
     class CachedImage;
     class Attachment;
@@ -482,21 +575,29 @@ private:
     std::unique_ptr<Attachment> attachment;
     OpenGLPixelFormat openGLPixelFormat;
     void* contextToShareWith = nullptr;
-    Version preferredVersion{}, actualVersion{};
+    std::vector<ContextRequest> contextRequests;
+    mutable SpinLock contextInfoLock;
+    std::optional<ContextInfo> contextInfo;
+    GLenum textureUploadInternalFormat = gl::GL_RGBA;
+    GLenum textureUploadFormat = JUCE_RGBA_FORMAT;
+    GLenum textureReadFormat = JUCE_RGBA_FORMAT;
+    bool textureUploadNeedsRedBlueSwap = false;
+    bool textureReadNeedsRedBlueSwap = false;
+    Version preferredVersion{};
     API preferredAPI =
        #if JUCE_OPENGL_ES
         API::openGLES
        #else
         API::openGL
        #endif
-    , actualAPI{};
+    ;
     Profile preferredProfile =
        #if JUCE_OPENGL_ES
         Profile::core
        #else
         Profile::compatibility
        #endif
-    , actualProfile{};
+    ;
     size_t imageCacheMaxSize = 32 * 1024 * 1024;
     bool renderComponents = true, useMultisampling = false, overrideCanAttach = false;
     std::atomic<bool> continuousRepaint { false };

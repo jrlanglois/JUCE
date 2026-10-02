@@ -63,8 +63,9 @@ public:
                    void* contextToShare,
                    bool multisampling,
                    [[maybe_unused]] API apiIn,
-                   Version versionIn,
-                   [[maybe_unused]] Profile profileIn)
+                   const std::vector<Version>& versionsIn,
+                   [[maybe_unused]] Profile profileIn,
+                   bool /*mayFallBackToDefault*/)
         : component (c),
           useDepthBuffer (pixFormat.depthBufferBits > 0),
           useMSAA (multisampling)
@@ -93,11 +94,34 @@ public:
 
                 [((UIView*) peer->getNativeHandle()) addSubview: view];
 
-                const auto shouldUseES3 = versionIn >= Version { 3, 0 }
-                                       && [[UIDevice currentDevice].systemVersion floatValue] >= 7.0;
+                auto gotContext = false;
 
-                [[maybe_unused]] const auto gotContext = (shouldUseES3 && createContext (kEAGLRenderingAPIOpenGLES3, contextToShare))
-                                                         || createContext (kEAGLRenderingAPIOpenGLES2, contextToShare);
+                for (const auto version : versionsIn)
+                {
+                    const auto api = version >= Version { 3, 0 } ? kEAGLRenderingAPIOpenGLES3
+                                                                : kEAGLRenderingAPIOpenGLES2;
+
+                    if (api == kEAGLRenderingAPIOpenGLES3
+                        && [[UIDevice currentDevice].systemVersion floatValue] < 7.0)
+                    {
+                        DBG ("EAGLContext skipped OpenGL ES "
+                             << version.major << "." << version.minor
+                             << " because this iOS version cannot create ES 3");
+                        continue;
+                    }
+
+                    if (createContext (api, contextToShare))
+                    {
+                        DBG ("EAGLContext succeeded for OpenGL ES "
+                             << version.major << "." << version.minor);
+                        acceptedVersion = version;
+                        gotContext = true;
+                        break;
+                    }
+
+                    DBG ("EAGLContext failed for OpenGL ES "
+                         << version.major << "." << version.minor);
+                }
 
                 jassert (gotContext);
 
@@ -141,6 +165,7 @@ public:
 
     bool createdOk() const noexcept             { return getRawContext() != nullptr; }
     void* getRawContext() const noexcept        { return context.get(); }
+    Version getAcceptedVersion() const noexcept { return acceptedVersion; }
     GLuint getFrameBufferID() const noexcept    { return useMSAA ? msaaBufferHandle : frameBufferHandle; }
 
     bool makeActive() const noexcept
@@ -234,6 +259,7 @@ private:
     CAEAGLLayer* glLayer = nil;
     NSUniquePtr<EAGLContext> context;
     Version openGLVersion{};
+    Version acceptedVersion{};
     const bool useDepthBuffer, useMSAA;
 
     GLuint frameBufferHandle = 0, colorBufferHandle = 0, depthBufferHandle = 0,
@@ -246,12 +272,16 @@ private:
     bool createContext (EAGLRenderingAPI type, void* contextToShare)
     {
         jassert (context == nil);
-        context.reset ([EAGLContext alloc]);
 
         if (contextToShare != nullptr)
-            [context.get() initWithAPI: type  sharegroup: [(EAGLContext*) contextToShare sharegroup]];
+        {
+            context.reset ([[EAGLContext alloc] initWithAPI: type
+                                                 sharegroup: [(EAGLContext*) contextToShare sharegroup]]);
+        }
         else
-            [context.get() initWithAPI: type];
+        {
+            context.reset ([[EAGLContext alloc] initWithAPI: type]);
+        }
 
         return context != nil;
     }

@@ -51,8 +51,9 @@ public:
                    void* contextToShareWithIn,
                    bool /*useMultisampling*/,
                    [[maybe_unused]] API apiIn,
-                   Version versionIn,
-                   Profile profileIn)
+                   const std::vector<Version>& versionsIn,
+                   Profile profileIn,
+                   bool /*mayFallBackToDefault*/)
         : safeComponent (&component),
           sharedContext (contextToShareWithIn)
     {
@@ -71,7 +72,7 @@ public:
             SetPixelFormat (dc.get(), pixFormat, &pfd);
 
         initialiseWGLExtensions (dc.get());
-        renderContext.reset (createRenderContext (versionIn, profileIn, dc.get()));
+        renderContext.reset (createRenderContext (versionsIn, profileIn, dc.get(), acceptedVersion));
 
         if (renderContext != nullptr)
         {
@@ -91,7 +92,7 @@ public:
                 if (SetPixelFormat (dc.get(), wglFormat, &pfd))
                 {
                     renderContext.reset();
-                    renderContext.reset (createRenderContext (versionIn, profileIn, dc.get()));
+                    renderContext.reset (createRenderContext (versionsIn, profileIn, dc.get(), acceptedVersion));
                 }
             }
 
@@ -185,6 +186,7 @@ public:
 
     bool createdOk() const noexcept                 { return getRawContext() != nullptr; }
     void* getRawContext() const noexcept            { return renderContext.get(); }
+    Version getAcceptedVersion() const noexcept     { return acceptedVersion; }
     unsigned int getFrameBufferID() const noexcept  { return 0; }
 
     void triggerRepaint()
@@ -277,10 +279,34 @@ private:
         pfd.cAccumAlphaBits = (BYTE) pixelFormat.accumulationBufferAlphaBits;
     }
 
-    static HGLRC createRenderContext (Version version, Profile profile, HDC dcIn)
+    static HGLRC createRenderContext (const std::vector<Version>& versions,
+                                      Profile profile,
+                                      HDC dcIn,
+                                      Version& accepted)
     {
-        if (version != Version{} && wglCreateContextAttribsARB != nullptr)
+        accepted = {};
+
+        for (const auto version : versions)
         {
+            if (version == Version{})
+            {
+                if (const auto context = wglCreateContext (dcIn))
+                {
+                    DBG ("wglCreateContext succeeded for the default OpenGL context");
+                    return context;
+                }
+
+                DBG ("wglCreateContext failed for the default OpenGL context, error " << GetLastError());
+                continue;
+            }
+
+            if (wglCreateContextAttribsARB == nullptr)
+            {
+                DBG ("wglCreateContextAttribsARB is unavailable for OpenGL "
+                     << version.major << "." << version.minor);
+                continue;
+            }
+
            #if JUCE_DEBUG
             constexpr auto contextFlags = WGL_CONTEXT_DEBUG_BIT_ARB;
             constexpr auto noErrorChecking = GL_FALSE;
@@ -299,13 +325,19 @@ private:
                 0
             };
 
-            const auto c = wglCreateContextAttribsARB (dcIn, nullptr, attribs);
+            if (const auto context = wglCreateContextAttribsARB (dcIn, nullptr, attribs))
+            {
+                DBG ("wglCreateContextAttribsARB succeeded for OpenGL "
+                     << version.major << "." << version.minor);
+                accepted = version;
+                return context;
+            }
 
-            if (c != nullptr)
-                return c;
+            DBG ("wglCreateContextAttribsARB failed for OpenGL "
+                 << version.major << "." << version.minor << ", error " << GetLastError());
         }
 
-        return wglCreateContext (dcIn);
+        return nullptr;
     }
 
     //==============================================================================
@@ -443,6 +475,7 @@ private:
     std::unique_ptr<std::remove_pointer_t<HDC>, DeviceContextDeleter> dc;
     OpenGLContext* context = nullptr;
     void* sharedContext = nullptr;
+    Version acceptedVersion{};
     double nativeScaleFactor = 1.0;
     bool haveBuffersBeenSwapped = false;
     NativeScaleFactorNotifier scaleFactorNotifier { safeComponent.getComponent(),

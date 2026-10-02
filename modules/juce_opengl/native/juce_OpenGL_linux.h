@@ -54,7 +54,22 @@ void juce_LinuxRemoveRepaintListener (ComponentPeer*, Component* dummy);
 
 bool OpenGLHelpers::isOpenGLES()
 {
-    return eglQueryAPI() == EGL_OPENGL_ES_API;
+    if (auto* current = OpenGLContext::getCurrentContext())
+        if (const auto info = current->getContextInfo())
+            return info->api == OpenGLAPI::openGLES;
+
+    const auto display = eglGetCurrentDisplay();
+    const auto context = eglGetCurrentContext();
+
+    if (display != EGL_NO_DISPLAY && context != EGL_NO_CONTEXT)
+    {
+        EGLint clientType{};
+
+        if (eglQueryContext (display, context, EGL_CONTEXT_CLIENT_TYPE, &clientType))
+            return clientType == EGL_OPENGL_ES_API;
+    }
+
+    return JUCE_OPENGL_ES != 0;
 }
 
 class PeerListener : private ComponentMovementWatcher
@@ -121,14 +136,16 @@ public:
                    void* shareContext,
                    bool useMultisamplingIn,
                    API apiIn,
-                   Version versionIn,
-                   Profile profileIn)
+                   const std::vector<Version>& versionsIn,
+                   Profile profileIn,
+                   bool mayFallBackToDefaultIn)
         : component (comp),
           contextToShareWith (shareContext),
           dummy (*this),
           api (apiIn),
-          version (versionIn),
-          profile (profileIn)
+          versions (versionsIn),
+          profile (profileIn),
+          mayFallBackToDefault (mayFallBackToDefaultIn)
     {
         const auto* ext = eglQueryString (nullDisplay, EGL_EXTENSIONS);
 
@@ -185,6 +202,20 @@ public:
         };
 
         if (! tryChooseConfig (cPixelFormat, optionalAttribs) && ! tryChooseConfig (cPixelFormat, {}))
+            return;
+
+        const auto previousAPI = eglQueryAPI();
+        renderContext = EGLHelpers::initEGLContext (api,
+                                                    versions,
+                                                    profile,
+                                                    eglDisplay,
+                                                    eglConfig,
+                                                    (EGLContext) contextToShareWith,
+                                                    mayFallBackToDefault,
+                                                    acceptedVersion);
+        eglBindAPI (previousAPI);
+
+        if (renderContext == nullptr)
             return;
 
         EGLint nativeVisualId = 0;
@@ -252,7 +283,7 @@ public:
         eglSurface.reset();
         renderContext.reset();
 
-        if (eglDisplay != nullDisplay)
+        if (eglDisplay != nullDisplay && constructorDidComplete)
             eglTerminate (eglDisplay);
 
         if (auto* peer = component.getPeer())
@@ -280,7 +311,17 @@ public:
 
     InitResult initialiseOnRenderThread (OpenGLContext& c)
     {
-        renderContext = EGLHelpers::initEGLContext (api, version, profile, eglDisplay, eglConfig, contextToShareWith);
+        if (renderContext == nullptr)
+        {
+            renderContext = EGLHelpers::initEGLContext (api,
+                                                        versions,
+                                                        profile,
+                                                        eglDisplay,
+                                                        eglConfig,
+                                                        (EGLContext) contextToShareWith,
+                                                        mayFallBackToDefault,
+                                                        acceptedVersion);
+        }
 
         if (renderContext == nullptr)
             return InitResult::fatal;
@@ -370,6 +411,7 @@ public:
     int getSwapInterval() const                 { return swapFrames; }
     bool createdOk() const noexcept             { return constructorDidComplete; }
     void* getRawContext() const noexcept        { return renderContext.get(); }
+    Version getAcceptedVersion() const noexcept { return acceptedVersion; }
     GLuint getFrameBufferID() const noexcept    { return 0; }
 
     void triggerRepaint()
@@ -430,8 +472,10 @@ private:
     ::Display* display = nullptr;
 
     API api{};
-    Version version{};
+    std::vector<Version> versions;
     Profile profile{};
+    bool mayFallBackToDefault = false;
+    Version acceptedVersion{};
 
     bool constructorDidComplete = false;
 

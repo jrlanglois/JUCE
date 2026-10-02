@@ -1,5 +1,107 @@
 # JUCE breaking changes
 
+# develop
+
+## Change
+
+On Linux and BSD, OpenGL 1.0 and 1.1 entry points in the `juce::gl` namespace
+must be loaded before they are called outside a context created by
+`OpenGLContext`.
+
+**Possible Issues**
+
+Code that calls these entry points before `OpenGLContext` has initialised its
+context will call an unloaded function.
+
+**Workaround**
+
+Call `juce::gl::loadFunctions()` while a suitable context is current.
+
+**Rationale**
+
+Linux and BSD can now select desktop OpenGL or OpenGL ES at runtime, so even
+core entry points must come from the active API's client library.
+
+## Change
+
+On Linux and BSD, `juce_opengl` no longer links libGL for downstream targets.
+It links libEGL and loads the active API's entry points at runtime.
+
+**Possible Issues**
+
+Code that calls OpenGL entry points directly rather than through `juce::gl` may
+fail to link.
+
+**Workaround**
+
+Link libGL explicitly in targets that call its entry points directly.
+
+**Rationale**
+
+Linking libGL unconditionally prevents a target from running on a system that
+provides only OpenGL ES.
+
+## Change
+
+If none of an `OpenGLContext`'s context requests can be created, the attached
+component now continues painting with its peer's software renderer.
+
+**Possible Issues**
+
+Code that assumes attaching an `OpenGLContext` always installs an OpenGL-backed
+cached image may now run with no OpenGL context.
+
+**Workaround**
+
+Set `OpenGLContext::onCreationFailed` to report or handle the software
+fallback.
+
+**Rationale**
+
+A failed graphics-driver request should not leave the component blank or stop
+its non-OpenGL content from painting.
+
+## Change
+
+On macOS, the default request chain falls back to a legacy OpenGL 2.1 context
+when a versioned request cannot be created.
+
+**Possible Issues**
+
+Code that expected a failed versioned request to leave the component without a
+context may now receive a legacy context.
+
+**Workaround**
+
+Use `OpenGLContext::setContextRequests()` to list only the versioned request.
+Listed request chains receive no automatic fallback entries.
+
+**Rationale**
+
+The default chain now applies the same legacy fallback rule on every desktop
+platform.
+
+## Change
+
+On Windows, Linux, and BSD, a versioned context request now steps down through
+the platform's supported version range before trying the legacy fallback. For
+example, a request for OpenGL 4.6 can create a 4.5 context on a 4.5 driver.
+
+**Possible Issues**
+
+Code that treated a requested version as an exact minimum may receive an older
+context instead of the legacy fallback or no context.
+
+**Workaround**
+
+Inspect `OpenGLContext::getContextInfo()` in `onCreated` and reject a context
+whose `acceptedVersion` is below the application's required version.
+
+**Rationale**
+
+OpenGL context creation APIs reject unavailable versions rather than selecting
+the newest supported version, so JUCE must make each lower request explicitly.
+
 # Version 9.0.3
 
 ## Change

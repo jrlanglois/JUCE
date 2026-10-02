@@ -125,11 +125,12 @@ public:
                    void* /*contextToShareWith*/,
                    bool useMultisamplingIn,
                    API apiIn,
-                   Version versionIn,
-                   Profile profileIn)
+                   const std::vector<Version>& versionsIn,
+                   Profile profileIn,
+                   bool /*mayFallBackToDefault*/)
         : component (comp),
           api (apiIn),
-          version (versionIn),
+          versions (versionsIn),
           profile (profileIn)
     {
         auto env = getEnv();
@@ -192,8 +193,8 @@ public:
         if (! hasInitialised)
             return InitResult::fatal;
 
-        if (context.get() == EGL_NO_CONTEXT && surface.get() == EGL_NO_SURFACE)
-            return InitResult::retry;
+        if (context.get() == EGL_NO_CONTEXT)
+            return contextCreationFailed ? InitResult::fatal : InitResult::retry;
 
         juceContext = &ctx;
         return InitResult::success;
@@ -235,7 +236,14 @@ public:
     //==============================================================================
     bool createdOk() const noexcept             { return hasInitialised; }
     void* getRawContext() const noexcept        { return surfaceView.get(); }
+    Version getAcceptedVersion() const noexcept { return acceptedVersion; }
     GLuint getFrameBufferID() const noexcept    { return 0; }
+
+    bool hasContextCreationFailed() const
+    {
+        const std::lock_guard lock { nativeHandleMutex };
+        return contextCreationFailed;
+    }
 
     //==============================================================================
     void updateWindowPosition()
@@ -405,6 +413,7 @@ private:
     //==============================================================================
     CriticalSection mutex;
     bool hasInitialised = false;
+    bool contextCreationFailed = false;
 
     GlobalRef surfaceView;
     Rectangle<int> physicalBounds;
@@ -417,8 +426,9 @@ private:
     GlobalRef surfaceHolderCallback;
 
     API api{};
-    Version version{};
+    std::vector<Version> versions;
     Profile profile{};
+    Version acceptedVersion{};
 
     inline static EGLDisplay display = EGL_NO_DISPLAY;
     inline static EGLConfig config;

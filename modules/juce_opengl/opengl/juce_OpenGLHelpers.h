@@ -99,6 +99,15 @@ public:
         Obviously this is not a real parser, so will only work on simple code!
     */
     static String translateFragmentShaderToV3 (const String&);
+
+    /** Replaces the #lowp#, #mediump# and #highp# placeholders in shader code.
+
+        The placeholders become the matching precision qualifiers when the context
+        active on this thread is OpenGL ES, and are removed otherwise. Unlike the
+        JUCE_LOWP, JUCE_MEDIUMP and JUCE_HIGHP macros, this follows the API of the
+        current context at runtime.
+    */
+    static String translatePrecisionPlaceholders (const String&);
 };
 
 } // namespace juce
