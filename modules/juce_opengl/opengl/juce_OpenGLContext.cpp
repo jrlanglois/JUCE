@@ -92,6 +92,21 @@ bool OpenGLVersion::operator<= (const OpenGLVersion& other) const { return tieVe
 bool OpenGLVersion::operator>  (const OpenGLVersion& other) const { return tieVersion (*this) >  tieVersion (other); }
 bool OpenGLVersion::operator>= (const OpenGLVersion& other) const { return tieVersion (*this) >= tieVersion (other); }
 
+static auto tieRequest (const OpenGLContextRequest& request)
+{
+    return std::tuple (request.api, request.version.major, request.version.minor, request.profile);
+}
+
+bool OpenGLContextRequest::operator== (const OpenGLContextRequest& other) const
+{
+    return tieRequest (*this) == tieRequest (other);
+}
+
+bool OpenGLContextRequest::operator!= (const OpenGLContextRequest& other) const
+{
+    return tieRequest (*this) != tieRequest (other);
+}
+
 static bool contextHasTextureNpotFeature()
 {
     if (getOpenGLVersion() >= OpenGLVersion (2))
@@ -110,8 +125,239 @@ static bool contextHasTextureNpotFeature()
     return stringTokens.contains ("GL_ARB_texture_non_power_of_two");
 }
 
+namespace detail
+{
+struct PlatformLimits
+{
+    bool canCreateOpenGL = false;
+    bool canCreateOpenGLES = false;
+    std::vector<OpenGLVersion> desktopCoreVersions;
+    std::vector<OpenGLVersion> desktopCompatibilityVersions;
+    std::vector<OpenGLVersion> openGLESVersions;
+};
+
+struct PreparedContextRequest
+{
+    OpenGLContextRequest requested;
+    OpenGLContextRequest normalised;
+    std::vector<OpenGLVersion> versions;
+};
+
+static bool isDefaultVersion (OpenGLVersion version)
+{
+    return version == OpenGLVersion{};
+}
+
+static PlatformLimits getPlatformLimits()
+{
+    const std::vector<OpenGLVersion> desktopCore
+    {
+        { 3, 2 }, { 3, 3 }, { 4, 0 }, { 4, 1 }, { 4, 2 }, { 4, 3 }, { 4, 4 }, { 4, 5 }, { 4, 6 }
+    };
+
+    const std::vector<OpenGLVersion> desktopCompatibility
+    {
+        { 2, 0 }, { 2, 1 }, { 3, 0 }, { 3, 1 }, { 3, 2 }, { 3, 3 },
+        { 4, 0 }, { 4, 1 }, { 4, 2 }, { 4, 3 }, { 4, 4 }, { 4, 5 }, { 4, 6 }
+    };
+
+    const std::vector<OpenGLVersion> openGLES
+    {
+        { 2, 0 }, { 3, 0 }, { 3, 1 }, { 3, 2 }
+    };
+
+   #if JUCE_MAC
+    return { true, false, { { 3, 2 }, { 4, 1 } }, { { 2, 1 } }, {} };
+   #elif JUCE_IOS
+    return { false, true, {}, {}, { { 2, 0 }, { 3, 0 } } };
+   #elif JUCE_OPENGL_ES
+    return { false, true, {}, {}, openGLES };
+   #elif JUCE_WINDOWS
+    return { true, false, desktopCore, desktopCompatibility, {} };
+   #elif JUCE_LINUX || JUCE_BSD
+    return { true, true, desktopCore, desktopCompatibility, openGLES };
+   #else
+    return {};
+   #endif
+}
+
+static bool canCreate (const PlatformLimits& limits, OpenGLAPI api)
+{
+    return api == OpenGLAPI::openGL ? limits.canCreateOpenGL
+                                    : limits.canCreateOpenGLES;
+}
+
+static const std::vector<OpenGLVersion>& getAvailableVersions (const PlatformLimits& limits,
+                                                               OpenGLAPI api,
+                                                               OpenGLProfile profile)
+{
+    if (api == OpenGLAPI::openGLES)
+        return limits.openGLESVersions;
+
+    return profile == OpenGLProfile::core ? limits.desktopCoreVersions
+                                          : limits.desktopCompatibilityVersions;
+}
+
+static OpenGLVersion snapAndClampVersion (OpenGLVersion requested,
+                                          const std::vector<OpenGLVersion>& available)
+{
+    jassert (! available.empty());
+
+    if (requested < available.front())
+        return available.front();
+
+    OpenGLVersion result = available.front();
+
+    for (const auto candidate : available)
+    {
+        if (requested < candidate)
+            break;
+
+        result = candidate;
+    }
+
+    return result;
+}
+
+static std::vector<OpenGLVersion> getVersionList (const OpenGLContextRequest& request,
+                                                  const PlatformLimits& limits)
+{
+    if (isDefaultVersion (request.version))
+    {
+        if (request.api == OpenGLAPI::openGL)
+            return { {} };
+
+        const auto& available = limits.openGLESVersions;
+        std::vector<OpenGLVersion> result;
+
+        for (const auto candidate : { OpenGLVersion { 3, 0 }, OpenGLVersion { 2, 0 } })
+            if (std::find (available.begin(), available.end(), candidate) != available.end())
+                result.push_back (candidate);
+
+        return result;
+    }
+
+    const auto& available = getAvailableVersions (limits, request.api, request.profile);
+    const auto first = snapAndClampVersion (request.version, available);
+    std::vector<OpenGLVersion> result;
+
+    for (auto iterator = available.rbegin(); iterator != available.rend(); ++iterator)
+        if (*iterator <= first)
+            result.push_back (*iterator);
+
+    return result;
+}
+
+static std::optional<PreparedContextRequest> prepareContextRequest (OpenGLContextRequest requested,
+                                                                    const PlatformLimits& limits)
+{
+    if (! canCreate (limits, requested.api))
+        return {};
+
+    auto normalised = requested;
+    normalised.profile = normalised.api == OpenGLAPI::openGLES || ! isDefaultVersion (normalised.version)
+                       ? normalised.profile
+                       : OpenGLProfile::compatibility;
+
+    if (normalised.api == OpenGLAPI::openGLES)
+        normalised.profile = OpenGLProfile::core;
+
+    const auto& available = getAvailableVersions (limits, normalised.api, normalised.profile);
+
+    if (available.empty())
+        return {};
+
+    if (! isDefaultVersion (normalised.version))
+        normalised.version = snapAndClampVersion (normalised.version, available);
+
+    return PreparedContextRequest { requested, normalised, getVersionList (normalised, limits) };
+}
+
+static bool hasSamePreparedRequest (const PreparedContextRequest& a,
+                                    const PreparedContextRequest& b)
+{
+    return a.normalised.api == b.normalised.api
+        && a.normalised.profile == b.normalised.profile
+        && a.versions == b.versions;
+}
+
+static std::vector<PreparedContextRequest> buildContextRequestChain (
+    const std::vector<OpenGLContextRequest>& listed,
+    OpenGLContextRequest preferred,
+    bool hasRenderer,
+    const PlatformLimits& limits)
+{
+    std::vector<OpenGLContextRequest> candidates;
+
+    if (! listed.empty())
+    {
+        candidates = listed;
+    }
+    else
+    {
+        if (limits.canCreateOpenGL != limits.canCreateOpenGLES)
+            preferred.api = limits.canCreateOpenGL ? OpenGLAPI::openGL : OpenGLAPI::openGLES;
+
+        candidates.push_back (preferred);
+
+        if (! isDefaultVersion (preferred.version))
+        {
+            candidates.push_back ({ preferred.api,
+                                    {},
+                                    preferred.api == OpenGLAPI::openGL ? OpenGLProfile::compatibility
+                                                                       : OpenGLProfile::core });
+        }
+
+        if (! hasRenderer && limits.canCreateOpenGL && limits.canCreateOpenGLES)
+        {
+            const auto fallbackAPI = preferred.api == OpenGLAPI::openGL ? OpenGLAPI::openGLES
+                                                                        : OpenGLAPI::openGL;
+            candidates.push_back ({ fallbackAPI,
+                                    {},
+                                    fallbackAPI == OpenGLAPI::openGL ? OpenGLProfile::compatibility
+                                                                      : OpenGLProfile::core });
+        }
+    }
+
+    std::vector<PreparedContextRequest> result;
+
+    for (const auto candidate : candidates)
+    {
+        const auto prepared = prepareContextRequest (candidate, limits);
+
+        if (prepared == std::nullopt)
+            continue;
+
+        const auto duplicate = std::find_if (result.begin(), result.end(), [&] (const auto& existing)
+        {
+            return hasSamePreparedRequest (existing, *prepared);
+        });
+
+        if (duplicate == result.end())
+            result.push_back (*prepared);
+    }
+
+    return result;
+}
+
+static bool contextMatchesRequest (const OpenGLContextRequest& request,
+                                   OpenGLVersion acceptedVersion,
+                                   OpenGLAPI detectedAPI,
+                                   OpenGLVersion detectedVersion,
+                                   OpenGLProfile detectedProfile)
+{
+    if (detectedAPI != request.api || detectedVersion < acceptedVersion)
+        return false;
+
+    return detectedAPI != OpenGLAPI::openGL
+        || acceptedVersion == OpenGLVersion{}
+        || detectedProfile == request.profile;
+}
+} // namespace detail
+
 //==============================================================================
-class OpenGLContext::CachedImage final : public CachedComponentImage
+class OpenGLContext::CachedImage final : public CachedComponentImage,
+                                         private AsyncUpdater
 {
     template <typename T, typename U>
     static constexpr bool isFlagSet (const T& t, const U& u) { return (t & u) != 0; }
@@ -160,17 +406,40 @@ public:
         : context (c),
           component (comp)
     {
-        nativeContext.reset (new NativeContext (component,
-                                                pixFormat,
-                                                contextToShare,
-                                                c.useMultisampling,
-                                                c.preferredAPI,
-                                                c.preferredVersion,
-                                                c.preferredProfile));
+        const auto preferred = ContextRequest { c.preferredAPI, c.preferredVersion, c.preferredProfile };
+        const auto chain = detail::buildContextRequestChain (c.contextRequests,
+                                                             preferred,
+                                                             c.renderer != nullptr,
+                                                             detail::getPlatformLimits());
 
-        if (nativeContext->createdOk())
+        for (const auto& entry : chain)
+        {
+            nativeContext.reset();
+            nativeContext.reset (new NativeContext (component,
+                                                    pixFormat,
+                                                    contextToShare,
+                                                    c.useMultisampling,
+                                                    entry.normalised.api,
+                                                    entry.versions,
+                                                    entry.normalised.profile,
+                                                    entry.normalised.api == OpenGLAPI::openGL
+                                                        && entry.normalised.version == Version{}));
+
+            DBG ("OpenGL context entry: API " << (entry.normalised.api == OpenGLAPI::openGL ? "OpenGL" : "OpenGL ES")
+                 << ", profile " << (entry.normalised.profile == OpenGLProfile::core ? "core" : "compatibility")
+                 << (nativeContext->createdOk() ? " succeeded" : " failed"));
+
+            if (! nativeContext->createdOk())
+                continue;
+
+            requestedContext = entry.requested;
+            normalisedContext = entry.normalised;
+            acceptedVersion = nativeContext->getAcceptedVersion();
             context.nativeContext = nativeContext.get();
-        else
+            break;
+        }
+
+        if (context.nativeContext == nullptr)
             nativeContext.reset();
 
         refreshDisplayLinkConnection();
@@ -179,6 +448,7 @@ public:
     ~CachedImage() override
     {
         stop();
+        cancelPendingUpdate();
     }
 
     //==============================================================================
@@ -223,9 +493,10 @@ public:
         if (context.renderer != nullptr)
             context.renderer->openGLContextClosing();
 
-        context.actualAPI = {};
-        context.actualVersion = {};
-        context.actualProfile = {};
+        {
+            const SpinLock::ScopedLockType lock (context.contextInfoLock);
+            context.contextInfo.reset();
+        }
 
         associatedObjectNames.clear();
         associatedObjects.clear();
@@ -236,6 +507,15 @@ public:
     void resume()
     {
         renderThread->add (this);
+    }
+
+    void handleAsyncUpdate() override
+    {
+        const auto info = context.getContextInfo();
+        const auto callback = context.onCreated;
+
+        if (info != std::nullopt && callback != nullptr)
+            callback (*info);
     }
 
     //==============================================================================
@@ -575,7 +855,7 @@ public:
 
     void drawComponentBuffer()
     {
-        if (context.actualProfile == OpenGLProfile::compatibility)
+        if (context.getProfile() == OpenGLProfile::compatibility)
             glEnable (GL_TEXTURE_2D);
 
         // some old drivers are missing this function, so try to at least avoid a crash here,
@@ -688,11 +968,37 @@ public:
 
         nativeContext->setSwapInterval (1);
 
-        context.actualAPI = OpenGLHelpers::isOpenGLES() ? OpenGLAPI::openGLES : OpenGLAPI::openGL;
-        context.actualVersion = getOpenGLVersion();
-        context.actualProfile = getOpenGLProfile();
+        acceptedVersion = nativeContext->getAcceptedVersion();
 
-        if (context.actualAPI == OpenGLAPI::openGL)
+        const auto detectedAPI = OpenGLHelpers::isOpenGLES() ? OpenGLAPI::openGLES : OpenGLAPI::openGL;
+        const auto detectedVersion = getOpenGLVersion();
+        const auto detectedProfile = getOpenGLProfile();
+        const auto matchesRequest = detail::contextMatchesRequest (normalisedContext,
+                                                                   acceptedVersion,
+                                                                   detectedAPI,
+                                                                   detectedVersion,
+                                                                   detectedProfile);
+        const ContextInfo info { requestedContext,
+                                 acceptedVersion,
+                                 detectedAPI,
+                                 detectedVersion,
+                                 detectedProfile,
+                                 matchesRequest };
+
+        if (! matchesRequest)
+        {
+            DBG ("Created OpenGL context does not match its accepted request: API "
+                 << (detectedAPI == OpenGLAPI::openGL ? "OpenGL" : "OpenGL ES")
+                 << ", version " << detectedVersion.major << "." << detectedVersion.minor
+                 << ", profile " << (detectedProfile == OpenGLProfile::core ? "core" : "compatibility"));
+        }
+
+        {
+            const SpinLock::ScopedLockType lock (context.contextInfoLock);
+            context.contextInfo = info;
+        }
+
+        if (detectedAPI == OpenGLAPI::openGL)
         {
             JUCE_CHECK_OPENGL_ERROR
             shadersAvailable = OpenGLShaderProgram::getLanguageVersion() > 0;
@@ -705,8 +1011,25 @@ public:
 
         textureNpotSupported = contextHasTextureNpotFeature();
 
+        const auto isES = detectedAPI == OpenGLAPI::openGLES;
+        const auto pixelsAreBGRA = (GLenum) JUCE_RGBA_FORMAT == (GLenum) GL_BGRA_EXT;
+        const auto mustAskForBGRA = isES && pixelsAreBGRA;
+        const auto textureFormats = detail::chooseTextureFormats (
+            isES,
+            pixelsAreBGRA,
+            mustAskForBGRA && OpenGLHelpers::isExtensionSupported ("GL_APPLE_texture_format_BGRA8888"),
+            mustAskForBGRA && OpenGLHelpers::isExtensionSupported ("GL_EXT_texture_format_BGRA8888"),
+            mustAskForBGRA && OpenGLHelpers::isExtensionSupported ("GL_EXT_read_format_bgra"));
+        context.textureUploadInternalFormat = textureFormats.uploadInternalFormat;
+        context.textureUploadFormat = textureFormats.uploadFormat;
+        context.textureReadFormat = textureFormats.readFormat;
+        context.textureUploadNeedsRedBlueSwap = textureFormats.swapRedAndBlueOnUpload;
+        context.textureReadNeedsRedBlueSwap = textureFormats.swapRedAndBlueAfterRead;
+
         if (context.renderer != nullptr)
             context.renderer->newOpenGLContextCreated();
+
+        triggerAsyncUpdate();
 
        #if JUCE_ANDROID
         context.nativeContextListeners.call ([] (auto& l) { l.contextDidResume(); });
@@ -783,6 +1106,15 @@ public:
     static CachedImage* get (Component& c) noexcept
     {
         return dynamic_cast<CachedImage*> (c.getCachedComponentImage());
+    }
+
+    bool hasContextCreationFailed() const
+    {
+       #if JUCE_ANDROID
+        return nativeContext != nullptr && nativeContext->hasContextCreationFailed();
+       #else
+        return false;
+       #endif
     }
 
     class RenderThread
@@ -1001,6 +1333,9 @@ public:
     //==============================================================================
     friend class NativeContext;
     std::unique_ptr<NativeContext> nativeContext;
+    ContextRequest requestedContext;
+    ContextRequest normalisedContext;
+    Version acceptedVersion;
 
     OpenGLContext& context;
     Component& component;
@@ -1115,7 +1450,8 @@ public:
 
 //==============================================================================
 class OpenGLContext::Attachment final : public ComponentMovementWatcher,
-                                        private Timer
+                                        private Timer,
+                                        private AsyncUpdater
 {
 public:
     Attachment (OpenGLContext& c, Component& comp)
@@ -1132,6 +1468,9 @@ public:
 
     void detach()
     {
+        cancelPendingUpdate();
+        failureLatched = false;
+
         auto& comp = *getComponent();
         stop();
         detail::ComponentHelpers::releaseAllCachedImageResources (comp);
@@ -1215,20 +1554,37 @@ private:
         return c.getPeer() != nullptr;
     }
 
-    static bool isAttached (const Component& comp) noexcept
+    bool isAttached (const Component& comp) const noexcept
     {
-        return comp.getCachedComponentImage() != nullptr;
+        return failureLatched || comp.getCachedComponentImage() != nullptr;
     }
 
     void attach()
     {
         auto& comp = *getComponent();
-        auto* newCachedImage = new CachedImage (context, comp,
-                                                context.openGLPixelFormat,
-                                                context.contextToShareWith);
-        comp.setCachedComponentImage (newCachedImage);
+        auto newCachedImage = std::make_unique<CachedImage> (context,
+                                                            comp,
+                                                            context.openGLPixelFormat,
+                                                            context.contextToShareWith);
+
+        if (context.nativeContext == nullptr)
+        {
+            failureLatched = true;
+            triggerAsyncUpdate();
+            return;
+        }
+
+        comp.setCachedComponentImage (newCachedImage.release());
 
         start();
+    }
+
+    void handleAsyncUpdate() override
+    {
+        const auto callback = context.onCreationFailed;
+
+        if (callback != nullptr)
+            callback();
     }
 
     void stop()
@@ -1261,10 +1617,31 @@ private:
         }
     }
 
+    bool failureLatched = false;
+
     void timerCallback() override
     {
         if (auto* cachedImage = CachedImage::get (*getComponent()))
+        {
+            if (cachedImage->hasContextCreationFailed())
+            {
+                handleContextCreationFailure();
+                return;
+            }
+
             cachedImage->checkViewportBounds();
+        }
+    }
+
+    void handleContextCreationFailure()
+    {
+        auto& comp = *getComponent();
+        stop();
+        detail::ComponentHelpers::releaseAllCachedImageResources (comp);
+        comp.setCachedComponentImage (nullptr);
+        context.clearNativeContext();
+        failureLatched = true;
+        triggerAsyncUpdate();
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Attachment)
@@ -1389,7 +1766,10 @@ auto OpenGLContext::getPreferredVersion() const -> Version
 
 auto OpenGLContext::getVersion() const -> Version
 {
-    return actualVersion;
+    if (const auto info = getContextInfo())
+        return info->version;
+
+    return {};
 }
 
 void OpenGLContext::setPreferredAPI (API x)
@@ -1404,7 +1784,10 @@ auto OpenGLContext::getPreferredAPI() const -> API
 
 auto OpenGLContext::getAPI() const -> API
 {
-    return actualAPI;
+    if (const auto info = getContextInfo())
+        return info->api;
+
+    return API::openGL;
 }
 
 void OpenGLContext::setPreferredProfile (Profile x)
@@ -1419,7 +1802,27 @@ auto OpenGLContext::getPreferredProfile() const -> Profile
 
 auto OpenGLContext::getProfile() const -> Profile
 {
-    return actualProfile;
+    if (const auto info = getContextInfo())
+        return info->profile;
+
+    return Profile::compatibility;
+}
+
+void OpenGLContext::setContextRequests (std::vector<ContextRequest> requests)
+{
+    jassert (nativeContext == nullptr);
+    contextRequests = std::move (requests);
+}
+
+std::vector<OpenGLContext::ContextRequest> OpenGLContext::getContextRequests() const
+{
+    return contextRequests;
+}
+
+std::optional<OpenGLContext::ContextInfo> OpenGLContext::getContextInfo() const
+{
+    const SpinLock::ScopedLockType lock (contextInfoLock);
+    return contextInfo;
 }
 
 void OpenGLContext::attachTo (Component& component)
@@ -1781,6 +2184,9 @@ void OpenGLContext::clearNativeContext()
     nativeContextListeners.call ([] (auto& l) { l.contextWillBeDestroyed(); });
     nativeContextListeners.clear();
     nativeContext = nullptr;
+
+    const SpinLock::ScopedLockType lock (contextInfoLock);
+    contextInfo.reset();
 }
 
 #if JUCE_ANDROID
@@ -1799,21 +2205,38 @@ void OpenGLContext::NativeContext::surfaceCreated (LocalRef<jobject> holder)
 
         if (window == nullptr)
         {
-            // failed to get a pointer to the native window so bail out
-            jassertfalse;
-            return;
+            contextCreationFailed = true;
+            DBG ("Failed to get an Android native window for the OpenGL surface");
         }
+        else
+        {
+            // Reset the surface (only one window surface may be alive at a time)
+            context.reset();
+            surface.reset();
+            acceptedVersion = {};
+            contextCreationFailed = false;
 
-        // Reset the surface (only one window surface may be alive at a time)
-        context.reset();
-        surface.reset();
+            // Create the surface
+            surface = { eglCreateWindowSurface (display, config, window.get(), nullptr), display };
 
-        // Create the surface
-        surface = { eglCreateWindowSurface (display, config, window.get(), nullptr), display };
-        jassert (surface != nullptr);
-
-        context = EGLHelpers::initEGLContext (api, version, profile, display, config, EGL_NO_CONTEXT);
-        jassert (context != nullptr);
+            if (surface == nullptr)
+            {
+                contextCreationFailed = true;
+                DBG ("eglCreateWindowSurface failed on Android, error " << eglGetError());
+            }
+            else
+            {
+                context = EGLHelpers::initEGLContext (api,
+                                                      versions,
+                                                      profile,
+                                                      display,
+                                                      config,
+                                                      EGL_NO_CONTEXT,
+                                                      true,
+                                                      acceptedVersion);
+                contextCreationFailed = context == nullptr;
+            }
+        }
     }
 
     if (auto* cached = CachedImage::get (component))
@@ -1833,6 +2256,7 @@ void OpenGLContext::NativeContext::surfaceDestroyed (LocalRef<jobject>)
 
         context.reset();
         surface.reset();
+        contextCreationFailed = false;
     }
 }
 

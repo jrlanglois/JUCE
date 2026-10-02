@@ -35,13 +35,56 @@
 namespace juce
 {
 
+namespace detail
+{
+struct TextureFormats
+{
+    GLenum uploadInternalFormat = GL_RGBA;
+    GLenum uploadFormat = GL_RGBA;
+    GLenum readFormat = GL_RGBA;
+    bool swapRedAndBlueOnUpload = false;
+    bool swapRedAndBlueAfterRead = false;
+};
+
+static TextureFormats chooseTextureFormats (bool isES,
+                                            bool pixelsAreBGRA,
+                                            bool hasAppleFormat,
+                                            bool hasEXTFormat,
+                                            bool hasBGRAReads)
+{
+    const auto pixelFormat = pixelsAreBGRA ? (GLenum) GL_BGRA_EXT : (GLenum) GL_RGBA;
+    const auto mustAsk = isES && pixelsAreBGRA;
+    const auto uploadInternalFormat = mustAsk && hasEXTFormat && ! hasAppleFormat ? (GLenum) GL_BGRA_EXT
+                                                                                 : (GLenum) GL_RGBA;
+    const auto uploadFormat = ! mustAsk || hasAppleFormat || hasEXTFormat ? pixelFormat
+                                                                          : (GLenum) GL_RGBA;
+    const auto readFormat = ! mustAsk || hasBGRAReads ? pixelFormat
+                                                       : (GLenum) GL_RGBA;
+
+    return { uploadInternalFormat,
+             uploadFormat,
+             readFormat,
+             pixelsAreBGRA && uploadFormat == GL_RGBA,
+             pixelsAreBGRA && readFormat == GL_RGBA };
+}
+
+static void swapRedAndBlue (Span<PixelARGB> pixels)
+{
+    for (auto& pixel : pixels)
+        pixel = PixelARGB { pixel.getAlpha(), pixel.getBlue(), pixel.getGreen(), pixel.getRed() };
+}
+} // namespace detail
+
 struct TextureSize
 {
     int width = 0, height = 0;
 };
 
 // The allocated texture may be larger than the requested size.
-static std::optional<TextureSize> tryAllocTexture (int w, int h, GLenum type)
+static std::optional<TextureSize> tryAllocTexture (int w,
+                                                   int h,
+                                                   GLenum internalFormat,
+                                                   GLenum format)
 {
     JUCE_CHECK_OPENGL_ERROR
 
@@ -52,11 +95,11 @@ static std::optional<TextureSize> tryAllocTexture (int w, int h, GLenum type)
     {
         glTexImage2D (GL_TEXTURE_2D,
                       0,
-                      type == GL_ALPHA ? GL_ALPHA : GL_RGBA,
+                      (GLint) internalFormat,
                       testWidth,
                       testHeight,
                       0,
-                      type,
+                      format,
                       GL_UNSIGNED_BYTE,
                       nullptr);
 
@@ -159,12 +202,11 @@ public:
         transientState->bind();
         transientState->setViewportToContentArea();
 
-       #if ! JUCE_ANDROID
         if (associatedContext->getProfile() == OpenGLProfile::compatibility)
             glEnable (GL_TEXTURE_2D);
 
         OpenGLHelpers::resetErrorState();
-       #endif
+
         {
             const ScopedTextureBinding scopedTextureBinding;
             glBindTexture (GL_TEXTURE_2D, p->textureID);
@@ -301,9 +343,12 @@ public:
                       area.getY() + transientState->getContentYOffsetInTexture(),
                       area.getWidth(),
                       area.getHeight(),
-                      JUCE_RGBA_FORMAT,
+                      OpenGLFrameBuffer::getPixelReadFormat (*associatedContext),
                       GL_UNSIGNED_BYTE,
                       target);
+
+        if (OpenGLFrameBuffer::shouldSwapRedAndBlueAfterRead (*associatedContext))
+            detail::swapRedAndBlue ({ target, (size_t) area.getWidth() * (size_t) area.getHeight() });
 
         if (order == RowOrder::fromTopDown)
         {
@@ -420,7 +465,7 @@ private:
                 glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
                 JUCE_CHECK_OPENGL_ERROR
 
-                const auto allocatedSize = tryAllocTexture (width, height, GL_RGBA);
+                const auto allocatedSize = tryAllocTexture (width, height, GL_RGBA, GL_RGBA);
                 // Failed to create texture
                 jassert (allocatedSize.has_value());
 
@@ -592,6 +637,16 @@ private:
 };
 
 //==============================================================================
+GLenum OpenGLFrameBuffer::getPixelReadFormat (const OpenGLContext& context)
+{
+    return context.textureReadFormat;
+}
+
+bool OpenGLFrameBuffer::shouldSwapRedAndBlueAfterRead (const OpenGLContext& context)
+{
+    return context.textureReadNeedsRedBlueSwap;
+}
+
 OpenGLFrameBuffer::OpenGLFrameBuffer()
     : pimpl (std::make_unique<Pimpl>())
 {

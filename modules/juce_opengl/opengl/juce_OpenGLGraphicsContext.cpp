@@ -255,7 +255,6 @@ struct ActiveTextures
                     if (! thisTextureEnabled)
                         currentTextureID[i] = 0;
 
-                   #if ! JUCE_ANDROID
                     if (needsToEnableTexture)
                     {
                         if (thisTextureEnabled)
@@ -265,7 +264,6 @@ struct ActiveTextures
 
                         JUCE_CHECK_OPENGL_ERROR
                     }
-                   #endif
                 }
             }
 
@@ -2119,14 +2117,12 @@ struct NonShaderContext final : public LowLevelGraphicsSoftwareRenderer
         JUCE_CHECK_OPENGL_ERROR
         auto previousFrameBufferTarget = OpenGLFrameBuffer::getCurrentFrameBufferTarget();
 
-       #if ! JUCE_ANDROID
         target.context.extensions.glActiveTexture (GL_TEXTURE0);
 
         if (target.context.getProfile() == OpenGLProfile::compatibility)
             glEnable (GL_TEXTURE_2D);
 
         OpenGLHelpers::resetErrorState();
-       #endif
 
         ViewportRestorer viewportRestorer;
 

@@ -170,6 +170,9 @@ public:
     bool writePixels (const PixelARGB* srcData, const Rectangle<int>& targetArea, RowOrder order);
 
 private:
+    static GLenum getPixelReadFormat (const OpenGLContext&);
+    static bool shouldSwapRedAndBlueAfterRead (const OpenGLContext&);
+
     class Pimpl;
     std::unique_ptr<Pimpl> pimpl;
 

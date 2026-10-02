@@ -83,24 +83,21 @@ void OpenGLTexture::create (const int w, const int h, const void* pixels, GLenum
     glPixelStorei (GL_UNPACK_ALIGNMENT, 1);
     JUCE_CHECK_OPENGL_ERROR
 
-    if (! tryAllocTexture (w, h, type))
+    const auto internalFormat = type == GL_ALPHA ? (GLenum) GL_ALPHA
+                                                 : ownerContext->textureUploadInternalFormat;
+    const auto format = type == GL_ALPHA ? (GLenum) GL_ALPHA
+                                         : ownerContext->textureUploadFormat;
+
+    const auto allocatedSize = tryAllocTexture (w, h, internalFormat, format);
+
+    if (! allocatedSize.has_value())
     {
         // Completely failed to create a workable texture
         jassertfalse;
         return;
     }
 
-    GLint detectedWidth{}, detectedHeight{};
-    glGetTexLevelParameteriv (GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &detectedWidth);
-    glGetTexLevelParameteriv (GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &detectedHeight);
-    std::tie (width, height) = std::tie (detectedWidth, detectedHeight);
-
-    if (width < w || height < h)
-    {
-        // Created a texture, but it's not large enough, somehow
-        jassertfalse;
-        return;
-    }
+    std::tie (width, height) = std::tie (allocatedSize->width, allocatedSize->height);
 
     if (pixels != nullptr)
     {
@@ -110,7 +107,7 @@ void OpenGLTexture::create (const int w, const int h, const void* pixels, GLenum
                          topLeft ? (height - h) : 0,
                          w,
                          h,
-                         type,
+                         format,
                          GL_UNSIGNED_BYTE,
                          pixels);
     }
@@ -213,14 +210,28 @@ void OpenGLTexture::loadImage (const Image& image)
             return;
     }
 
+    if (context->textureUploadNeedsRedBlueSwap)
+        detail::swapRedAndBlue (dataCopy);
+
     create (imageW, imageH, dataCopy.data(), JUCE_RGBA_FORMAT, true);
 }
 
 void OpenGLTexture::loadARGB (const PixelARGB* pixels, const int w, const int h)
 {
-    if (OpenGLContext::getCurrentContext() == nullptr)
+    auto* context = OpenGLContext::getCurrentContext();
+
+    if (context == nullptr)
     {
         jassertfalse;
+        return;
+    }
+
+    if (context->textureUploadNeedsRedBlueSwap)
+    {
+        const auto copy = UploadScratchBuffer::get (*context).getWithSize ((size_t) w * (size_t) h);
+        std::copy (pixels, pixels + copy.size(), copy.begin());
+        detail::swapRedAndBlue (copy);
+        create (w, h, copy.data(), JUCE_RGBA_FORMAT, false);
         return;
     }
 
@@ -250,6 +261,9 @@ void OpenGLTexture::loadARGBFlipped (const PixelARGB* pixels, int w, int h)
 
     const auto flippedCopy = UploadScratchBuffer::get (*context).getWithSize ((size_t) w * (size_t) h);
     Flipper<PixelARGB>::flip (flippedCopy, (const uint8*) pixels, 4 * w, 4, w, h);
+
+    if (context->textureUploadNeedsRedBlueSwap)
+        detail::swapRedAndBlue (flippedCopy);
 
     create (w, h, flippedCopy.data(), JUCE_RGBA_FORMAT, true);
 }

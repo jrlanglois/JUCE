@@ -44,66 +44,191 @@ static auto* findNullTerminator (const Char* ptr)
     return ptr;
 }
 
+static String preprocessShaderPrecisionStatements (String shaderSource, bool isES)
+{
+    return shaderSource.replace ("#lowp#",    isES ? "lowp" : "")
+                       .replace ("#mediump#", isES ? "mediump" : "")
+                       .replace ("#highp#",   isES ? "highp" : "");
+}
+
 static String preprocessShaderPrecisionStatements (String shaderSource)
 {
-    return shaderSource.replace ("#lowp#",    OpenGLHelpers::isOpenGLES() ? "lowp" : "")
-                       .replace ("#mediump#", OpenGLHelpers::isOpenGLES() ? "mediump" : "")
-                       .replace ("#highp#",   OpenGLHelpers::isOpenGLES() ? "highp" : "");
+    return preprocessShaderPrecisionStatements (std::move (shaderSource), OpenGLHelpers::isOpenGLES());
 }
 
-static OpenGLVersion getOpenGLVersion()
+namespace detail
 {
-    const auto* versionBegin = glGetString (GL_VERSION);
+struct ParsedOpenGLVersion
+{
+    int major = 0;
+    int minor = 0;
+    int numMinorDigits = 0;
 
-    if (versionBegin == nullptr)
-        return {};
-
-    const auto* versionEnd = findNullTerminator (versionBegin);
-    const std::string versionString (versionBegin, versionEnd);
-    const auto spaceSeparated = StringArray::fromTokens (versionString.c_str(), false);
-
-    for (const auto& token : spaceSeparated)
+    OpenGLVersion toOpenGLVersion() const
     {
-        const auto pointSeparated = StringArray::fromTokens (token, ".", "");
-
-        const auto major = pointSeparated[0].getIntValue();
-        const auto minor = pointSeparated[1].getIntValue();
-
-        if (major != 0)
-            return { major, minor };
+        return { major, minor };
     }
 
-    return {};
+    double toDouble() const
+    {
+        auto divisor = 1.0;
+
+        for (auto i = 0; i < numMinorDigits; ++i)
+            divisor *= 10.0;
+
+        return (double) major + ((double) minor / divisor);
+    }
+};
+
+static std::optional<ParsedOpenGLVersion> parseOpenGLVersionString (const String& input)
+{
+    auto index = 0;
+
+    if (input.startsWith ("OpenGL ES"))
+    {
+        while (index < input.length() && ! CharacterFunctions::isDigit (input[index]))
+            ++index;
+    }
+
+    if (index >= input.length() || ! CharacterFunctions::isDigit (input[index]))
+        return {};
+
+    const auto majorBegin = index;
+
+    while (index < input.length() && CharacterFunctions::isDigit (input[index]))
+        ++index;
+
+    if (index >= input.length() || input[index] != '.')
+        return {};
+
+    const auto major = input.substring (majorBegin, index).getIntValue();
+    const auto minorBegin = ++index;
+
+    while (index < input.length() && CharacterFunctions::isDigit (input[index]))
+        ++index;
+
+    if (minorBegin == index)
+        return {};
+
+    return ParsedOpenGLVersion { major,
+                                 input.substring (minorBegin, index).getIntValue(),
+                                 index - minorBegin };
 }
 
-static OpenGLProfile getOpenGLProfile()
+static OpenGLProfile determineOpenGLProfile (OpenGLAPI api,
+                                             OpenGLVersion version,
+                                             bool isForwardCompatible,
+                                             bool hasCompatibilityExtension,
+                                             bool hasCoreProfile)
 {
-   #if JUCE_OPENGL_ES
-    return OpenGLProfile::core;
-   #else
-    if (OpenGLHelpers::isOpenGLES())
+    if (api == OpenGLAPI::openGLES)
         return OpenGLProfile::core;
-
-    const auto version = getOpenGLVersion();
 
     if (version <= OpenGLVersion { 2, 1 })
         return OpenGLProfile::compatibility;
 
     if (version <= OpenGLVersion { 3, 0 })
-    {
-        GLint flags{};
-        glGetIntegerv (GL_CONTEXT_FLAGS, &flags);
-        return (flags & (int) GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT) != 0 ? OpenGLProfile::core : OpenGLProfile::compatibility;
-    }
+        return isForwardCompatible ? OpenGLProfile::core : OpenGLProfile::compatibility;
 
     if (version <= OpenGLVersion { 3, 1 })
+        return hasCompatibilityExtension ? OpenGLProfile::compatibility : OpenGLProfile::core;
+
+    return hasCoreProfile ? OpenGLProfile::core : OpenGLProfile::compatibility;
+}
+
+static String getGLSLVersionString (OpenGLAPI api, OpenGLVersion version)
+{
+    if (api == OpenGLAPI::openGLES)
+        return version >= OpenGLVersion { 3, 0 } ? "#version 300 es"
+                                                : "#version 100";
+
+    return version >= OpenGLVersion { 3, 2 } ? "#version 150"
+                                             : "#version 110";
+}
+
+#if JUCE_ANDROID || JUCE_LINUX || JUCE_BSD || JUCE_UNIT_TESTS
+static bool canTryEGLVersion (OpenGLAPI api,
+                              OpenGLVersion version,
+                              bool configSupportsES3,
+                              bool configSupportsES2)
+{
+    if (api == OpenGLAPI::openGL || version == OpenGLVersion{})
+        return true;
+
+    if (version.major >= 3)
+        return configSupportsES3;
+
+    return version.major == 2 && configSupportsES2;
+}
+#endif
+} // namespace detail
+
+static OpenGLVersion getOpenGLVersion()
+{
+    if (auto* context = OpenGLContext::getCurrentContext())
+        if (const auto info = context->getContextInfo())
+            return info->version;
+
+    const auto* versionString = glGetString (GL_VERSION);
+
+    if (versionString == nullptr)
+        return {};
+
+    const auto parsed = detail::parseOpenGLVersionString (String::fromUTF8 ((const char*) versionString));
+
+    if (parsed == std::nullopt)
+        return {};
+
+    const auto stringVersion = parsed->toOpenGLVersion();
+
+    if (stringVersion >= OpenGLVersion { 3, 0 })
     {
-        return OpenGLHelpers::isExtensionSupported ("GL_ARB_compatibility") ? OpenGLProfile::compatibility : OpenGLProfile::core;
+        GLint major = 0, minor = 0;
+        glGetIntegerv (GL_MAJOR_VERSION, &major);
+        glGetIntegerv (GL_MINOR_VERSION, &minor);
+
+        if (major != 0)
+        {
+            const OpenGLVersion integerVersion { major, minor };
+
+            if (integerVersion != stringVersion)
+                DBG ("OpenGL version queries disagree: string " << stringVersion.major << "." << stringVersion.minor
+                     << ", integers " << integerVersion.major << "." << integerVersion.minor);
+
+            return integerVersion;
+        }
     }
 
-    GLint profile{};
-    glGetIntegerv (GL_CONTEXT_PROFILE_MASK, &profile);
-    return (profile & (int) GL_CONTEXT_CORE_PROFILE_BIT) != 0 ? OpenGLProfile::core : OpenGLProfile::compatibility;
+    return stringVersion;
+}
+
+static OpenGLProfile getOpenGLProfile()
+{
+    if (auto* context = OpenGLContext::getCurrentContext())
+        if (const auto info = context->getContextInfo())
+            return info->profile;
+
+    const auto version = getOpenGLVersion();
+
+   #if ! JUCE_OPENGL_ES
+    const auto isES = OpenGLHelpers::isOpenGLES();
+    GLint flags = 0, profileMask = 0;
+
+    if (! isES && version > OpenGLVersion { 2, 1 } && version <= OpenGLVersion { 3, 0 })
+        glGetIntegerv (GL_CONTEXT_FLAGS, &flags);
+
+    if (! isES && version > OpenGLVersion { 3, 1 })
+        glGetIntegerv (GL_CONTEXT_PROFILE_MASK, &profileMask);
+
+    return detail::determineOpenGLProfile (
+        isES ? OpenGLAPI::openGLES : OpenGLAPI::openGL,
+        version,
+        (flags & (int) GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT) != 0,
+        ! isES && version > OpenGLVersion { 3, 0 } && version <= OpenGLVersion { 3, 1 }
+            && OpenGLHelpers::isExtensionSupported ("GL_ARB_compatibility"),
+        (profileMask & (int) GL_CONTEXT_CORE_PROFILE_BIT) != 0);
+   #else
+    return detail::determineOpenGLProfile (OpenGLAPI::openGLES, version, false, false, true);
    #endif
 }
 
@@ -203,44 +328,36 @@ struct EGLHelpers
     using PtrEGLSurface = ScopedEGLObject<TraitsEGLSurface>;
 
     static PtrEGLContext initEGLContext (OpenGLAPI api,
-                                         OpenGLVersion version,
+                                         Span<const OpenGLVersion> versionsToRequest,
                                          [[maybe_unused]] OpenGLProfile profile,
                                          EGLDisplay display,
                                          EGLConfig config,
-                                         EGLContext contextToShareWith)
+                                         EGLContext contextToShareWith,
+                                         bool mayFallBackToDefault,
+                                         OpenGLVersion& acceptedVersion)
     {
         [[maybe_unused]] const auto didBind = eglBindAPI (api == OpenGLAPI::openGL ? EGL_OPENGL_API : EGL_OPENGL_ES_API);
         // Failed to bind the requested OpenGL API
         jassert (didBind);
+
+        if (! didBind)
+        {
+            DBG ("eglBindAPI failed for "
+                 << (api == OpenGLAPI::openGL ? "OpenGL" : "OpenGL ES")
+                 << ", error " << eglGetError());
+            return {};
+        }
 
         EGLint renderableType{};
         [[maybe_unused]] const auto didGet = eglGetConfigAttrib (display, config, EGL_RENDERABLE_TYPE, &renderableType);
         // Failed to query the supported renderable types
         jassert (didGet);
 
-        const auto versionsToRequest = std::invoke ([&]() -> std::vector<OpenGLVersion>
+        if (! didGet)
         {
-            if (api == OpenGLAPI::openGL)
-                return { version };
-
-            if (version.major == 3 && (renderableType & EGL_OPENGL_ES3_BIT) != 0)
-                return { version, { 3, 0 } };
-
-            if (version.major == 2 && (renderableType & EGL_OPENGL_ES2_BIT) != 0)
-                return { version, { 2, 0 } };
-
-            // We request a config with at least EGL_OPENGL_ES2_BIT capabilities, so there's
-            // no point checking for ES v1 here.
-            // ES 3 is backwards compatible with ES 2, so we may as well return an ES 3 context if
-            // it's available.
-            if ((renderableType & EGL_OPENGL_ES3_BIT) != 0)
-                return { { 3, 0 } };
-
-            if ((renderableType & EGL_OPENGL_ES2_BIT) != 0)
-                return { { 2, 0 } };
-
-            return { {} };
-        });
+            DBG ("eglGetConfigAttrib failed for EGL_RENDERABLE_TYPE, error " << eglGetError());
+            return {};
+        }
 
         constexpr bool addDebugOption[]
         {
@@ -252,6 +369,20 @@ struct EGLHelpers
 
         for (const auto& versionToTry : versionsToRequest)
         {
+            if (versionToTry == OpenGLVersion{})
+                continue;
+
+            if (! detail::canTryEGLVersion (api,
+                                            versionToTry,
+                                            (renderableType & EGL_OPENGL_ES3_BIT) != 0,
+                                            (renderableType & EGL_OPENGL_ES2_BIT) != 0))
+            {
+                DBG ("EGL config does not support "
+                     << (api == OpenGLAPI::openGL ? "OpenGL " : "OpenGL ES ")
+                     << versionToTry.major << "." << versionToTry.minor);
+                continue;
+            }
+
             for (const auto& shouldDebug : addDebugOption)
             {
                 std::vector<EGLint> attribs;
@@ -294,12 +425,40 @@ struct EGLHelpers
                 if (PtrEGLContext renderContext { eglCreateContext (display, config, contextToShareWith, attribs.data()), display };
                     renderContext != nullptr)
                 {
+                    DBG ("eglCreateContext succeeded for "
+                         << (api == OpenGLAPI::openGL ? "OpenGL " : "OpenGL ES ")
+                         << versionToTry.major << "." << versionToTry.minor
+                         << (shouldDebug ? " with debug attributes" : ""));
+                    acceptedVersion = versionToTry;
                     return renderContext;
                 }
+
+                DBG ("eglCreateContext failed for "
+                     << (api == OpenGLAPI::openGL ? "OpenGL " : "OpenGL ES ")
+                     << versionToTry.major << "." << versionToTry.minor
+                     << (shouldDebug ? " with debug attributes" : "")
+                     << ", error " << eglGetError());
             }
         }
 
-        return { eglCreateContext (display, config, contextToShareWith, nullptr), display };
+        if (mayFallBackToDefault)
+        {
+            PtrEGLContext renderContext { eglCreateContext (display, config, contextToShareWith, nullptr), display };
+
+            if (renderContext != nullptr)
+            {
+                DBG ("eglCreateContext succeeded for the default OpenGL context");
+                acceptedVersion = {};
+            }
+            else
+            {
+                DBG ("eglCreateContext failed for the default OpenGL context, error " << eglGetError());
+            }
+
+            return renderContext;
+        }
+
+        return {};
     }
 };
 
@@ -320,7 +479,12 @@ void* OpenGLHelpers::getExtensionFunction (const char* functionName)
    #if JUCE_WINDOWS
     return (void*) wglGetProcAddress (functionName);
    #elif JUCE_LINUX || JUCE_BSD
-    return (void*) eglGetProcAddress (functionName);
+    if (auto* function = (void*) eglGetProcAddress (functionName))
+        return function;
+
+    static DynamicLibrary desktopLibrary { "libGL.so.1" };
+    static DynamicLibrary esLibrary { "libGLESv2.so.2" };
+    return (isOpenGLES() ? esLibrary : desktopLibrary).getFunction (functionName);
    #else
     static void* handle = dlopen (nullptr, RTLD_LAZY);
     return dlsym (handle, functionName);
@@ -384,15 +548,8 @@ void OpenGLHelpers::enableScissorTest (Rectangle<int> clip)
 
 String OpenGLHelpers::getGLSLVersionString()
 {
-    if (getOpenGLVersion() >= OpenGLVersion (3, 2))
-    {
-        if (isOpenGLES())
-            return "#version 300 es";
-
-        return "#version 150";
-    }
-
-    return "#version 110";
+    return detail::getGLSLVersionString (isOpenGLES() ? OpenGLAPI::openGLES : OpenGLAPI::openGL,
+                                         getOpenGLVersion());
 }
 
 String OpenGLHelpers::translateVertexShaderToV3 (const String& code)
@@ -401,7 +558,7 @@ String OpenGLHelpers::translateVertexShaderToV3 (const String& code)
     {
         String output;
 
-       #if JUCE_ANDROID
+        if (isOpenGLES())
         {
             int numAttributes = 0;
 
@@ -419,9 +576,10 @@ String OpenGLHelpers::translateVertexShaderToV3 (const String& code)
 
             output += code.substring (last);
         }
-       #else
-        output = code.replace ("attribute", "in");
-       #endif
+        else
+        {
+            output = code.replace ("attribute", "in");
+        }
 
         return getGLSLVersionString() + "\n" + output.replace ("varying", "out");
     }
@@ -439,6 +597,11 @@ String OpenGLHelpers::translateFragmentShaderToV3 (const String& code)
                       .replace ("gl_FragColor", "fragColor");
 
     return code;
+}
+
+String OpenGLHelpers::translatePrecisionPlaceholders (const String& code)
+{
+    return preprocessShaderPrecisionStatements (code);
 }
 
 } // namespace juce
