@@ -120,7 +120,17 @@ public:
 
         if (shader.get() != nullptr)
         {
-            statusLabel.setText ({}, dontSendNotification);
+            String contextDescription;
+
+            if (const auto info = openGLContext.getContextInfo())
+            {
+                contextDescription = String (info->api == OpenGLAPI::openGL ? "OpenGL " : "OpenGL ES ")
+                                   + String (info->version.major) + "." + String (info->version.minor)
+                                   + " "
+                                   + (info->profile == OpenGLProfile::core ? "core" : "compatibility");
+            }
+
+            statusLabel.setText (contextDescription, dontSendNotification);
 
             shader->fillRect (g.getInternalContext(), getLocalBounds());
         }
@@ -144,7 +154,7 @@ public:
 
     void selectPreset (int preset)
     {
-        fragmentDocument.replaceAllContent (preprocessShader (getPresets()[(size_t) preset].fragmentShader));
+        fragmentDocument.replaceAllContent (getPresets()[(size_t) preset].fragmentShader);
         startTimer (1);
     }
 
@@ -183,13 +193,6 @@ private:
         const char* name;
         const char* fragmentShader;
     };
-
-    static String preprocessShader (String shaderSource)
-    {
-        return shaderSource.replace ("#lowp#",    OpenGLHelpers::isOpenGLES() ? "lowp" : "")
-                           .replace ("#mediump#", OpenGLHelpers::isOpenGLES() ? "mediump" : "")
-                           .replace ("#highp#",   OpenGLHelpers::isOpenGLES() ? "highp" : "");
-    }
 
     static Span<const ShaderPreset> getPresets()
     {

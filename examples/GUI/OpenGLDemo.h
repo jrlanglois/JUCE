@@ -264,14 +264,6 @@ struct OpenGLUtils
         }
     };
 
-    //==============================================================================
-    static String preprocessShader (String shaderSource)
-    {
-        return shaderSource.replace ("#lowp#",    OpenGLHelpers::isOpenGLES() ? "lowp" : "")
-                           .replace ("#mediump#", OpenGLHelpers::isOpenGLES() ? "mediump" : "")
-                           .replace ("#highp#",   OpenGLHelpers::isOpenGLES() ? "highp" : "");
-    }
-
     struct ShaderPreset
     {
         const char* name;
@@ -714,8 +706,10 @@ public:
         controlsOverlay.reset (new DemoControlsOverlay (*this));
         addAndMakeVisible (controlsOverlay.get());
 
-        openGLContext.setPreferredVersion ({ 3, 2 });
-        openGLContext.setPreferredProfile (OpenGLProfile::core);
+        openGLContext.setContextRequests (
+            { { OpenGLAPI::openGL, { 3, 2 }, OpenGLProfile::core },
+              { OpenGLAPI::openGLES, { 3, 0 }, OpenGLProfile::core },
+              { OpenGLAPI::openGL, {}, OpenGLProfile::compatibility } });
         openGLContext.setRenderer (this);
         openGLContext.attachTo (*this);
         openGLContext.setContinuousRepainting (true);
@@ -1068,8 +1062,8 @@ private:
         {
             const auto& p = OpenGLUtils::getPresets()[(size_t) preset];
 
-            vertexDocument  .replaceAllContent (OpenGLUtils::preprocessShader (p.vertexShader));
-            fragmentDocument.replaceAllContent (OpenGLUtils::preprocessShader (p.fragmentShader));
+            vertexDocument  .replaceAllContent (p.vertexShader);
+            fragmentDocument.replaceAllContent (p.fragmentShader);
 
             startTimer (1);
         }
@@ -1219,9 +1213,11 @@ private:
         if (newVertexShader.isNotEmpty() || newFragmentShader.isNotEmpty())
         {
             std::unique_ptr<OpenGLShaderProgram> newShader (new OpenGLShaderProgram (openGLContext));
+            const auto vertexShader = OpenGLHelpers::translatePrecisionPlaceholders (newVertexShader);
+            const auto fragmentShader = OpenGLHelpers::translatePrecisionPlaceholders (newFragmentShader);
 
-            if (newShader->addVertexShader (OpenGLHelpers::translateVertexShaderToV3 (newVertexShader))
-                  && newShader->addFragmentShader (OpenGLHelpers::translateFragmentShaderToV3 (newFragmentShader))
+            if (newShader->addVertexShader (OpenGLHelpers::translateVertexShaderToV3 (vertexShader))
+                  && newShader->addFragmentShader (OpenGLHelpers::translateFragmentShaderToV3 (fragmentShader))
                   && newShader->link())
             {
                 shape     .reset();
@@ -1236,6 +1232,14 @@ private:
                 uniforms  .reset (new OpenGLUtils::Uniforms   (*shader));
 
                 statusText = "GLSL: v" + String (OpenGLShaderProgram::getLanguageVersion(), 2);
+
+                if (const auto info = openGLContext.getContextInfo())
+                {
+                    statusText << "\n"
+                               << (info->api == OpenGLAPI::openGL ? "OpenGL " : "OpenGL ES ")
+                               << info->version.major << "." << info->version.minor << " "
+                               << (info->profile == OpenGLProfile::core ? "core" : "compatibility");
+                }
             }
             else
             {

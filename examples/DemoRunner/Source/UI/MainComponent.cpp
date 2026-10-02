@@ -23,6 +23,63 @@
 
 #include "MainComponent.h"
 
+namespace
+{
+std::vector<OpenGLContext::ContextRequest> getOpenGLContextRequests (int preset)
+{
+    switch (preset)
+    {
+        case 0:
+            return {};
+
+        case 1:
+            return { { OpenGLAPI::openGL, {}, OpenGLProfile::compatibility } };
+
+        case 2:
+            return { { OpenGLAPI::openGLES, {}, OpenGLProfile::core } };
+
+        case 3:
+            return { { OpenGLAPI::openGL, { 3, 2 }, OpenGLProfile::core },
+                     { OpenGLAPI::openGLES, { 3, 0 }, OpenGLProfile::core } };
+
+        default:
+            jassertfalse;
+            return {};
+    }
+}
+
+String getOpenGLAPIDescription (OpenGLAPI api)
+{
+    return api == OpenGLAPI::openGL ? "OpenGL" : "OpenGL ES";
+}
+
+String getOpenGLVersionDescription (OpenGLVersion version)
+{
+    return version == OpenGLVersion{} ? "default"
+                                      : String (version.major) + "." + String (version.minor);
+}
+
+String getOpenGLProfileDescription (OpenGLProfile profile)
+{
+    return profile == OpenGLProfile::core ? "core" : "compatibility";
+}
+
+String formatOpenGLContextDescription (const OpenGLContextInfo& info)
+{
+    const auto describeContext = [] (OpenGLAPI api, OpenGLVersion version, OpenGLProfile profile)
+    {
+        return getOpenGLAPIDescription (api)
+             + " " + getOpenGLVersionDescription (version)
+             + " " + getOpenGLProfileDescription (profile);
+    };
+
+    return "Requested " + describeContext (info.requested.api, info.requested.version, info.requested.profile)
+         + "; accepted " + getOpenGLVersionDescription (info.acceptedVersion)
+         + "; detected " + describeContext (info.api, info.version, info.profile)
+         + (info.matchesRequest ? "" : " (mismatch)");
+}
+} // namespace
+
 //==============================================================================
 struct SidePanelHeader final : public Component
 {
@@ -293,6 +350,16 @@ private:
 //==============================================================================
 MainComponent::MainComponent()
 {
+    openGLContext.onCreated = [this] (const auto& info)
+    {
+        openGLContextDescription.setValue (formatOpenGLContextDescription (info));
+    };
+
+    openGLContext.onCreationFailed = [this]
+    {
+        openGLContextDescription.setValue ("Software fallback");
+    };
+
     contentComponent.reset (new DemoContentComponent (*this, [this] (bool isHeavyweight)
     {
         demosPanel.showOrHide (false);
@@ -432,6 +499,29 @@ void MainComponent::setRenderingEngine (int renderingEngineIndex)
         updateRenderingEngine (renderingEngineIndex);
 }
 
+StringArray MainComponent::getOpenGLContextPresets() const
+{
+    return { "Automatic",
+             "Desktop GL",
+             "OpenGL ES",
+             "Desktop 3.2 core, then ES 3.0" };
+}
+
+void MainComponent::setOpenGLContextPreset (int index)
+{
+    if (std::exchange (currentOpenGLContextPreset, index) == index)
+        return;
+
+    if (isOpenGLRendererSelected())
+        updateRenderingEngine (currentRenderingEngineIdx);
+}
+
+bool MainComponent::isOpenGLRendererSelected() const
+{
+    return currentRenderingEngineIdx >= 0
+        && currentRenderingEngineIdx == renderingEngines.size() - 1;
+}
+
 void MainComponent::parentHierarchyChanged()
 {
     auto* newPeer = getPeer();
@@ -470,11 +560,15 @@ void MainComponent::updateRenderingEngine (int renderingEngineIndex)
         if (isShowingHeavyweightDemo)
             return;
 
+        openGLContext.detach();
+        openGLContext.setContextRequests (getOpenGLContextRequests (currentOpenGLContextPreset));
+        openGLContextDescription.setValue ("Creating...");
         openGLContext.attachTo (*getTopLevelComponent());
     }
     else
     {
         openGLContext.detach();
+        openGLContextDescription.setValue ("Not active");
 
         if (peer != nullptr)
             peer->setCurrentRenderingEngine (renderingEngineIndex);
