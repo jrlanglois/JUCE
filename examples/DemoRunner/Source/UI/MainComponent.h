@@ -50,6 +50,12 @@ public:
     int getCurrentRenderingEngine()        { return currentRenderingEngineIdx; }
     void setRenderingEngine (int index);
 
+    StringArray getOpenGLContextPresets() const;
+    int getCurrentOpenGLContextPreset() const   { return currentOpenGLContextPreset; }
+    void setOpenGLContextPreset (int index);
+    bool isOpenGLRendererSelected() const;
+    Value& getOpenGLContextDescription()        { return openGLContextDescription; }
+
 private:
     void parentHierarchyChanged() override;
     void updateRenderingEngine (int index);
@@ -63,6 +69,8 @@ private:
     ComponentPeer* peer = nullptr;
     StringArray renderingEngines;
     int currentRenderingEngineIdx = -1;
+    int currentOpenGLContextPreset = 0;
+    Value openGLContextDescription { "Not created" };
 
     TextButton showDemosButton      { "Browse Demos" };
 

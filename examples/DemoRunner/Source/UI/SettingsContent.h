@@ -49,7 +49,7 @@ public:
     void resized() override
     {
         constexpr int minimumWidth  = 350;
-        constexpr int minimumHeight = 550;
+        constexpr int minimumHeight = 625;
 
         auto r = getLocalBounds();
         const auto scrollBarWidth = getLookAndFeel().getDefaultScrollbarWidth();
@@ -96,14 +96,40 @@ private:
             lookAndFeelLabel.attachToComponent (&lookAndFeelSelector, true);
 
             addAndMakeVisible (rendererSelector);
-            rendererSelector.onChange = [this] { mainComponent.setRenderingEngine (rendererSelector.getSelectedItemIndex()); };
+            rendererSelector.onChange = [this]
+            {
+                mainComponent.setRenderingEngine (rendererSelector.getSelectedItemIndex());
+                refreshOpenGLControls();
+            };
 
             addAndMakeVisible (rendererLabel);
             rendererLabel.setJustificationType (Justification::centredRight);
             rendererLabel.attachToComponent (&rendererSelector, true);
 
+            addAndMakeVisible (openGLContextSelector);
+            openGLContextSelector.addItemList (mainComponent.getOpenGLContextPresets(), 1);
+            openGLContextSelector.setSelectedItemIndex (mainComponent.getCurrentOpenGLContextPreset());
+            openGLContextSelector.onChange = [this]
+            {
+                mainComponent.setOpenGLContextPreset (openGLContextSelector.getSelectedItemIndex());
+            };
+
+            addAndMakeVisible (openGLContextLabel);
+            openGLContextLabel.setJustificationType (Justification::centredRight);
+            openGLContextLabel.attachToComponent (&openGLContextSelector, true);
+
+            addAndMakeVisible (createdContextReadout);
+            createdContextReadout.getTextValue().referTo (mainComponent.getOpenGLContextDescription());
+            createdContextReadout.setMinimumHorizontalScale (0.5f);
+
+            addAndMakeVisible (createdContextLabel);
+            createdContextLabel.setJustificationType (Justification::centredRight);
+            createdContextLabel.attachToComponent (&createdContextReadout, true);
+
             setFocusContainerType (FocusContainerType::focusContainer);
             setTitle ("Graphics Settings");
+
+            refreshOpenGLControls();
         }
 
         void resized() override
@@ -120,6 +146,12 @@ private:
             bounds.removeFromTop (itemSpacing);
 
             rendererSelector.setBounds (bounds.removeFromTop (itemHeight).withWidth (width).withX (xPos));
+            bounds.removeFromTop (itemSpacing);
+
+            openGLContextSelector.setBounds (bounds.removeFromTop (itemHeight).withWidth (width).withX (xPos));
+            bounds.removeFromTop (itemSpacing);
+
+            createdContextReadout.setBounds (bounds.removeFromTop (itemHeight).withWidth (width).withX (xPos));
         }
 
     private:
@@ -139,6 +171,8 @@ private:
 
                 if (peer != nullptr)
                     refreshRenderingEngineSelector();
+
+                refreshOpenGLControls();
             }
         }
 
@@ -148,6 +182,16 @@ private:
 
             rendererSelector.addItemList (mainComponent.getRenderingEngines(), 1);
             rendererSelector.setSelectedItemIndex (mainComponent.getCurrentRenderingEngine());
+            refreshOpenGLControls();
+        }
+
+        void refreshOpenGLControls()
+        {
+            const auto isEnabled = mainComponent.isOpenGLRendererSelected();
+            openGLContextSelector.setEnabled (isEnabled);
+            openGLContextLabel.setEnabled (isEnabled);
+            createdContextReadout.setEnabled (isEnabled);
+            createdContextLabel.setEnabled (isEnabled);
         }
 
         void addLookAndFeels()
@@ -170,9 +214,12 @@ private:
 
         Label titleLabel       { {}, "Graphics" },
               lookAndFeelLabel { {}, "LookAndFeel:" },
-              rendererLabel    { {}, "Renderer:" };
+              rendererLabel    { {}, "Renderer:" },
+              openGLContextLabel { {}, "GL contexts:" },
+              createdContextLabel { {}, "Created:" },
+              createdContextReadout;
 
-        ComboBox lookAndFeelSelector, rendererSelector;
+        ComboBox lookAndFeelSelector, rendererSelector, openGLContextSelector;
         StringArray lookAndFeelNames;
         OwnedArray<LookAndFeel> lookAndFeels;
     };
@@ -230,7 +277,7 @@ private:
         {
             auto bounds = getLocalBounds();
 
-            graphicsSettings.setBounds (bounds.removeFromTop (150));
+            graphicsSettings.setBounds (bounds.removeFromTop (225));
             audioSettings.setBounds (bounds);
         }
 

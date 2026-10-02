@@ -64,6 +64,10 @@ public:
     //==============================================================================
     OpenGLAppDemo()
     {
+        openGLContext.setContextRequests (
+            { { OpenGLAPI::openGL, {}, OpenGLProfile::compatibility },
+              { OpenGLAPI::openGLES, {}, OpenGLProfile::core } });
+
         setSize (800, 600);
     }
 
@@ -145,8 +149,18 @@ public:
         g.setColour (getLookAndFeel().findColour (Label::textColourId));
         g.setFont (20);
         g.drawText ("OpenGL Example", 25, 20, 300, 30, Justification::left);
+
+        if (const auto info = openGLContext.getContextInfo())
+        {
+            const auto contextDescription = String (info->api == OpenGLAPI::openGL ? "OpenGL " : "OpenGL ES ")
+                                          + String (info->version.major) + "." + String (info->version.minor)
+                                          + " "
+                                          + (info->profile == OpenGLProfile::core ? "core" : "compatibility");
+            g.drawText (contextDescription, 25, 50, 500, 30, Justification::left);
+        }
+
         g.drawLine (20, 20, 170, 20);
-        g.drawLine (20, 50, 170, 50);
+        g.drawLine (20, 80, 170, 80);
     }
 
     void resized() override
@@ -157,13 +171,6 @@ public:
 
         const ScopedLock lock (mutex);
         bounds = getLocalBounds();
-    }
-
-    static String preprocessShader (String shaderSource)
-    {
-        return shaderSource.replace ("#lowp#",    OpenGLHelpers::isOpenGLES() ? "lowp" : "")
-                           .replace ("#mediump#", OpenGLHelpers::isOpenGLES() ? "mediump" : "")
-                           .replace ("#highp#",   OpenGLHelpers::isOpenGLES() ? "highp" : "");
     }
 
     void createShaders()
@@ -198,9 +205,11 @@ public:
 
         std::unique_ptr<OpenGLShaderProgram> newShader (new OpenGLShaderProgram (openGLContext));
         String statusText;
+        const auto translatedVertexShader = OpenGLHelpers::translatePrecisionPlaceholders (vertexShader);
+        const auto translatedFragmentShader = OpenGLHelpers::translatePrecisionPlaceholders (fragmentShader);
 
-        if (newShader->addVertexShader (OpenGLHelpers::translateVertexShaderToV3 (preprocessShader (vertexShader)))
-              && newShader->addFragmentShader (OpenGLHelpers::translateFragmentShaderToV3 (preprocessShader (fragmentShader)))
+        if (newShader->addVertexShader (OpenGLHelpers::translateVertexShaderToV3 (translatedVertexShader))
+              && newShader->addFragmentShader (OpenGLHelpers::translateFragmentShaderToV3 (translatedFragmentShader))
               && newShader->link())
         {
             shape     .reset();
