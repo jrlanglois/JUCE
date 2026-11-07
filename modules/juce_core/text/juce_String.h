@@ -171,6 +171,11 @@ public:
     /** Creates a string from a UTF-8 encoded std::string. */
     String (const std::string&);
 
+    /** Creates a string from a UTF-8 encoded std::string_view.
+        The view doesn't have to be null-terminated.
+    */
+    String (std::string_view);
+
     /** Creates a string from a StringRef */
     String (StringRef);
 

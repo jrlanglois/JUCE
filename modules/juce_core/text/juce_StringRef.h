@@ -41,7 +41,9 @@ namespace juce
 
     Unlike a real String object, the StringRef does not allocate any memory or
     take ownership of the strings you give to it - it simply holds a reference to
-    a string that has been allocated elsewhere.
+    a string that has been allocated elsewhere. The exception is a std::string_view,
+    which doesn't have to be null-terminated, so the StringRef keeps its own
+    null-terminated copy of the text.
     The main purpose of the class is to be used instead of a const String& as the type
     of function arguments where the caller may pass either a string literal or a String
     object. This means that when the called uses a string literal, there's no need
@@ -100,8 +102,20 @@ public:
     */
     StringRef (const std::string& string);
 
+    /** Creates a StringRef from a UTF-8 encoded std::string_view.
+        Because a std::string_view doesn't have to be null-terminated, the StringRef
+        allocates its own null-terminated copy of the text, which it keeps for its
+        lifetime. To avoid this copy, pass a String or a std::string instead.
+    */
+    StringRef (std::string_view string);
+
     /** Creates a StringRef pointer to an empty string. */
     StringRef() noexcept;
+
+    // No move operations are declared, so moves fall back to copying. Moving stringCopy would
+    // leave the moved-from StringRef's text pointing at a copy that it no longer owns.
+    StringRef (const StringRef&) = default;
+    StringRef& operator= (const StringRef&) = default;
 
     //==============================================================================
     /** Returns a raw pointer to the underlying string data. */
@@ -141,13 +155,11 @@ public:
     /** The text that is referenced. */
     String::CharPointerType text;
 
-    #if JUCE_STRING_UTF_TYPE != 8
-     /** @cond */
-     // Sorry, non-UTF8 people, you're unable to take advantage of StringRef, because
-     // you've chosen a character encoding that doesn't match C++ string literals.
-     String stringCopy;
-     /** @endcond */
-    #endif
+    /** @cond */
+    // Owns the text when it can't be referenced directly: a std::string_view doesn't have to be
+    // null-terminated, and if JUCE_STRING_UTF_TYPE isn't 8, string literals use a different encoding.
+    String stringCopy;
+    /** @endcond */
 };
 
 //==============================================================================

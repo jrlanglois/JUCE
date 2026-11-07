@@ -4,6 +4,39 @@
 
 ## Change
 
+String and StringRef can now be constructed implicitly from a std::string_view.
+StringRef now always contains a String, which holds a copy of the text when the
+StringRef is constructed from a std::string_view, so StringRef is larger and is
+no longer trivially copyable.
+
+**Possible Issues**
+
+Code that requires StringRef to be trivially copyable, for example by using it
+with std::atomic, by copying it with memcpy, or by passing it to a C-style
+variadic function, will fail to compile or will behave incorrectly.
+
+Constructing a String or StringRef directly from an object that can be
+implicitly converted both to a std::string_view and to another type that their
+constructors accept, such as const char* or std::string, is now ambiguous and
+will fail to compile.
+
+**Workaround**
+
+Use a String, or the text member of the StringRef, where a trivially copyable
+type is required.
+
+Resolve an ambiguous construction by first converting the argument to the
+intended type, for example with a static_cast.
+
+**Rationale**
+
+A std::string_view doesn't have to be null-terminated, but the text that a
+StringRef refers to must be, so a StringRef that is constructed from a
+std::string_view has to own a null-terminated copy of the text.
+
+
+## Change
+
 The deprecated function `MessageBoxOptions::makeOptionsYesNo` no longer
 produces a dialog that can be dismissed with 'escape' and confirmed with
 'return'.

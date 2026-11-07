@@ -70,6 +70,38 @@ struct StringHolder
 constexpr StringHolder emptyString;
 
 //==============================================================================
+struct BoundedCharPointer_UTF8
+{
+    const char* getAddress() const noexcept  { return data; }
+    bool isEmpty() const noexcept            { return data == end || *data == 0; }
+
+    juce_wchar getAndAdvance() noexcept
+    {
+        const auto decode = [this] (const char* source)
+        {
+            CharPointer_UTF8 p (source);
+            const auto c = p.getAndAdvance();
+            data += p.getAddress() - source;
+            return c;
+        };
+
+        constexpr int maxBytesPerCharacter = 4;
+
+        if (end - data >= maxBytesPerCharacter)
+            return decode (data);
+
+        // The decoder reads ahead to complete a multi-byte sequence, so one that is cut
+        // short by the end of the range must be decoded from a null-terminated copy
+        char tail[maxBytesPerCharacter] {};
+        std::copy (data, end, tail);
+        return decode (tail);
+    }
+
+    const char* data;
+    const char* end;
+};
+
+//==============================================================================
 class StringHolderUtils
 {
 public:
@@ -143,8 +175,7 @@ public:
 
     static CharPointerType createFromFixedLength (const char* const src, const size_t numChars)
     {
-        const auto end = CharPointer_UTF8 (src + numChars);
-        return createFromCharPointerWhile (CharPointer_UTF8 (src), [end] (auto pos, size_t) { return pos < end; });
+        return createFromCharPointer (BoundedCharPointer_UTF8 { src, src + numChars });
     }
 
     //==============================================================================
@@ -371,6 +402,7 @@ String::String (CharPointer_UTF16 start, CharPointer_UTF16 end)  : text (StringH
 String::String (CharPointer_UTF32 start, CharPointer_UTF32 end)  : text (StringHolderUtils::createFromCharPointer (start, end)) {}
 
 String::String (const std::string& s) : text (StringHolderUtils::createFromFixedLength (s.data(), s.size())) {}
+String::String (std::string_view s)   : text (StringHolderUtils::createFromFixedLength (s.data(), s.size())) {}
 String::String (StringRef s)          : text (StringHolderUtils::createFromCharPointer (s.text)) {}
 
 String String::charToString (juce_wchar character)
@@ -2197,6 +2229,12 @@ StringRef::StringRef (String::CharPointerType stringLiteral) noexcept  : text (s
 StringRef::StringRef (const String& string) noexcept   : text (string.getCharPointer()) {}
 StringRef::StringRef (const std::string& string)       : StringRef (string.c_str()) {}
 
+StringRef::StringRef (std::string_view string)
+    : text (nullptr), stringCopy (string)
+{
+    text = stringCopy.getCharPointer();
+}
+
 //==============================================================================
 static String reduceLengthOfFloatString (const String& input)
 {
@@ -3119,7 +3157,9 @@ public:
                                    String (CharPointer_UTF8 (overlong.data())),
                                    String (CharPointer_UTF8 (overlong.data()), overlong.size()),
                                    String (overlong),
-                                   String (lone) })
+                                   String (lone),
+                                   String (std::string_view (overlong)),
+                                   String (std::string_view (lone)) })
             {
                 expect (isValid (s));
                 expect (s.endsWith ("trailing"));
@@ -3135,6 +3175,56 @@ public:
                 expect (s.endsWith ("trailing"));
             }
         }
+
+        testCase ("Constructing from a std::string_view", [&]
+        {
+            static_assert (std::is_convertible_v<std::string_view, String>);
+
+            expect (String (std::string_view()).isEmpty());
+            expectEquals (String (std::string_view ("abc")), String ("abc"));
+            expectEquals (String (std::string_view ("\xe3\x81\x82\xe3\x81\x84")),
+                          String (CharPointer_UTF8 ("\xe3\x81\x82\xe3\x81\x84")));
+
+            // A view doesn't have to be null-terminated, so the text that follows it must be ignored
+            const std::string_view abcdef ("abcdef");
+            expectEquals (String (abcdef.substr (1, 3)), String ("bcd"));
+            expect (String (abcdef.substr (abcdef.size())).isEmpty());
+
+            // This includes any continuation bytes that would complete a multi-byte sequence
+            // that is cut short by the end of the view
+            const auto truncated = std::string_view ("\xe3\x81\x82").substr (0, 2);
+            expectEquals (String (truncated), String (CharPointer_UTF8 ("\xe3\x81")));
+        });
+
+        testCase ("Constructing a StringRef from a std::string_view", [&]
+        {
+            static_assert (std::is_convertible_v<std::string_view, StringRef>);
+
+            expect (StringRef (std::string_view()).isEmpty());
+
+            // A view doesn't have to be null-terminated, but the text of a StringRef does
+            const std::string_view abcdef ("abcdef");
+            const StringRef bcd (abcdef.substr (1, 3));
+            expectEquals (bcd.length(), 3);
+            expectEquals (String (bcd), String ("bcd"));
+
+            const String abc ("abc");
+            expect (abc.startsWith (abcdef.substr (0, 2)));
+            expect (abc.endsWith (abcdef.substr (1, 2)));
+            expectEquals (abc.indexOf (abcdef.substr (2, 1)), 2);
+
+            // Copies share the text, so they remain valid after the original is destroyed
+            std::optional<StringRef> original { abcdef.substr (3) };
+            const auto copy = *original;
+            original.reset();
+            expectEquals (String (copy), String ("def"));
+
+            // Moving is copying, so the source remains valid after the destination is destroyed
+            StringRef source (abcdef.substr (3));
+            std::optional<StringRef> destination { std::move (source) };
+            destination.reset();
+            expectEquals (String (source), String ("def"));
+        });
     }
 };
 
